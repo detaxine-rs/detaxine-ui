@@ -116,7 +116,7 @@ pub fn App() -> impl IntoView {
                               flex flex-col gap-12 max-w-4xl">
 
                     <Section section_ref=buttons_ref label="Buttons">
-                        <ButtonGroup style_ext="font-bold bg-primary text-white hover:bg-secondary".to_string()>
+                        <ButtonGroup style_ext="font-bold bg-primary text-white hover:bg-secondary">
                             <BasicButton
                                 button_text="First"
                                 icon=Some(AiCheckCircleOutlined)

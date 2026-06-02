@@ -67,7 +67,7 @@ pub fn BasicButton(
                 }
             }
             class=move || format!(
-                "font-bold py-2 px-4 cursor-pointer rounded-[5px] disabled:opacity-50 disabled:cursor-not-allowed {} {}",
+                "dtx-btn {} {}",
                 style_ext,
                 style_ext_reactive.get()
             )
