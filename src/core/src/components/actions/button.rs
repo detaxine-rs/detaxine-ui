@@ -106,7 +106,7 @@ pub fn BasicButton(
 #[component]
 pub fn ButtonGroup(
     /// `style_ext` property will extend styles for the buttons. `N/B:` All buttons share the same styles(These styles will affect all the buttons).
-    #[prop(default = "".to_string())]
+    #[prop(into, optional)]
     style_ext: String,
     mut children: ChildrenFragmentMut,
 ) -> impl IntoView {
