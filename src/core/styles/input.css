@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary: #32B089;
+    --color-secondary: #3298B0;
+    --color-warning: #E7C318;
+    --color-success: #32B04A;
+    --color-info: #1D9AE2;
+    --color-danger: #E74C3C;
+    --color-light-gray: #D2D2D2;
+    --color-mid-gray: #8D8D8D;
+    --color-gray: #4D4D4D;
+    --color-navy: #000E1E;
+    --color-navy-light: #0D1F35;
+    --color-editor-dark: #252524;
+    --color-contrast-white: #F0F0F0;
+    --font-primary: "Inter", sans-serif;
+}
+
+/* Custom styles for the toggle switch dot */
+.dot {
+    @apply bg-slate-50 shadow-md;
+}
