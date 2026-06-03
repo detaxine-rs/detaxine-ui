@@ -66,10 +66,9 @@ pub fn BasicButton(
                     ButtonType::Reset => "reset"
                 }
             }
-            class=move || format!(
-                "dtx-btn {} {}",
+            class=format!(
+                "dtx-btn {}",
                 style_ext,
-                style_ext_reactive.get()
             )
             on:click=move |ev| onclick.run(ev)
             disabled={disabled}
