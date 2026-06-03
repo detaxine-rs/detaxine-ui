@@ -35,7 +35,7 @@ pub enum ButtonType {
 #[component]
 pub fn BasicButton(
     #[prop(into, optional)] button_text: String,
-    #[prop(into, optional)] style_ext: String,
+    #[prop(into, optional, default = "dtx-btn".to_string())] style_ext: String,
     #[prop(into, optional, default = Signal::derive(move || "".to_string()))]
     style_ext_reactive: Signal<String>,
     #[prop(into, optional)] children_style_ext: String,
@@ -67,7 +67,7 @@ pub fn BasicButton(
                 }
             }
             class=format!(
-                "dtx-btn {}",
+                "{}",
                 style_ext,
             )
             on:click=move |ev| onclick.run(ev)
