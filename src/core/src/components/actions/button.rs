@@ -66,9 +66,10 @@ pub fn BasicButton(
                     ButtonType::Reset => "reset"
                 }
             }
-            class=format!(
-                "font-bold py-2 px-4 cursor-pointer rounded-[5px] disabled:opacity-50 disabled:cursor-not-allowed {}",
+            class=move || format!(
+                "font-bold py-2 px-4 cursor-pointer rounded-[5px] disabled:opacity-50 disabled:cursor-not-allowed {} {}",
                 style_ext,
+                style_ext_reactive.get()
             )
             on:click=move |ev| onclick.run(ev)
             disabled={disabled}
