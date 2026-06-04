@@ -11,7 +11,7 @@ use crate::components::schemas::props::ColorTemperature;
 /// ```
 #[component]
 pub fn Badge(
-    #[prop(into)] text: String,
+    #[prop(into)] text: MaybeProp<String>,
     #[prop(default = ColorTemperature::Primary)] color: ColorTemperature,
     #[prop(into, optional)] parent_class: String,
     children: Children,
@@ -27,7 +27,7 @@ pub fn Badge(
 
     let text_clone = text.clone();
     let width_classes = move || {
-        if text_clone.is_empty() {
+        if text_clone.get().is_none() {
             "w-2 h-2"
         } else {
             "min-w-4 h-4 p-1"
