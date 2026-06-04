@@ -44,13 +44,15 @@ impl CheckboxOption {
 /// ```
 #[component]
 pub fn CheckboxInputField(
-    #[prop(into, optional)] initial_value: Signal<String>,
+    #[prop(into, optional)] initial_value: MaybeProp<String>,
     #[prop(into, optional)] label: String,
     #[prop(into, optional)] name: String,
     #[prop(optional)] input_node_ref: NodeRef<Input>,
     #[prop(default = false, optional)] readonly: bool,
     #[prop(default = false, optional)] required: bool,
-    #[prop(into, default = Signal::derive(move || false), optional)] checked: Signal<bool>,
+    #[prop(into, default = MaybeProp::derive(move || Some(false)), optional)] checked: MaybeProp<
+        bool,
+    >,
     #[prop(into, optional)] placeholder: String,
     #[prop(into, optional)] id_attr: String,
     #[prop(into, optional)] ext_input_styles: String,

@@ -8,7 +8,7 @@ use leptos::prelude::*;
 /// Example usage:
 /// ```
 /// <ToggleSwitch
-///    active=RwSignal::new(true)
+///    active=true
 ///    label_active="Enabled"
 ///    label_inactive="Disabled"
 ///    name="status"
@@ -17,7 +17,9 @@ use leptos::prelude::*;
 #[component]
 pub fn ToggleSwitch(
     #[prop(into, optional)] name: String,
-    #[prop(into, optional, default = Signal::derive(move || false))] active: Signal<bool>,
+    #[prop(into, optional, default = MaybeProp::derive(move || Some(false)))] active: MaybeProp<
+        bool,
+    >,
     #[prop(into, optional)] label_active: String,
     #[prop(into, optional)] label_inactive: String,
     #[prop(into, optional)] id_attr: String,
@@ -27,6 +29,7 @@ pub fn ToggleSwitch(
 ) -> impl IntoView {
     let checkbox_ref = NodeRef::new();
     let initial_value = RwSignal::new(String::from("false"));
+    let switch_is_active = Memo::new(move |_| active.get().unwrap_or(false));
 
     let handle_toggle = move |ev: ev::MouseEvent| {
         ev.stop_propagation();
@@ -44,20 +47,20 @@ pub fn ToggleSwitch(
                     <div
                         class=move || format!(
                             "block w-14 h-8 rounded-full {}",
-                            if active.get() { "bg-secondary" } else { "bg-mid-gray" }
+                            if switch_is_active.get() { "bg-secondary" } else { "bg-mid-gray" }
                         )
                     ></div>
                     <div
                         class=move || format!(
                             "dot absolute left-1 bottom-1 w-6 h-6 rounded-full transition transform {}",
-                            if active.get() { "translate-x-full" } else { "" }
+                            if switch_is_active.get() { "translate-x-full" } else { "" }
                         )
                     ></div>
                 </div>
                 <div class="flex items-center ml-3 font-medium">
                     <p>{
                         move || {
-                            if active.get() {
+                            if switch_is_active.get() {
                                 label_active.clone()
                             } else {
                                 label_inactive.clone()
