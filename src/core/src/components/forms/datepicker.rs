@@ -339,23 +339,24 @@ fn Calendar(
                                         }
                                     }
                                 })
-                                style_ext_reactive=Memo::new(move |_| {
-                                    let is_selected = highlighted.get().map(|h| {
-                                        !is_blank
-                                            && h.day() == day
+                                style_ext=MaybeProp::derive(move || {
+                                    let base = "flex text-xs items-center justify-center border-none rounded m-1";
+
+                                    let variant = if is_blank {
+                                        ""
+                                    } else if disabled {
+                                        "text-gray-300 cursor-not-allowed"
+                                    } else if highlighted.get().map(|h| {
+                                        h.day() == day
                                             && h.month() == current_month.get()
                                             && h.year() == current_year.get()
-                                    }).unwrap_or(false);
-
-                                    if is_blank {
-                                        "".into()
-                                    } else if disabled {
-                                        "flex text-xs items-center justify-center border-none rounded m-1 text-gray-300 cursor-not-allowed".into()
-                                    } else if is_selected {
-                                        "flex text-xs items-center justify-center border-none rounded m-1 bg-primary text-contrast-white cursor-pointer".into()
+                                    }).unwrap_or(false) {
+                                        "bg-primary text-contrast-white cursor-pointer"
                                     } else {
-                                        "flex text-xs items-center justify-center border-none rounded m-1 hover:bg-blue-200 cursor-pointer".into()
-                                    }
+                                        "hover:bg-blue-200 cursor-pointer"
+                                    };
+
+                                    Some(format!("{base} {variant}"))
                                 })
                                 button_text={if is_blank { "".to_string() } else { day.to_string() }}
                             />

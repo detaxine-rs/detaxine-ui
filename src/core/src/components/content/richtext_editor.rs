@@ -49,37 +49,47 @@ pub fn RichTextEditor(
 ) -> impl IntoView {
     let editor_ref = NodeRef::new();
     let file_input_ref = NodeRef::new();
-    let font_options = RwSignal::new(vec![
-        SelectOption::new("p", "Normal"),
-        SelectOption::new("h1", "H1"),
-        SelectOption::new("h2", "H2"),
-        SelectOption::new("h3", "H3"),
-        SelectOption::new("h4", "H4"),
-        SelectOption::new("h5", "H5"),
-        SelectOption::new("h6", "H6"),
-    ]);
-    let language_options = RwSignal::new(vec![
-        SelectOption::new("plaintext", "Plain Text"),
-        SelectOption::new("rust", "Rust"),
-        SelectOption::new("surql", "SurrealQL"),
-        SelectOption::new("javascript", "JavaScript"),
-        SelectOption::new("typescript", "TypeScript"),
-        SelectOption::new("python", "Python"),
-        SelectOption::new("java", "Java"),
-        SelectOption::new("cpp", "C++"),
-        SelectOption::new("c", "C"),
-        SelectOption::new("csharp", "C#"),
-        SelectOption::new("go", "Go"),
-        SelectOption::new("ruby", "Ruby"),
-        SelectOption::new("php", "PHP"),
-        SelectOption::new("html", "HTML"),
-        SelectOption::new("css", "CSS"),
-        SelectOption::new("json", "JSON"),
-        SelectOption::new("sql", "SQL"),
-        SelectOption::new("bash", "Bash"),
-        SelectOption::new("yaml", "YAML"),
-        SelectOption::new("markdown", "Markdown"),
-    ]);
+    let font_options = RwSignal::new(
+        [
+            ("p", "Normal"),
+            ("h1", "H1"),
+            ("h2", "H2"),
+            ("h3", "H3"),
+            ("h4", "H4"),
+            ("h5", "H5"),
+            ("h6", "H6"),
+        ]
+        .into_iter()
+        .map(|(value, label)| SelectOption::new(value, label))
+        .collect::<Vec<_>>(),
+    );
+    let language_options = RwSignal::new(
+        [
+            ("plaintext", "Plain Text"),
+            ("rust", "Rust"),
+            ("surql", "SurrealQL"),
+            ("javascript", "JavaScript"),
+            ("typescript", "TypeScript"),
+            ("python", "Python"),
+            ("java", "Java"),
+            ("cpp", "C++"),
+            ("c", "C"),
+            ("csharp", "C#"),
+            ("go", "Go"),
+            ("ruby", "Ruby"),
+            ("php", "PHP"),
+            ("html", "HTML"),
+            ("css", "CSS"),
+            ("json", "JSON"),
+            ("sql", "SQL"),
+            ("bash", "Bash"),
+            ("yaml", "YAML"),
+            ("markdown", "Markdown"),
+        ]
+        .into_iter()
+        .map(|(value, label)| SelectOption::new(value, label))
+        .collect::<Vec<_>>(),
+    );
     let last_enter_empty = RwSignal::new(false);
     let show_language_picker = RwSignal::new(false);
     let (tracked_content, set_tracked_content) = signal(String::new());
@@ -96,62 +106,25 @@ pub fn RichTextEditor(
     let is_unordered_list = RwSignal::new(false);
 
     // Create style functions for buttons
-    let bold_style = Memo::new(move |_| {
-        if is_bold.get() {
-            "bg-primary text-contrast-white".into()
-        } else {
-            "hover:bg-light-gray".into()
-        }
-    });
-    let italic_style = Memo::new(move |_| {
-        if is_italic.get() {
-            "bg-primary text-contrast-white".into()
-        } else {
-            "hover:bg-light-gray".into()
-        }
-    });
-    let underline_style = Memo::new(move |_| {
-        if is_underline.get() {
-            "bg-primary text-contrast-white".into()
-        } else {
-            "hover:bg-light-gray".into()
-        }
-    });
-    let strikethrough_style = Memo::new(move |_| {
-        if is_strikethrough.get() {
-            "bg-primary text-contrast-white".into()
-        } else {
-            "hover:bg-light-gray".into()
-        }
-    });
-    let inline_code_style = Memo::new(move |_| {
-        if is_inline_code.get() {
-            "bg-primary text-contrast-white".into()
-        } else {
-            "hover:bg-light-gray".into()
-        }
-    });
-    let code_block_style = Memo::new(move |_| {
-        if is_code_block.get() {
-            "bg-primary text-contrast-white".into()
-        } else {
-            "hover:bg-light-gray".into()
-        }
-    });
-    let ordered_list_style = Memo::new(move |_| {
-        if is_ordered_list.get() {
-            "bg-primary text-contrast-white".into()
-        } else {
-            "hover:bg-light-gray".into()
-        }
-    });
-    let unordered_list_style = Memo::new(move |_| {
-        if is_unordered_list.get() {
-            "bg-primary text-contrast-white".into()
-        } else {
-            "hover:bg-light-gray".into()
-        }
-    });
+    let active_style = move |signal: RwSignal<bool>| {
+        Memo::new(move |_| {
+            if signal.get() {
+                "bg-primary text-contrast-white"
+            } else {
+                "hover:bg-light-gray"
+            }
+            .into()
+        })
+    };
+
+    let bold_style: Memo<String> = active_style(is_bold);
+    let italic_style = active_style(is_italic);
+    let underline_style = active_style(is_underline);
+    let strikethrough_style = active_style(is_strikethrough);
+    let inline_code_style = active_style(is_inline_code);
+    let code_block_style = active_style(is_code_block);
+    let ordered_list_style = active_style(is_ordered_list);
+    let unordered_list_style = active_style(is_unordered_list);
 
     let update_button_states = move || {
         is_bold.set(cursor_inside("b").is_some());
@@ -505,25 +478,25 @@ pub fn RichTextEditor(
                     icon=Some(FiBold)
                     icon_before=true
                     onclick=bold
-                    style_ext_reactive=bold_style
+                    style_ext=bold_style
                 />
                 <BasicButton
                     icon=Some(BsTypeItalic)
                     icon_before=true
                     onclick=italic
-                    style_ext_reactive=italic_style
+                    style_ext=italic_style
                 />
                 <BasicButton
                     icon=Some(BsTypeUnderline)
                     icon_before=true
                     onclick=underline
-                    style_ext_reactive=underline_style
+                    style_ext=underline_style
                 />
                 <BasicButton
                     icon=Some(BiStrikethroughRegular)
                     icon_before=true
                     onclick=strikethrough
-                    style_ext_reactive=strikethrough_style
+                    style_ext=strikethrough_style
                 />
                 {
                     extra_formating_options.contains(&ExtraFormatingOption::ImageUpload).then(|| view!{
@@ -535,7 +508,7 @@ pub fn RichTextEditor(
                         <BasicButton
                             icon=Some(BsCode)
                             onclick=inline_code
-                            style_ext_reactive=inline_code_style
+                            style_ext=inline_code_style
                         />
                     })
                 }
@@ -544,7 +517,7 @@ pub fn RichTextEditor(
                         <BasicButton
                             icon=Some(BsBraces)
                             onclick=code_block
-                            style_ext_reactive=code_block_style
+                            style_ext=code_block_style
                         />
 
                         <Show when=move || show_language_picker.get()>
@@ -572,13 +545,13 @@ pub fn RichTextEditor(
                             icon=Some(BsListOl)
                             icon_before=true
                             onclick=ordered_list
-                            style_ext_reactive=ordered_list_style
+                            style_ext=ordered_list_style
                         />
                         <BasicButton
                             icon=Some(BsListUl)
                             icon_before=true
                             onclick=unordered_list
-                            style_ext_reactive=unordered_list_style
+                            style_ext=unordered_list_style
                         />
                     })
                 }

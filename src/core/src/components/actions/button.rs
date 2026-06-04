@@ -15,7 +15,7 @@ pub enum ButtonType {
 /// This is a reusable button component which also includes a button group component for creating grouped buttons
 /// Example usage:
 /// ```
-/// <ButtonGroup style_ext="font-bold bg-primary text-white hover:bg-secondary".to_string()>
+/// <ButtonGroup style_ext="font-bold bg-primary text-white hover:bg-secondary">
 ///    <BasicButton
 ///        button_text="First"
 ///        icon=Some(IconId::AiCheckCircleOutlined)
@@ -34,11 +34,9 @@ pub enum ButtonType {
 /// ```
 #[component]
 pub fn BasicButton(
-    #[prop(into, optional)] button_text: String,
-    #[prop(into, optional)] style_ext: String,
-    #[prop(into, optional, default = Signal::derive(move || "".to_string()))]
-    style_ext_reactive: Signal<String>,
-    #[prop(into, optional)] children_style_ext: String,
+    #[prop(into, optional)] button_text: MaybeProp<String>,
+    #[prop(into, optional)] style_ext: MaybeProp<String>,
+    #[prop(into, optional)] children_style_ext: MaybeProp<String>,
     #[prop(default = Callback::new(|_| {}))] onclick: Callback<ev::MouseEvent>,
     #[prop(default = None)] icon: Option<IconId>,
     #[prop(into, default = Signal::derive(move || false))] disabled: Signal<bool>,
@@ -48,7 +46,7 @@ pub fn BasicButton(
 ) -> impl IntoView {
     let button_text_styles = button_text.clone();
     let button_content_styles = move || {
-        if button_text_styles.is_empty() {
+        if button_text_styles.get().is_none() {
             ""
         } else if icon_before {
             "gap-2"
@@ -67,9 +65,8 @@ pub fn BasicButton(
                 }
             }
             class=move || format!(
-                "font-bold py-2 px-4 cursor-pointer rounded-[5px] disabled:opacity-50 disabled:cursor-not-allowed {} {}",
-                style_ext,
-                style_ext_reactive.get()
+                "font-bold py-2 px-4 cursor-pointer rounded-[5px] disabled:opacity-50 disabled:cursor-not-allowed {}",
+                style_ext.get().unwrap_or_default(),
             )
             on:click=move |ev| onclick.run(ev)
             disabled={disabled}
@@ -84,7 +81,7 @@ pub fn BasicButton(
             {
                 if children.is_none() {
                     Some(view! {
-                        <span class=move || format!("flex flex-row items-center justify-center {} {}", button_content_styles(), children_style_ext)>
+                        <span class=move || format!("flex flex-row items-center justify-center {} {}", button_content_styles(), children_style_ext.get().unwrap_or_default())>
                             {move || match icon {
                                 Some(button_icon) => view! {
                                     <Icon width="1em" height="1em" icon=button_icon />
