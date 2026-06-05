@@ -109,7 +109,7 @@ pub fn InputField(
             <div
             class=move || format!(
                     "h-[45px] flex items-center border border-mid-gray rounded-[5px]
-                     shadow appearance-none
+                     shadow-sm appearance-none
                      focus-within:ring-2 focus-within:ring-secondary
                      focus-within:border-transparent
                      {} {}",

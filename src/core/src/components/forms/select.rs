@@ -88,7 +88,7 @@ pub fn SelectInput(
                 node_ref=input_node_ref
                 name=name
                 class=move || format!(
-                    "form-input ring-0 shadow appearance-none border border-mid-gray rounded-[5px] w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow {}",
+                    "form-input ring-0 shadow-sm appearance-none border border-mid-gray rounded-[5px] w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow {}",
                     ext_input_styles
                 )
                 prop:value=move || initial_value.get()
@@ -268,7 +268,7 @@ pub fn CustomSelectInput(
             {move || {
                 let id_attr_clone = id_attr.clone();
                 open.get().then_some(view! {
-                    <div class="absolute z-30 mt-1 w-full bg-contrast-white rounded-[5px] shadow">
+                    <div class="absolute z-30 mt-1 w-full bg-contrast-white rounded-[5px] shadow-sm">
                         // Search
                         <InputField placeholder="Search…" field_type=InputFieldType::Text icon=BsSearch id_attr="search" on:input=move |ev: ev::Event| {
                             set_query.set(event_target_value(&ev));

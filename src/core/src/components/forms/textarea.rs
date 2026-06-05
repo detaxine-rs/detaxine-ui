@@ -50,7 +50,7 @@ pub fn Textarea(
             }
             <textarea
                 class=move || format!(
-                    "form-input ring-0 shadow appearance-none border border-mid-gray rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow bg-transparent {}",
+                    "form-input ring-0 shadow-sm appearance-none border border-mid-gray rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow bg-transparent {}",
                     ext_input_styles
                 )
                 name=name
