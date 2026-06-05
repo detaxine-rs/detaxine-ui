@@ -19,36 +19,38 @@
     --font-primary: "Inter", sans-serif;
 }
 
-h1 {
-    @apply text-3xl md:text-4xl font-bold leading-tight text-gray dark:text-light-gray;
-}
+@layer base {
+    h1 {
+        @apply text-3xl md:text-4xl font-bold leading-tight text-gray dark:text-light-gray;
+    }
 
-h2 {
-    @apply text-2xl md:text-3xl font-semibold leading-snug text-gray dark:text-light-gray;
-}
+    h2 {
+        @apply text-2xl md:text-3xl font-semibold leading-snug text-gray dark:text-light-gray;
+    }
 
-h3 {
-    @apply text-xl md:text-2xl font-semibold text-gray dark:text-light-gray;
-}
+    h3 {
+        @apply text-xl md:text-2xl font-semibold text-gray dark:text-light-gray;
+    }
 
-h4 {
-    @apply text-lg md:text-xl font-medium text-gray dark:text-light-gray;
-}
+    h4 {
+        @apply text-lg md:text-xl font-medium text-gray dark:text-light-gray;
+    }
 
-h5 {
-    @apply text-base md:text-lg font-medium text-gray dark:text-light-gray;
-}
+    h5 {
+        @apply text-base md:text-lg font-medium text-gray dark:text-light-gray;
+    }
 
-h6 {
-    @apply text-sm md:text-base font-medium uppercase tracking-wide text-gray dark:text-light-gray;
-}
+    h6 {
+        @apply text-sm md:text-base font-medium uppercase tracking-wide text-gray dark:text-light-gray;
+    }
 
-ul {
-    @apply list-disc list-inside;
-}
+    ul {
+        @apply list-disc list-inside;
+    }
 
-ol {
-    @apply list-decimal list-inside;
+    ol {
+        @apply list-decimal list-inside;
+    }
 }
 
 @utility dot {
