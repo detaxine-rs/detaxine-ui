@@ -67,39 +67,34 @@ impl std::fmt::Debug for PanelInfo {
     }
 }
 
-/// This is a component for displaying a panel with a title and content.
-/// Example usage:
+/// A collapsible panel with a clickable title that toggles its content open or closed.
+///
+/// # Props
+///
+/// - `title` – A `ViewFn` rendered as the panel header.
+/// - `is_open` – `RwSignal<bool>` controlling the open/closed state.
+/// - `is_accordion` – When `true`, delegates toggle handling to a parent `Collapse`. Defaults to `false`.
+/// - `ext_panel_title_styles` – Additional Tailwind classes appended to the title bar.
+/// - `children` – Optional content rendered when the panel is open.
+///
+/// # Example
+///
 /// ```
-/// // This example uses a single panel
-/// <Panel is_open=panel_is_open title="Elonaire" icon=IconId::BsNodePlusFill >
-///     <p>"Hey there, I am Mr Elonaire!"</p>
-/// </Panel>
-///```
-/// ```
-/// // You can also group multiple panels by using the Collapse component
-/// // is_accordion prop enables only one panel to be open at a time. It's optional and the default is false.
-/// <Collapse is_accordion=true panel_items=RwSignal::new(vec![
-/// PanelInfo {
-///     title: ViewFn::from(move || view!{ <p>"title 1"</p> }),
-///     children: ViewFn::from(move || view!{ <p>"Panel content"</p> }),
-///     ..Default::default()
-/// },
-/// PanelInfo {
-///     title: ViewFn::from(move || view!{ <p>"title 2"</p> }),
-///     children: ViewFn::from(move || view!{ <p>"Panel content"</p> }),
-///     ..Default::default()
-/// },
-/// PanelInfo {
-///     title: ViewFn::from(move || view!{ <p>"title 3"</p> }),
-///     children: ViewFn::from(move || view!{ <p>"Panel content"</p> }),
-///     ..Default::default()
-/// },
-/// PanelInfo {
-///     title: ViewFn::from(move || view!{ <p>"title 4"</p> }),
-///     children: ViewFn::from(move || view!{ <p>"Panel content"</p> }),
-///     ..Default::default()
-/// },
-/// ]) />
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::content::collapse::Panel;
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let is_open = RwSignal::new(false);
+///     view! {
+///         <Panel
+///             title=ViewFn::from(|| view! { <span>"Section 1"</span> })
+///             is_open=is_open
+///         >
+///             <p>"Panel content goes here."</p>
+///         </Panel>
+///     }
+/// }
 /// ```
 #[component]
 pub fn Panel(
@@ -120,10 +115,6 @@ pub fn Panel(
             is_open.update(|value| *value = !*value);
         }
     };
-
-    Effect::new(move || {
-        leptos::logging::log!("Effect -> is_open: {}", is_open.get());
-    });
 
     view! {
         <div node_ref=panel_ref>
@@ -162,31 +153,36 @@ pub fn Panel(
     }
 }
 
+/// Groups multiple `Panel` components, optionally enforcing accordion behaviour
+/// (only one panel open at a time).
+///
+/// # Props
+///
+/// - `panel_items` – `RwSignal<Vec<PanelInfo>>` holding each panel's title, content, and open state.
+/// - `is_accordion` – When `true`, opening one panel closes all others. Defaults to `false`.
+///
+/// # Example
+///
 /// ```
-/// // You can also group multiple panels by using the Collapse component
-/// // is_accordion prop enables only one panel to be open at a time. It's optional and the default is false.
-/// <Collapse is_accordion=true panel_items=RwSignal::new(vec![
-/// PanelInfo {
-///     title: "title 1",
-///     content: ViewFn::from(move || view!{ <p>"Panel content"</p> }),
-///     ..Default::default()
-/// },
-/// PanelInfo {
-///     title: "title 2",
-///     content: ViewFn::from(move || view!{ <p>"Panel content"</p> }),
-///     ..Default::default()
-/// },
-/// PanelInfo {
-///     title: "title 3",
-///     content: ViewFn::from(move || view!{ <p>"Panel content"</p> }),
-///     ..Default::default()
-/// },
-/// PanelInfo {
-///     title: "title 4",
-///     content: ViewFn::from(move || view!{ <p>"Panel content"</p> }),
-///     ..Default::default()
-/// },
-/// ]) />
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::content::collapse::{Panel, PanelInfo, Collapse};
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let panels = RwSignal::new(vec![
+///         PanelInfo::builder(
+///             ViewFn::from(|| view! { <span>"Panel 1"</span> }),
+///             ViewFn::from(|| view! { <p>"Content 1"</p> }),
+///         ).build(),
+///         PanelInfo::builder(
+///             ViewFn::from(|| view! { <span>"Panel 2"</span> }),
+///             ViewFn::from(|| view! { <p>"Content 2"</p> }),
+///         ).build(),
+///     ]);
+///     view! {
+///         <Collapse panel_items=panels is_accordion=true />
+///     }
+/// }
 /// ```
 #[component]
 pub fn Collapse(
@@ -233,5 +229,135 @@ pub fn Collapse(
                 }
             </For>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // PanelInfo builder
+
+    #[test]
+    fn panel_info_default_is_closed() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let panel = PanelInfo::default();
+            assert_eq!(panel.is_open.get(), false);
+        });
+    }
+
+    #[test]
+    fn panel_info_builder_sets_open_state() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let is_open = RwSignal::new(true);
+            let panel = PanelInfo::builder(ViewFn::from(|| view! {}), ViewFn::from(|| view! {}))
+                .is_open(is_open)
+                .build();
+
+            assert_eq!(panel.is_open.get(), true);
+        });
+    }
+
+    #[test]
+    fn panel_info_clone_shares_signal() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let panel = PanelInfo::default();
+            let cloned = panel.clone();
+
+            panel.is_open.set(true);
+            assert_eq!(cloned.is_open.get(), true);
+        });
+    }
+
+    // Panel toggle logic
+
+    #[test]
+    fn toggle_flips_is_open_when_not_accordion() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let is_open = RwSignal::new(false);
+            is_open.update(|v| *v = !*v);
+            assert_eq!(is_open.get(), true);
+
+            is_open.update(|v| *v = !*v);
+            assert_eq!(is_open.get(), false);
+        });
+    }
+
+    #[test]
+    fn toggle_does_not_flip_when_accordion() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let is_accordion = true;
+            let is_open = RwSignal::new(false);
+
+            // accordion panels skip self-toggle; state unchanged
+            if !is_accordion {
+                is_open.update(|v| *v = !*v);
+            }
+
+            assert_eq!(is_open.get(), false);
+        });
+    }
+
+    // Collapse accordion logic
+
+    fn accordion_toggle(panels: &mut Vec<RwSignal<bool>>, index: usize) {
+        for (i, panel) in panels.iter().enumerate() {
+            if i == index {
+                panel.update(|v| *v = !*v);
+            } else {
+                panel.set(false);
+            }
+        }
+    }
+
+    #[test]
+    fn accordion_opens_target_and_closes_others() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let mut panels = vec![
+                RwSignal::new(false),
+                RwSignal::new(true),
+                RwSignal::new(false),
+            ];
+
+            accordion_toggle(&mut panels, 0);
+
+            assert_eq!(panels[0].get(), true);
+            assert_eq!(panels[1].get(), false);
+            assert_eq!(panels[2].get(), false);
+        });
+    }
+
+    #[test]
+    fn accordion_closes_already_open_panel() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let mut panels = vec![RwSignal::new(true), RwSignal::new(false)];
+
+            accordion_toggle(&mut panels, 0);
+
+            assert_eq!(panels[0].get(), false);
+            assert_eq!(panels[1].get(), false);
+        });
+    }
+
+    #[test]
+    fn non_accordion_panels_are_independent() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let a = RwSignal::new(false);
+            let b = RwSignal::new(false);
+
+            a.update(|v| *v = !*v);
+            b.update(|v| *v = !*v);
+
+            assert_eq!(a.get(), true);
+            assert_eq!(b.get(), true);
+        });
     }
 }

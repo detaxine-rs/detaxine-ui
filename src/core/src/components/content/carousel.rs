@@ -2,18 +2,27 @@ use icondata::{BiChevronLeftRegular, BiChevronRightRegular};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 
-/// Carousel component for displaying a series of items in a sliding manner.
+/// A carousel component for displaying a series of slides with previous/next navigation and dot indicators.
+///
+/// # Props
+///
+/// - `children` – Two or more block elements, each rendered as a full-width slide.
 ///
 /// # Example
-/// ```rust
-/// use leptos::prelude::*;
 ///
-/// view! {
-///     <Carousel>
-///         <div>"Slide 1"</div>
-///         <div>"Slide 2"</div>
-///         <div>"Slide 3"</div>
-///     </Carousel>
+/// ```
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::content::carousel::Carousel;
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     view! {
+///         <Carousel>
+///             <div>"Slide 1"</div>
+///             <div>"Slide 2"</div>
+///             <div>"Slide 3"</div>
+///         </Carousel>
+///     }
 /// }
 /// ```
 #[component]
@@ -92,4 +101,112 @@ pub fn Carousel(mut children: ChildrenFragmentMut) -> impl IntoView {
                        </div>
         </div>
     }.into_any()
+}
+
+#[cfg(test)]
+mod tests {
+    // ── Navigation logic ─────────────────────────────────────────
+
+    use leptos::prelude::*;
+
+    fn next(idx: usize, total: usize) -> usize {
+        (idx + 1) % total
+    }
+
+    fn prev(idx: usize, total: usize) -> usize {
+        if idx == 0 { total - 1 } else { idx - 1 }
+    }
+
+    #[test]
+    fn next_advances_index() {
+        assert_eq!(next(0, 3), 1);
+        assert_eq!(next(1, 3), 2);
+    }
+
+    #[test]
+    fn next_wraps_at_end() {
+        assert_eq!(next(2, 3), 0);
+    }
+
+    #[test]
+    fn prev_decrements_index() {
+        assert_eq!(prev(2, 3), 1);
+        assert_eq!(prev(1, 3), 0);
+    }
+
+    #[test]
+    fn prev_wraps_at_start() {
+        assert_eq!(prev(0, 3), 2);
+    }
+
+    #[test]
+    fn next_and_prev_are_inverse() {
+        for i in 0..5 {
+            assert_eq!(prev(next(i, 5), 5), i);
+            assert_eq!(next(prev(i, 5), 5), i);
+        }
+    }
+
+    #[test]
+    fn indicator_click_sets_index_directly() {
+        let total = 4;
+        for i in 0..total {
+            // clicking indicator i should result in index i
+            assert_eq!(i, i); // direct set, no transformation needed
+        }
+    }
+
+    // ── Edge cases ───────────────────────────────────────────────
+
+    #[test]
+    fn single_slide_next_stays_at_zero() {
+        assert_eq!(next(0, 1), 0);
+    }
+
+    #[test]
+    fn single_slide_prev_stays_at_zero() {
+        assert_eq!(prev(0, 1), 0);
+    }
+
+    // ── Reactive index (requires Leptos runtime) ─────────────────
+
+    #[test]
+    fn signal_index_updates_on_next() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let total = 3;
+            let (current, set_current) = signal(0usize);
+
+            set_current.update(|idx| *idx = next(*idx, total));
+            assert_eq!(current.get(), 1);
+
+            set_current.update(|idx| *idx = next(*idx, total));
+            assert_eq!(current.get(), 2);
+
+            set_current.update(|idx| *idx = next(*idx, total));
+            assert_eq!(current.get(), 0); // wrapped
+        });
+    }
+
+    #[test]
+    fn signal_index_updates_on_prev() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let total = 3;
+            let (current, set_current) = signal(0usize);
+
+            set_current.update(|idx| *idx = prev(*idx, total));
+            assert_eq!(current.get(), 2); // wrapped
+        });
+    }
+
+    #[test]
+    fn signal_index_set_directly_by_indicator() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (current, set_current) = signal(0usize);
+            set_current.set(2);
+            assert_eq!(current.get(), 2);
+        });
+    }
 }

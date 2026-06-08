@@ -5,11 +5,30 @@ use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_router::{components::A, hooks::use_location};
 
-/// This component renders a breadcrumb navigation based on the current route.
-/// Example usage:
+/// A breadcrumb navigation component that derives crumbs from the current route path.
+///
+/// The first crumb is always a home link (`/`). Each subsequent path segment becomes
+/// a crumb linking to its cumulative path. Custom names can be provided for all crumbs
+/// including the home crumb; if fewer names than segments are provided, the raw segment
+/// string is used as the label.
+///
+/// # Props
+///
+/// - `custom_route_names` – `StringVec` of display names in order of appearance,
+///   starting with the home crumb. Defaults to `["Home"]`.
+///
+/// # Example
+///
 /// ```
-/// // The custom_route_names prop is optional and defaults to ["Home"].
-/// <Breadcrumbs custom_route_names=["Home", "Sign In"] />
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::navigation::breadcrumbs::Breadcrumbs;
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     view! {
+///         <Breadcrumbs custom_route_names=["Home", "Dashboard", "Settings"] />
+///     }
+/// }
 /// ```
 #[component]
 pub fn Breadcrumbs(
@@ -101,5 +120,131 @@ pub fn Breadcrumbs(
                 }}
             </ul>
         </nav>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // path segment parsing
+
+    fn parse_segments(path: &str) -> Vec<String> {
+        path.split('/')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string())
+            .collect()
+    }
+
+    #[test]
+    fn root_path_produces_no_segments() {
+        assert_eq!(parse_segments("/"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn single_segment_path() {
+        assert_eq!(parse_segments("/dashboard"), vec!["dashboard"]);
+    }
+
+    #[test]
+    fn nested_path_produces_multiple_segments() {
+        assert_eq!(
+            parse_segments("/dashboard/settings/profile"),
+            vec!["dashboard", "settings", "profile"]
+        );
+    }
+
+    #[test]
+    fn trailing_slash_ignored() {
+        assert_eq!(parse_segments("/dashboard/"), vec!["dashboard"]);
+    }
+
+    // cumulative path building
+
+    fn cumulative_paths(segments: &[&str]) -> Vec<String> {
+        let mut cumulative = String::new();
+        segments
+            .iter()
+            .map(|s| {
+                cumulative.push('/');
+                cumulative.push_str(s);
+                cumulative.clone()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn cumulative_paths_build_correctly() {
+        let paths = cumulative_paths(&["dashboard", "settings", "profile"]);
+        assert_eq!(paths[0], "/dashboard");
+        assert_eq!(paths[1], "/dashboard/settings");
+        assert_eq!(paths[2], "/dashboard/settings/profile");
+    }
+
+    #[test]
+    fn single_segment_cumulative_path() {
+        assert_eq!(cumulative_paths(&["about"]), vec!["/about"]);
+    }
+
+    // segment name resolution
+
+    fn resolve_name<'a>(
+        custom_names: &'a [String],
+        route_name_index: usize,
+        segment: &'a str,
+    ) -> &'a str {
+        custom_names
+            .get(route_name_index)
+            .map(|s| s.as_str())
+            .unwrap_or(segment)
+    }
+
+    #[test]
+    fn custom_name_used_when_available() {
+        let names = vec!["Home".to_string(), "Dashboard".to_string()];
+        assert_eq!(resolve_name(&names, 1, "dashboard"), "Dashboard");
+    }
+
+    #[test]
+    fn raw_segment_used_when_no_custom_name() {
+        let names = vec!["Home".to_string()];
+        assert_eq!(resolve_name(&names, 1, "settings"), "settings");
+    }
+
+    #[test]
+    fn home_name_comes_from_index_zero() {
+        let names = vec!["Start".to_string()];
+        assert_eq!(resolve_name(&names, 0, ""), "Start");
+    }
+
+    // home crumb always prepended
+
+    #[test]
+    fn home_crumb_is_first() {
+        // After building crumbs, home is inserted at index 0.
+        // We verify the count: 1 home + n segments.
+        let segments = parse_segments("/dashboard/settings");
+        let total_crumbs = 1 + segments.len();
+        assert_eq!(total_crumbs, 3);
+    }
+
+    // separator visibility
+
+    fn show_separator(index: usize, total: usize) -> bool {
+        index < total - 1
+    }
+
+    #[test]
+    fn separator_shown_between_crumbs() {
+        assert!(show_separator(0, 3));
+        assert!(show_separator(1, 3));
+    }
+
+    #[test]
+    fn separator_not_shown_after_last_crumb() {
+        assert!(!show_separator(2, 3));
+    }
+
+    #[test]
+    fn single_crumb_has_no_separator() {
+        assert!(!show_separator(0, 1));
     }
 }

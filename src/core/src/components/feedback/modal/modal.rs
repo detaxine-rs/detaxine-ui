@@ -17,16 +17,47 @@ pub enum UseCase {
     General,
 }
 
-/// This is a basic modal component that can be used to display information to the user.
-/// It can be used for various use cases such as error, success, confirmation, info, and general use cases.
-/// It can be customized with different icons and colors based on the use case.
-/// Example usage:
+/// A modal dialog rendered into a `#modal-root` portal, supporting multiple use cases
+/// with contextual icons and configurable footer actions.
+///
+/// # Props
+///
+/// - `title` – Heading text displayed in the modal header.
+/// - `use_case` – Controls the header icon and cancel button visibility. One of `UseCase::General`,
+///   `UseCase::Error`, `UseCase::Success`, `UseCase::Info`, `UseCase::Confirmation`. Defaults to `General`.
+/// - `is_open` – `RwSignal<bool>` controlling visibility. Defaults to `false`.
+/// - `primary_button_text` – Label for the primary action button. Defaults to `"OK"`.
+/// - `on_click_primary` – Callback fired when the primary button is clicked. Defaults to a no-op.
+/// - `on_cancel` – Callback fired when the cancel button or backdrop is clicked. Defaults to a no-op.
+/// - `disable_auto_close` – When `true`, clicking the backdrop does not close the modal. Defaults to `true`.
+/// - `disable_primary_close` – When `true`, clicking the primary button does not close the modal. Defaults to `false`.
+/// - `primary_is_disabled` – `Signal<bool>` that disables the primary button. Defaults to `false`.
+/// - `stack_number` – Z-index offset for stacking multiple modals. Defaults to `0`.
+/// - `container_style_ext` – Additional Tailwind classes applied to the modal panel.
+/// - `show_footer` – When `false`, hides the footer entirely. Defaults to `true`.
+/// - `children` – Optional body content rendered inside the modal.
+///
+/// # Example
+///
 /// ```
-/// <BasicModal title="Can I confirm this?" is_open=modal_open use_case=UseCase::Confirmation on_click_primary=onclick_primary on_cancel=on_cancel disable_auto_close=false>
-///     <div>
-///         <p>"Hey, please confirm this."</p>
-///     </div>
-/// </BasicModal>
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::feedback::modal::modal::{BasicModal, UseCase};
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let is_open = RwSignal::new(false);
+///     view! {
+///         <BasicModal
+///             title="Confirm action"
+///             is_open=is_open
+///             use_case=UseCase::Confirmation
+///             on_click_primary=Callback::new(|_| leptos::logging::log!("confirmed"))
+///             on_cancel=Callback::new(|_| leptos::logging::log!("cancelled"))
+///         >
+///             <p>"Are you sure?"</p>
+///         </BasicModal>
+///     }
+/// }
 /// ```
 #[component]
 pub fn BasicModal(
@@ -179,5 +210,183 @@ pub fn BasicModal(
             }
         </Show>
         </>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // UseCase
+
+    #[test]
+    fn use_case_default_is_general() {
+        assert_eq!(UseCase::default(), UseCase::General);
+    }
+
+    #[test]
+    fn use_case_eq() {
+        assert_eq!(UseCase::Error, UseCase::Error);
+        assert_ne!(UseCase::Error, UseCase::Success);
+    }
+
+    #[test]
+    fn use_case_clone_and_copy() {
+        let uc = UseCase::Confirmation;
+        let cloned = uc;
+        assert_eq!(uc, cloned);
+    }
+
+    // cancel button visibility
+
+    fn shows_cancel(use_case: UseCase) -> bool {
+        use_case == UseCase::Confirmation
+    }
+
+    #[test]
+    fn confirmation_shows_cancel_button() {
+        assert!(shows_cancel(UseCase::Confirmation));
+    }
+
+    #[test]
+    fn other_use_cases_hide_cancel_button() {
+        assert!(!shows_cancel(UseCase::General));
+        assert!(!shows_cancel(UseCase::Error));
+        assert!(!shows_cancel(UseCase::Success));
+        assert!(!shows_cancel(UseCase::Info));
+    }
+
+    // backdrop / auto-close logic
+
+    #[test]
+    fn backdrop_closes_modal_when_auto_close_enabled() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let is_open = RwSignal::new(true);
+            let disable_auto_close = false;
+
+            if !disable_auto_close {
+                is_open.set(false);
+            }
+
+            assert!(!is_open.get());
+        });
+    }
+
+    #[test]
+    fn backdrop_does_not_close_when_auto_close_disabled() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let is_open = RwSignal::new(true);
+            let disable_auto_close = true;
+
+            if !disable_auto_close {
+                is_open.set(false);
+            }
+
+            assert!(is_open.get());
+        });
+    }
+
+    // primary button close logic
+
+    #[test]
+    fn primary_closes_modal_when_not_disabled() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let is_open = RwSignal::new(true);
+            let disable_primary_close = false;
+
+            if !disable_primary_close {
+                is_open.set(false);
+            }
+
+            assert!(!is_open.get());
+        });
+    }
+
+    #[test]
+    fn primary_does_not_close_modal_when_disabled() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let is_open = RwSignal::new(true);
+            let disable_primary_close = true;
+
+            if !disable_primary_close {
+                is_open.set(false);
+            }
+
+            assert!(is_open.get());
+        });
+    }
+
+    // stack_number z-index logic
+
+    fn backdrop_z(stack_number: u8) -> u8 {
+        10 + stack_number
+    }
+
+    fn panel_z(stack_number: u8) -> u8 {
+        10 + stack_number + 1
+    }
+
+    #[test]
+    fn default_stack_z_indices() {
+        assert_eq!(backdrop_z(0), 10);
+        assert_eq!(panel_z(0), 11);
+    }
+
+    #[test]
+    fn stacked_modal_z_indices() {
+        assert_eq!(backdrop_z(2), 12);
+        assert_eq!(panel_z(2), 13);
+    }
+
+    #[test]
+    fn panel_always_above_backdrop() {
+        for n in 0..5u8 {
+            assert!(panel_z(n) > backdrop_z(n));
+        }
+    }
+
+    // primary_is_disabled reactive signal
+
+    #[test]
+    fn primary_disabled_signal_reactive() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let disabled = RwSignal::new(false);
+            let primary_is_disabled = Signal::derive(move || disabled.get());
+
+            assert!(!primary_is_disabled.get());
+            disabled.set(true);
+            assert!(primary_is_disabled.get());
+        });
+    }
+
+    // on_cancel callback
+
+    #[test]
+    fn on_cancel_fires() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let fired = RwSignal::new(false);
+            let on_cancel = Callback::new(move |_: ()| fired.set(true));
+            on_cancel.run(());
+            assert!(fired.get());
+        });
+    }
+
+    // on_click_primary callback
+
+    #[test]
+    fn on_click_primary_fires() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let fired = RwSignal::new(false);
+            let on_click_primary = Callback::new(move |_: ()| fired.set(true));
+            on_click_primary.run(());
+            assert!(fired.get());
+        });
     }
 }

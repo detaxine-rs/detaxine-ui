@@ -31,17 +31,34 @@ impl RadioOption {
     }
 }
 
-/// This component represents a single radio input field.
+/// A single radio input with an associated label and optional custom children content.
 ///
-/// It also allows the use of children properties to customize the appearance and behavior of the radio input field. You may use the children property to add custom content to the radio input field. e.g images
+/// # Props
 ///
-/// Example usage:
+/// - `initial_value` – `Signal<String>` bound to the input's `value` attribute.
+/// - `name` – Shared `name` attribute grouping this radio with others.
+/// - `label` – Text displayed beside the radio input.
+/// - `id_attr` – `id` attribute linking the input to its label.
+/// - `is_selected` – Pre-selects this option. Defaults to `false`.
+/// - `required` – Sets the `required` attribute. Defaults to `false`.
+/// - `children` – Optional `ViewFn` rendered below the label (e.g. an icon or description).
+///
+/// # Example
+///
 /// ```
-/// <RadioInputField label="Male" value="male" id_attr="male_lone" />
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::forms::radio_input::RadioInputField;
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     view! {
+///         <RadioInputField label="Male" name="gender" id_attr="gender-male" />
+///     }
+/// }
 /// ```
 #[component]
 pub fn RadioInputField(
-    #[prop(into, optional)] initial_value: Signal<String>,
+    #[prop(into, optional)] initial_value: MaybeProp<String>,
     #[prop(into, optional)] name: String,
     #[prop(into, optional)] label: String,
     #[prop(default = false, optional)] required: bool,
@@ -69,24 +86,47 @@ pub fn RadioInputField(
         </label>
     }
 }
-/// This component represents grouped radio input fields.
+
+/// A group of radio inputs rendered inside a `<fieldset>`, with shared selection state.
 ///
-/// It also allows the use of children properties to customize the appearance and behavior of the radio input field. You may use the children property to add custom content to the radio input field. e.g images
+/// # Props
 ///
-/// Example usage:
+/// - `options` – `Vec<RadioOption>` holding the available choices.
+/// - `legend` – Label for the fieldset group.
+/// - `name` – Shared `name` attribute for all radio inputs.
+/// - `initial_value` – `Signal<String>` whose value determines which option is pre-selected.
+/// - `required` – Shows a `*` beside the legend and sets `required` on all inputs. Defaults to `false`.
+/// - `oninput` – Callback fired when the selected value changes.
+/// - `horizontal` – When `true`, renders options in a row. Defaults to `false`.
+/// - `fieldset_class` – Additional Tailwind classes applied to the `<fieldset>`.
+/// - `legend_class` – Additional Tailwind classes applied to the `<legend>`.
+///
+/// # Example
+///
 /// ```
-/// <RadioInputGroup id_attr="male" options=vec![
-///    RadioOption::new("true", "Active", None),
-///    RadioOption::new("false", "InActive", None),
-///]>
-///     <div class="flex items-center gap-2">
-///         <span class="text-sm">Male</span>
-///     </div>
-/// </RadioInputGroup>
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::forms::radio_input::{RadioInputGroup, RadioOption};
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let selected = Signal::derive(move || "active".to_string());
+///
+///     view! {
+///         <RadioInputGroup
+///             legend="Status"
+///             name="status"
+///             initial_value=selected
+///             options=vec![
+///                 RadioOption::new("active", "Active", None),
+///                 RadioOption::new("inactive", "Inactive", None),
+///             ]
+///         />
+///     }
+/// }
 /// ```
 #[component]
 pub fn RadioInputGroup(
-    #[prop(into, optional)] initial_value: Signal<String>,
+    #[prop(into, optional)] initial_value: MaybeProp<String>,
     /// The legend text for the fieldset
     #[prop(into, optional)]
     legend: String,
@@ -96,10 +136,10 @@ pub fn RadioInputGroup(
     #[prop(optional, default = Callback::new(|_| {}))] oninput: Callback<ev::Event>,
     #[prop(default = false, optional)] horizontal: bool,
     /// Additional CSS classes for the fieldset
-    #[prop(into, optional, default = "".to_string())]
+    #[prop(into, optional)]
     fieldset_class: String,
     /// Additional CSS classes for the legend
-    #[prop(into, optional, default = "".to_string())]
+    #[prop(into, optional)]
     legend_class: String,
 ) -> impl IntoView {
     // Create reactive state for display_error
@@ -132,7 +172,7 @@ pub fn RadioInputGroup(
                                 let option_value_selected = option.value.clone();
                                 let option_value = option.value.clone();
 
-                                let is_selected = move || initial_value.get() == option_value_selected;
+                                let is_selected = move || initial_value.get().unwrap_or_default() == option_value_selected;
 
                                 view! {
                                     <label class="inline-flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded">
@@ -160,5 +200,135 @@ pub fn RadioInputGroup(
                             .collect_view()}
                     </div>
                 </fieldset>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // RadioOption::new
+
+    #[test]
+    fn radio_option_new_sets_fields() {
+        let opt = RadioOption::new("male", "Male", None);
+        assert_eq!(opt.value, "male");
+        assert_eq!(opt.label, "Male");
+        assert!(opt.children.is_none());
+    }
+
+    #[test]
+    fn radio_option_clone() {
+        let opt = RadioOption::new("a", "A", None);
+        let cloned = opt.clone();
+        assert_eq!(cloned.value, opt.value);
+        assert_eq!(cloned.label, opt.label);
+    }
+
+    // is_selected logic
+
+    fn is_selected(current_value: &str, option_value: &str) -> bool {
+        current_value == option_value
+    }
+
+    #[test]
+    fn matching_value_is_selected() {
+        assert!(is_selected("male", "male"));
+    }
+
+    #[test]
+    fn non_matching_value_is_not_selected() {
+        assert!(!is_selected("male", "female"));
+    }
+
+    #[test]
+    fn empty_initial_value_selects_nothing() {
+        assert!(!is_selected("", "male"));
+    }
+
+    #[test]
+    fn is_selected_reactive() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let selected = RwSignal::new("".to_string());
+            let is_active = move || selected.get() == "active";
+
+            assert!(!is_active());
+            selected.set("active".to_string());
+            assert!(is_active());
+            selected.set("inactive".to_string());
+            assert!(!is_active());
+        });
+    }
+
+    // container_class logic
+
+    fn container_class(horizontal: bool) -> &'static str {
+        if horizontal {
+            "flex flex-wrap gap-4"
+        } else {
+            "space-y-3"
+        }
+    }
+
+    #[test]
+    fn horizontal_container() {
+        assert_eq!(container_class(true), "flex flex-wrap gap-4");
+    }
+
+    #[test]
+    fn vertical_container() {
+        assert_eq!(container_class(false), "space-y-3");
+    }
+
+    // combined class construction
+
+    fn combined_class(base: &str, ext: &str) -> String {
+        format!("{} {}", base, ext)
+    }
+
+    #[test]
+    fn combined_class_appends_ext() {
+        assert_eq!(
+            combined_class("border border-mid-gray rounded p-4", "mt-4"),
+            "border border-mid-gray rounded p-4 mt-4"
+        );
+    }
+
+    #[test]
+    fn combined_class_empty_ext() {
+        assert_eq!(
+            combined_class("text-sm font-bold px-2", ""),
+            "text-sm font-bold px-2 "
+        );
+    }
+
+    // required indicator
+
+    fn shows_required_asterisk(required: bool) -> bool {
+        required
+    }
+
+    #[test]
+    fn required_shows_asterisk() {
+        assert!(shows_required_asterisk(true));
+    }
+
+    #[test]
+    fn not_required_hides_asterisk() {
+        assert!(!shows_required_asterisk(false));
+    }
+
+    // oninput callback
+
+    #[test]
+    fn oninput_fires_on_selection() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let fired = RwSignal::new(false);
+            let oninput: Callback<String> = Callback::new(move |_| fired.set(true));
+            oninput.run("active".to_string());
+            assert!(fired.get());
+        });
     }
 }

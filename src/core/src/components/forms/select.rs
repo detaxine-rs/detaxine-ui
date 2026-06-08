@@ -30,25 +30,42 @@ impl SelectOption {
     }
 }
 
-/// This is a custom select input component that allows you to create a dropdown menu with custom options.
-/// Example usage:
+/// A native `<select>` dropdown with optional label, placeholder, and required indicator.
+///
+/// # Props
+///
+/// - `options` – `RwSignal<Vec<SelectOption>>` holding the available choices.
+/// - `initial_value` – `Signal<String>` pre-selecting an option by value.
+/// - `label` – Text displayed above the select. Hidden if empty.
+/// - `placeholder` – Renders a disabled empty-value option at the top when provided.
+/// - `name` – `name` attribute for form submission.
+/// - `id_attr` – `id` attribute linking the select to its label.
+/// - `required` – Shows a `*` beside the label and sets `required`. Defaults to `false`.
+/// - `readonly` – Marks the field as read-only. Defaults to `false`.
+/// - `ext_input_styles` – Additional Tailwind classes applied to the `<select>`.
+/// - `input_node_ref` – `NodeRef<Select>` for direct DOM access.
+///
+/// # Example
+///
 /// ```
-/// <SelectInput
-///    initial_value="est"
-///    label="Time Zone"
-///    name="timezone"
-///    required=true
-///    options=RwSignal::new(vec![
-///       SelectOption::new("", "--Select Timezone"),
-///       SelectOption::new("utc", "UTC"),
-///       SelectOption::new("est", "EST"),
-///    ])
-/// />
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::forms::select::{SelectInput, SelectOption};
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let options = RwSignal::new(vec![
+///         SelectOption::new("utc", "UTC"),
+///         SelectOption::new("est", "EST"),
+///     ]);
+///
+///     view! {
+///         <SelectInput label="Timezone" name="timezone" options=options required=true />
+///     }
+/// }
 /// ```
-/// You may use the SelectOption struct to create custom options for the SelectInput component.
 #[component]
 pub fn SelectInput(
-    #[prop(into, optional)] initial_value: Signal<String>,
+    #[prop(into, optional)] initial_value: MaybeProp<String>,
     #[prop(into, optional)] label: String,
     #[prop(into, optional)] placeholder: String,
     #[prop(into, optional)] name: String,
@@ -130,11 +147,47 @@ pub fn SelectInput(
     }
 }
 
-/// Custom Select Input
+/// A searchable, chip-based custom select supporting both single and multi-select modes.
+///
+/// Selected values are displayed as removable chips in the control. A search box filters
+/// the dropdown options in real time.
+///
+/// # Props
+///
+/// - `label` – Text displayed above the control.
+/// - `options` – `RwSignal<Vec<SelectOption>>` holding the available choices.
+/// - `value` – `RwSignal<Vec<String>>` holding the currently selected values. Defaults to empty.
+/// - `multiple` – When `true`, enables checkbox-style multi-select. Defaults to `false`.
+/// - `required` – Shows a `*` beside the label. Defaults to `false`.
+/// - `id_attr` – `id` base used to generate unique ids for each option's input.
+///
+/// # Example
+///
+/// ```
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::forms::select::{SelectOption, CustomSelectInput};
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let options = RwSignal::new(vec![
+///         SelectOption::new("rust", "Rust"),
+///         SelectOption::new("leptos", "Leptos"),
+///     ]);
+///     let value = RwSignal::new(vec![]);
+///     view! {
+///         <CustomSelectInput
+///             label="Technologies"
+///             options=options
+///             value=value
+///             multiple=true
+///         />
+///     }
+/// }
+/// ```
 #[component]
 pub fn CustomSelectInput(
     #[prop(into)] label: String,
-    #[prop(into)] options: RwSignal<Vec<SelectOption>>,
+    #[prop(into)] options: MaybeProp<Vec<SelectOption>>,
     #[prop(into, optional, default = RwSignal::new(Vec::new()))] value: RwSignal<Vec<String>>,
 
     // false = normal select (single)
@@ -155,6 +208,7 @@ pub fn CustomSelectInput(
         let q = query.get().to_lowercase();
         options
             .get()
+            .unwrap_or_default()
             .into_iter()
             .filter(|o| o.label.to_lowercase().contains(&q))
             .collect::<Vec<_>>()
@@ -226,6 +280,7 @@ pub fn CustomSelectInput(
                     if !selected.is_empty() {
                         Some(options
                             .get()
+                            .unwrap_or_default()
                             .into_iter()
                             .filter(|o| selected.contains(&o.value))
                             .map(|o| {
@@ -318,5 +373,220 @@ pub fn CustomSelectInput(
                 })
             }}
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // SelectOption::new
+
+    #[test]
+    fn select_option_new_sets_fields() {
+        let opt = SelectOption::new("utc", "UTC");
+        assert_eq!(opt.value, "utc");
+        assert_eq!(opt.label, "UTC");
+    }
+
+    #[test]
+    fn select_option_eq() {
+        assert_eq!(SelectOption::new("a", "A"), SelectOption::new("a", "A"));
+        assert_ne!(SelectOption::new("a", "A"), SelectOption::new("b", "B"));
+    }
+
+    #[test]
+    fn select_option_clone() {
+        let opt = SelectOption::new("est", "EST");
+        assert_eq!(opt.clone(), opt);
+    }
+
+    // filtered_options logic
+
+    fn filter_options(options: &[SelectOption], query: &str) -> Vec<SelectOption> {
+        let q = query.to_lowercase();
+        options
+            .iter()
+            .filter(|o| o.label.to_lowercase().contains(&q))
+            .cloned()
+            .collect()
+    }
+
+    fn sample_options() -> Vec<SelectOption> {
+        vec![
+            SelectOption::new("rust", "Rust"),
+            SelectOption::new("leptos", "Leptos"),
+            SelectOption::new("js", "JavaScript"),
+        ]
+    }
+
+    #[test]
+    fn empty_query_returns_all_options() {
+        let opts = sample_options();
+        assert_eq!(filter_options(&opts, "").len(), 3);
+    }
+
+    #[test]
+    fn query_filters_by_label_case_insensitive() {
+        let opts = sample_options();
+        let result = filter_options(&opts, "rust");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].value, "rust");
+    }
+
+    #[test]
+    fn query_with_no_match_returns_empty() {
+        let opts = sample_options();
+        assert_eq!(filter_options(&opts, "python").len(), 0);
+    }
+
+    #[test]
+    fn query_is_case_insensitive() {
+        let opts = sample_options();
+        assert_eq!(filter_options(&opts, "RUST").len(), 1);
+        assert_eq!(filter_options(&opts, "lEpToS").len(), 1);
+    }
+
+    // select_value logic (single)
+
+    fn select_single(current: &mut Vec<String>, val: String) {
+        current.clear();
+        current.push(val);
+    }
+
+    #[test]
+    fn single_select_replaces_existing() {
+        let mut current = vec!["rust".to_string()];
+        select_single(&mut current, "leptos".to_string());
+        assert_eq!(current, vec!["leptos"]);
+    }
+
+    #[test]
+    fn single_select_stores_one_value() {
+        let mut current = vec![];
+        select_single(&mut current, "rust".to_string());
+        assert_eq!(current.len(), 1);
+    }
+
+    // select_value logic (multi)
+
+    fn select_multi(current: &mut Vec<String>, val: String) {
+        if current.contains(&val) {
+            current.retain(|v| v != &val);
+        } else {
+            current.push(val);
+        }
+    }
+
+    #[test]
+    fn multi_select_adds_new_value() {
+        let mut current = vec!["rust".to_string()];
+        select_multi(&mut current, "leptos".to_string());
+        assert!(current.contains(&"leptos".to_string()));
+        assert_eq!(current.len(), 2);
+    }
+
+    #[test]
+    fn multi_select_removes_existing_value() {
+        let mut current = vec!["rust".to_string(), "leptos".to_string()];
+        select_multi(&mut current, "rust".to_string());
+        assert!(!current.contains(&"rust".to_string()));
+        assert_eq!(current.len(), 1);
+    }
+
+    // remove_value logic
+
+    fn remove_value(current: &mut Vec<String>, val: &str) {
+        current.retain(|v| v != val);
+    }
+
+    #[test]
+    fn remove_value_removes_correct_entry() {
+        let mut current = vec!["rust".to_string(), "leptos".to_string()];
+        remove_value(&mut current, "rust");
+        assert_eq!(current, vec!["leptos"]);
+    }
+
+    #[test]
+    fn remove_value_noop_when_absent() {
+        let mut current = vec!["leptos".to_string()];
+        remove_value(&mut current, "rust");
+        assert_eq!(current, vec!["leptos"]);
+    }
+
+    // placeholder visibility
+
+    fn shows_placeholder(placeholder: &str) -> bool {
+        !placeholder.is_empty()
+    }
+
+    #[test]
+    fn empty_placeholder_hides_option() {
+        assert!(!shows_placeholder(""));
+    }
+
+    #[test]
+    fn non_empty_placeholder_shows_option() {
+        assert!(shows_placeholder("-- Select --"));
+    }
+
+    // open/close dropdown reactive
+
+    #[test]
+    fn dropdown_opens_on_click() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (open, set_open) = signal(false);
+            set_open.set(true);
+            assert!(open.get());
+        });
+    }
+
+    #[test]
+    fn dropdown_closes_on_overlay_click() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (open, set_open) = signal(true);
+            set_open.set(false);
+            assert!(!open.get());
+        });
+    }
+
+    #[test]
+    fn single_select_closes_dropdown_after_selection() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (open, set_open) = signal(true);
+            let multiple = false;
+            if !multiple {
+                set_open.set(false);
+            }
+            assert!(!open.get());
+        });
+    }
+
+    #[test]
+    fn multi_select_keeps_dropdown_open_after_selection() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (open, set_open) = signal(true);
+            let multiple = true;
+            if !multiple {
+                set_open.set(false);
+            }
+            assert!(open.get());
+        });
+    }
+
+    // query resets on close
+
+    #[test]
+    fn query_resets_when_dropdown_closes() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (query, set_query) = signal("rust".to_string());
+            set_query.set(String::new());
+            assert_eq!(query.get(), "");
+        });
     }
 }

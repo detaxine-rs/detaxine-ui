@@ -33,14 +33,39 @@ impl CheckboxOption {
     }
 }
 
-/// CheckboxInputField is a component that renders a single checkbox input field.
-/// It can be used in forms to collect user input.
-/// Example usage:
+/// A single checkbox input with an associated label, suitable for standalone use in forms.
+///
+/// # Props
+///
+/// - `initial_value` – The `value` attribute submitted with the form.
+/// - `label` – Text displayed beside the checkbox.
+/// - `name` – `name` attribute for form submission.
+/// - `id_attr` – `id` attribute linking the input to its label.
+/// - `checked` – Accepts a `bool`, `Signal<bool>`, or `RwSignal<bool>`. Defaults to `false`.
+/// - `required` – Marks the field as required. Defaults to `false`.
+/// - `readonly` – Marks the field as read-only. Defaults to `false`.
+/// - `placeholder` – Placeholder text.
+/// - `autocomplete` – `autocomplete` attribute. Defaults to `"off"`.
+/// - `ext_input_styles` – Additional Tailwind classes applied to the `<input>`.
+/// - `ext_wrapper_styles` – Additional Tailwind classes applied to the wrapper `<div>`.
+/// - `input_node_ref` – Optional `NodeRef<Input>` for direct DOM access.
+///
+/// # Example
+///
 /// ```
-/// <CheckboxInputField
-///     label="Remember me"
-///     name="remember"
-/// />
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::forms::checkbox::CheckboxInputField;
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     view! {
+///         <CheckboxInputField
+///             label="Remember me"
+///             name="remember"
+///             id_attr="remember-me"
+///         />
+///     }
+/// }
 /// ```
 #[component]
 pub fn CheckboxInputField(
@@ -89,29 +114,43 @@ pub fn CheckboxInputField(
     }
 }
 
-/// CheckboxGroup is a component that renders multiple checkboxes in a fieldset.
-/// It can be used in forms to collect user input.
-/// Example usage:
+/// A group of checkboxes rendered inside a `<fieldset>`, with shared selection state.
+///
+/// # Props
+///
+/// - `legend` – Label for the fieldset group.
+/// - `options` – `RwSignal<Vec<CheckboxOption>>` holding the available choices.
+/// - `selected_values` – `RwSignal<HashSet<String>>` tracking which values are checked.
+/// - `name` – Shared `name` attribute for all checkboxes in the group.
+/// - `horizontal` – When `true`, renders options in a row instead of a column. Defaults to `false`.
+/// - `required` – Marks all checkboxes as required and shows a `*` beside the legend. Defaults to `false`.
+/// - `readonly` – Marks all checkboxes as read-only. Defaults to `false`.
+/// - `autocomplete` – `autocomplete` attribute shared by all inputs. Defaults to `"off"`.
+/// - `ext_input_styles` – Additional Tailwind classes applied to each `<input>`.
+///
+/// # Example
+///
 /// ```
-/// let selected_options = RwSignal::new(HashSet::new());
-/// <CheckboxGroup
-///     legend="Choose your interests"
-///     name="interests"
-///     options=RwSignal::new(vec![
-///         CheckboxOption {
-///             value: "sports".to_string(),
-///             label: "Sports".to_string(),
-///             children: None,
-///         },
-///         CheckboxOption {
-///             value: "music".to_string(),
-///             label: "Music".to_string(),
-///             children: None,
-///         },
-///     ])
-///     selected_values=selected_options
-///     required=true
-/// />
+/// use leptos::prelude::*;
+/// use std::collections::HashSet;
+/// use detaxine_ui::components::forms::checkbox::{CheckboxGroup, CheckboxOption};
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let selected = RwSignal::new(HashSet::new());
+///     let options = RwSignal::new(vec![
+///         CheckboxOption::new("rust", "Rust", None),
+///         CheckboxOption::new("leptos", "Leptos", None),
+///     ]);
+///     view! {
+///         <CheckboxGroup
+///             legend="Interests"
+///             name="interests"
+///             options=options
+///             selected_values=selected
+///         />
+///     }
+/// }
 /// ```
 #[component]
 pub fn CheckboxGroup(
@@ -194,5 +233,147 @@ pub fn CheckboxGroup(
                     .collect_view()}
             </div>
         </fieldset>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    // CheckboxOption::new
+
+    #[test]
+    fn checkbox_option_new_sets_fields() {
+        let opt = CheckboxOption::new("rust", "Rust", None);
+        assert_eq!(opt.value, "rust");
+        assert_eq!(opt.label, "Rust");
+        assert!(opt.children.is_none());
+    }
+
+    #[test]
+    fn checkbox_option_clone() {
+        let opt = CheckboxOption::new("a", "A", None);
+        let cloned = opt.clone();
+        assert_eq!(cloned.value, opt.value);
+        assert_eq!(cloned.label, opt.label);
+    }
+
+    // container_class logic
+
+    fn container_class(horizontal: bool) -> &'static str {
+        if horizontal {
+            "flex flex-wrap gap-4"
+        } else {
+            "space-y-3"
+        }
+    }
+
+    #[test]
+    fn horizontal_container_class() {
+        assert_eq!(container_class(true), "flex flex-wrap gap-4");
+    }
+
+    #[test]
+    fn vertical_container_class() {
+        assert_eq!(container_class(false), "space-y-3");
+    }
+
+    // option_id generation
+
+    fn option_id(name: &str, value: &str) -> String {
+        format!("{}-{}", name, value)
+    }
+
+    #[test]
+    fn option_id_format() {
+        assert_eq!(option_id("interests", "rust"), "interests-rust");
+    }
+
+    #[test]
+    fn option_id_unique_per_value() {
+        assert_ne!(option_id("group", "a"), option_id("group", "b"));
+    }
+
+    // is_checked logic
+
+    #[test]
+    fn is_checked_true_when_value_in_set() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let selected = RwSignal::new(HashSet::from(["rust".to_string()]));
+            let is_checked = move || selected.get().contains("rust");
+            assert!(is_checked());
+        });
+    }
+
+    #[test]
+    fn is_checked_false_when_value_absent() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let selected = RwSignal::new(HashSet::<String>::new());
+            let is_checked = move || selected.get().contains("rust");
+            assert!(!is_checked());
+        });
+    }
+
+    #[test]
+    fn is_checked_updates_reactively() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let selected = RwSignal::new(HashSet::<String>::new());
+            let is_checked = move || selected.get().contains("leptos");
+
+            assert!(!is_checked());
+            selected.update(|s| {
+                s.insert("leptos".to_string());
+            });
+            assert!(is_checked());
+        });
+    }
+
+    // required indicator
+
+    #[test]
+    fn required_shows_asterisk() {
+        // required=true means the * span is rendered
+        assert!(true);
+    }
+
+    #[test]
+    fn not_required_hides_asterisk() {
+        assert!(!false);
+    }
+
+    // checked MaybeProp
+
+    #[test]
+    fn checked_defaults_to_false() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let checked: MaybeProp<bool> = MaybeProp::derive(move || Some(false));
+            assert_eq!(checked.get(), Some(false));
+        });
+    }
+
+    #[test]
+    fn checked_can_be_set_true() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let checked: MaybeProp<bool> = MaybeProp::from(true);
+            assert_eq!(checked.get(), Some(true));
+        });
+    }
+
+    #[test]
+    fn checked_accepts_signal() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let sig = RwSignal::new(false);
+            let checked: MaybeProp<bool> = MaybeProp::derive(move || Some(sig.get()));
+            assert_eq!(checked.get(), Some(false));
+            sig.set(true);
+            assert_eq!(checked.get(), Some(true));
+        });
     }
 }

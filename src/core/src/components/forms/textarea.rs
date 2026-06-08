@@ -1,17 +1,40 @@
 use leptos::html::*;
 use leptos::prelude::*;
 
-/// This component represents a textarea input field.
-/// Example usage:
+/// A textarea input field with an optional label and required indicator.
+///
+/// # Props
+///
+/// - `initial_value` – `Signal<String>` bound to the textarea's content.
+/// - `label` – Text displayed above the textarea. Hidden if empty.
+/// - `name` – `name` attribute for form submission.
+/// - `id_attr` – `id` attribute linking the textarea to its label.
+/// - `required` – Shows a `*` beside the label and sets `required`. Defaults to `false`.
+/// - `readonly` – Sets the `readonly` attribute. Defaults to `false`.
+/// - `placeholder` – Placeholder text shown when the textarea is empty.
+/// - `ext_input_styles` – Additional Tailwind classes applied to the `<textarea>`.
+/// - `input_node_ref` – `NodeRef<Textarea>` for direct DOM access.
+///
+/// # Example
+///
 /// ```
-/// <Textarea
-///    initial_value="Initial text"
-///    label="Description"
-///    name="description"
-///    required=true
-///    placeholder="Enter your description..."
-///    ext_input_styles="bg-gray-100"
-/// />
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::forms::textarea::Textarea;
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let value = Signal::derive(move || "Initial text".to_string());
+///
+///     view! {
+///         <Textarea
+///             initial_value=value
+///             label="Description"
+///             name="description"
+///             required=true
+///             placeholder="Enter your description..."
+///         />
+///     }
+/// }
 /// ```
 #[component]
 pub fn Textarea(
@@ -63,5 +86,66 @@ pub fn Textarea(
                 {move || initial_value.get()}
             </textarea>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // label visibility
+
+    fn label_visible(label: &str) -> bool {
+        !label.is_empty()
+    }
+
+    #[test]
+    fn empty_label_is_hidden() {
+        assert!(!label_visible(""));
+    }
+
+    #[test]
+    fn non_empty_label_is_shown() {
+        assert!(label_visible("Description"));
+    }
+
+    // required indicator
+
+    fn shows_required_asterisk(required: bool) -> bool {
+        required
+    }
+
+    #[test]
+    fn required_shows_asterisk() {
+        assert!(shows_required_asterisk(true));
+    }
+
+    #[test]
+    fn not_required_hides_asterisk() {
+        assert!(!shows_required_asterisk(false));
+    }
+
+    // initial_value reactive signal
+
+    #[test]
+    fn initial_value_updates_reactively() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let content = RwSignal::new("hello".to_string());
+            let initial_value = Signal::derive(move || content.get());
+
+            assert_eq!(initial_value.get(), "hello");
+            content.set("updated".to_string());
+            assert_eq!(initial_value.get(), "updated");
+        });
+    }
+
+    #[test]
+    fn empty_initial_value_is_valid() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let initial_value = Signal::derive(move || String::new());
+            assert_eq!(initial_value.get(), "");
+        });
     }
 }

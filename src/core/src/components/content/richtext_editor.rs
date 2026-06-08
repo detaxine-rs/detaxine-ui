@@ -30,6 +30,43 @@ pub enum ExtraFormatingOption {
 pub type InsertImageCallback =
     Callback<web_sys::File, Pin<Box<dyn Future<Output = Option<String>>>>>;
 
+/// A rich text editor with a formatting toolbar supporting bold, italic, underline,
+/// strikethrough, and optional extras like headings, inline code, code blocks, lists,
+/// image upload, and markdown upload.
+///
+/// # Props
+///
+/// - `initial_content` – `RwSignal<String>` containing the initial HTML content. Defaults to `<p><br></p>`.
+/// - `id_attr` – HTML `id` applied to the editor and its hidden inputs.
+/// - `name` – `name` attribute forwarded to the hidden textarea for form submission.
+/// - `placeholder` – Placeholder text shown when the editor is empty.
+/// - `extra_formating_options` – Opt-in toolbar features via `Vec<ExtraFormatingOption>`:
+///   `MarkdownUpload`, `ImageUpload`, `Heading`, `InlineCode`, `CodeBlock`, `Lists`.
+/// - `on_image_insert` – Async callback receiving a `web_sys::File` and returning `Option<String>` (the URL to insert). Defaults to a base64 data-URL reader.
+///
+/// # Example
+///
+/// ```
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::content::richtext_editor::{ExtraFormatingOption, RichTextEditor};
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let content = RwSignal::new("<p><br></p>".to_string());
+///     view! {
+///         <RichTextEditor
+///             initial_content=content
+///             id_attr="my-editor"
+///             name="body"
+///             extra_formating_options=vec![
+///                 ExtraFormatingOption::Heading,
+///                 ExtraFormatingOption::CodeBlock,
+///                 ExtraFormatingOption::Lists,
+///             ]
+///         />
+///     }
+/// }
+/// ```
 #[component]
 pub fn RichTextEditor(
     #[prop(into, optional, default = RwSignal::new("<p><br></p>".into()))]
@@ -471,7 +508,7 @@ pub fn RichTextEditor(
             <div class="flex gap-2 items-center flex-wrap border-b-[1px] border-light-gray p-[10px]">
                 {
                     extra_formating_options.contains(&ExtraFormatingOption::Heading).then(|| view!{
-                        <SelectInput id_attr="font-sizes" options=font_options on:change=apply_heading />
+                        <SelectInput initial_value="p" id_attr="font-sizes" options=font_options on:change=apply_heading />
                     })
                 }
                 <BasicButton
@@ -522,7 +559,7 @@ pub fn RichTextEditor(
 
                         <Show when=move || show_language_picker.get()>
                             <div class="ml-2">
-                                <SelectInput id_attr="code-language" options=language_options on:change=apply_language />
+                                <SelectInput initial_value="plaintext" id_attr="code-language" options=language_options on:change=apply_language />
                             </div>
                         </Show>
                     })
@@ -1140,5 +1177,186 @@ fn insert_image_at_cursor(src: &str, editor_ref: &NodeRef<Div>) {
 
     if let Some(editor) = editor_ref.get_untracked() as Option<HtmlDivElement> {
         fire_bubbled_and_cancelable_event("input", true, true, &editor);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ExtraFormatingOption
+
+    #[test]
+    fn extra_formatting_option_eq() {
+        assert_eq!(
+            ExtraFormatingOption::CodeBlock,
+            ExtraFormatingOption::CodeBlock
+        );
+        assert_ne!(
+            ExtraFormatingOption::CodeBlock,
+            ExtraFormatingOption::InlineCode
+        );
+    }
+
+    #[test]
+    fn extra_formatting_option_clone() {
+        let opt = ExtraFormatingOption::Lists;
+        assert_eq!(opt.clone(), ExtraFormatingOption::Lists);
+    }
+
+    #[test]
+    fn extra_formatting_option_hash() {
+        use std::collections::HashSet;
+        let set: HashSet<ExtraFormatingOption> = [
+            ExtraFormatingOption::Heading,
+            ExtraFormatingOption::Lists,
+            ExtraFormatingOption::Heading, // duplicate
+        ]
+        .into_iter()
+        .collect();
+        assert_eq!(set.len(), 2);
+    }
+
+    #[test]
+    fn toolbar_contains_check_positive() {
+        let opts = vec![
+            ExtraFormatingOption::Heading,
+            ExtraFormatingOption::CodeBlock,
+        ];
+        assert!(opts.contains(&ExtraFormatingOption::Heading));
+        assert!(opts.contains(&ExtraFormatingOption::CodeBlock));
+    }
+
+    #[test]
+    fn toolbar_contains_check_negative() {
+        let opts = vec![ExtraFormatingOption::Heading];
+        assert!(!opts.contains(&ExtraFormatingOption::Lists));
+        assert!(!opts.contains(&ExtraFormatingOption::ImageUpload));
+        assert!(!opts.contains(&ExtraFormatingOption::InlineCode));
+        assert!(!opts.contains(&ExtraFormatingOption::MarkdownUpload));
+    }
+
+    #[test]
+    fn empty_extra_options_contains_nothing() {
+        let opts: Vec<ExtraFormatingOption> = vec![];
+        assert!(!opts.contains(&ExtraFormatingOption::CodeBlock));
+    }
+
+    // Active style logic
+
+    fn active_style(is_active: bool) -> &'static str {
+        if is_active {
+            "bg-primary text-contrast-white"
+        } else {
+            "hover:bg-light-gray"
+        }
+    }
+
+    #[test]
+    fn active_style_when_true() {
+        assert_eq!(active_style(true), "bg-primary text-contrast-white");
+    }
+
+    #[test]
+    fn active_style_when_false() {
+        assert_eq!(active_style(false), "hover:bg-light-gray");
+    }
+
+    // Reactive active style
+
+    #[test]
+    fn active_style_signal_reflects_state() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let is_bold = RwSignal::new(false);
+            assert_eq!(active_style(is_bold.get()), "hover:bg-light-gray");
+
+            is_bold.set(true);
+            assert_eq!(
+                active_style(is_bold.get()),
+                "bg-primary text-contrast-white"
+            );
+        });
+    }
+
+    // is_current_line_empty logic
+
+    fn line_before_cursor(text: &str, offset: usize) -> &str {
+        let before = &text[..offset.min(text.len())];
+        let line_start = before.rfind('\n').map(|i| i + 1).unwrap_or(0);
+        &before[line_start..]
+    }
+
+    #[test]
+    fn empty_line_detected_at_start() {
+        assert!(line_before_cursor("", 0).trim().is_empty());
+    }
+
+    #[test]
+    fn empty_line_detected_after_newline() {
+        assert!(line_before_cursor("code\n", 5).trim().is_empty());
+    }
+
+    #[test]
+    fn non_empty_line_not_detected_as_empty() {
+        assert!(!line_before_cursor("let x = 1;", 10).trim().is_empty());
+    }
+
+    #[test]
+    fn line_before_cursor_splits_on_last_newline() {
+        let text = "line1\nline2\n";
+        assert_eq!(line_before_cursor(text, 11), "line2");
+    }
+
+    // handle_list_enter empty-li logic
+
+    fn li_is_empty(text_content: Option<&str>) -> bool {
+        text_content.map(|t| t.trim().is_empty()).unwrap_or(true)
+    }
+
+    #[test]
+    fn empty_li_exits_list() {
+        assert!(li_is_empty(Some("")));
+        assert!(li_is_empty(Some("   ")));
+        assert!(li_is_empty(None));
+    }
+
+    #[test]
+    fn non_empty_li_appends_new_item() {
+        assert!(!li_is_empty(Some("some text")));
+    }
+
+    // last_enter_empty double-enter logic
+
+    #[test]
+    fn first_empty_enter_sets_flag() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let last_enter_empty = RwSignal::new(false);
+            // simulate first empty-line enter
+            last_enter_empty.set(true);
+            assert!(last_enter_empty.get());
+        });
+    }
+
+    #[test]
+    fn second_empty_enter_exits_and_resets_flag() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let last_enter_empty = RwSignal::new(true);
+            // simulate second empty-line enter
+            last_enter_empty.set(false);
+            assert!(!last_enter_empty.get());
+        });
+    }
+
+    #[test]
+    fn non_empty_line_resets_flag() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let last_enter_empty = RwSignal::new(true);
+            last_enter_empty.set(false);
+            assert!(!last_enter_empty.get());
+        });
     }
 }

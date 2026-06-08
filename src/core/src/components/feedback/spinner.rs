@@ -8,13 +8,26 @@ pub enum SpinnerSize {
     Lg,
 }
 
-/// A loading spinner component styled with Tailwind CSS.
-/// Uses an SVG circle with animated stroke-dashoffset for a smooth rotating effect.
-/// Colors can be customized via Tailwind classes.
+/// A loading spinner using an animated SVG circle, with an optional full-screen backdrop.
 ///
-/// Example usage:
+/// # Props
+///
+/// - `size` – `SpinnerSize::Sm`, `Md`, or `Lg` controlling the SVG dimensions and stroke width. Defaults to `Md`.
+/// - `color` – Tailwind text color class applied to the SVG (uses `currentColor`). Defaults to `"text-primary"`.
+/// - `with_backdrop` – When `true`, renders the spinner centered over a fixed full-screen overlay. Defaults to `true`.
+///
+/// # Example
+///
 /// ```
-/// <Spinner size=SpinnerSize::Md color="text-primary" />
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::feedback::spinner::{Spinner, SpinnerSize};
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     view! {
+///         <Spinner size=SpinnerSize::Md color="text-primary" with_backdrop=false />
+///     }
+/// }
 /// ```
 #[component]
 pub fn Spinner(
@@ -78,5 +91,96 @@ pub fn Spinner(
                 {spinner}
             </div>
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::f64::consts::PI;
+
+    // SpinnerSize
+
+    #[test]
+    fn size_eq() {
+        assert_eq!(SpinnerSize::Md, SpinnerSize::Md);
+        assert_ne!(SpinnerSize::Sm, SpinnerSize::Lg);
+    }
+
+    #[test]
+    fn size_clone() {
+        assert_eq!(SpinnerSize::Lg.clone(), SpinnerSize::Lg);
+    }
+
+    // svg_size / stroke_width mapping
+
+    fn dimensions(size: &SpinnerSize) -> (i32, i32) {
+        match size {
+            SpinnerSize::Sm => (24, 4),
+            SpinnerSize::Md => (48, 6),
+            SpinnerSize::Lg => (72, 8),
+        }
+    }
+
+    #[test]
+    fn sm_dimensions() {
+        assert_eq!(dimensions(&SpinnerSize::Sm), (24, 4));
+    }
+
+    #[test]
+    fn md_dimensions() {
+        assert_eq!(dimensions(&SpinnerSize::Md), (48, 6));
+    }
+
+    #[test]
+    fn lg_dimensions() {
+        assert_eq!(dimensions(&SpinnerSize::Lg), (72, 8));
+    }
+
+    // derived geometry
+
+    fn geometry(size: &SpinnerSize) -> (i32, f64, f64) {
+        let (svg_size, stroke_width) = dimensions(size);
+        let radius = (svg_size / 2 - stroke_width / 2) as f64;
+        let circumference = 2.0 * PI * radius;
+        (svg_size / 2, radius, circumference)
+    }
+
+    #[test]
+    fn center_is_half_svg_size() {
+        for size in [SpinnerSize::Sm, SpinnerSize::Md, SpinnerSize::Lg] {
+            let (svg_size, _) = dimensions(&size);
+            let (center, _, _) = geometry(&size);
+            assert_eq!(center, svg_size / 2);
+        }
+    }
+
+    #[test]
+    fn radius_accounts_for_stroke() {
+        let (svg_size, stroke_width) = dimensions(&SpinnerSize::Md);
+        let (_, radius, _) = geometry(&SpinnerSize::Md);
+        assert_eq!(radius, (svg_size / 2 - stroke_width / 2) as f64);
+    }
+
+    #[test]
+    fn circumference_derived_from_radius() {
+        let (_, radius, circumference) = geometry(&SpinnerSize::Md);
+        assert!((circumference - 2.0 * PI * radius).abs() < 1e-9);
+    }
+
+    // stroke-dashoffset fractions
+
+    #[test]
+    fn background_arc_dashoffset_is_75_percent() {
+        let (_, _, circ) = geometry(&SpinnerSize::Md);
+        let offset = circ * 0.75;
+        assert!((offset - circ * 0.75).abs() < 1e-9);
+    }
+
+    #[test]
+    fn foreground_arc_dashoffset_is_25_percent() {
+        let (_, _, circ) = geometry(&SpinnerSize::Md);
+        let offset = circ * 0.25;
+        assert!((offset - circ * 0.25).abs() < 1e-9);
     }
 }

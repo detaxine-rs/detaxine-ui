@@ -10,33 +10,48 @@ use leptos::html::*;
 use leptos::prelude::*;
 use web_sys::HtmlInputElement;
 
-/// This is a custom date picker component that allows users to select a date from a calendar.
+/// A date picker with a calendar popup, supporting min/max constraints and explicitly disabled dates.
 ///
-/// It provides a user-friendly interface for selecting dates, with features such as:
-/// - Displaying the current date and time
-/// - Navigating between months and years
-/// - Selecting a specific date by clicking on the calendar grid
-/// - Validating user input and displaying error messages if necessary
-/// - Supporting min/max date constraints
-/// - Supporting explicitly disabled dates
+/// Renders a read-only display input that opens a calendar on click. The selected date is
+/// written as an RFC3339 string to a hidden input for form submission.
 ///
-/// The component is designed to be easily integrated into existing forms and can be customized to fit specific design requirements.
-/// Example usage:
+/// # Props
+///
+/// - `label` – Label displayed above the visible input.
+/// - `name` – `name` attribute on the hidden form input.
+/// - `id_attr` – `id` attribute base; the display input receives `"{id_attr}-display"`.
+/// - `required` – Marks the field as required. Defaults to `false`.
+/// - `initial_value` – `RwSignal<Option<DateTime<Local>>>` pre-selecting a date. Defaults to `None`.
+/// - `input_node_ref` – `NodeRef<Input>` for the hidden input, useful for programmatic access.
+/// - `min` – Earliest selectable date (inclusive). Dates before this are disabled.
+/// - `max` – Latest selectable date (inclusive). Dates after this are disabled.
+/// - `disabled_dates` – Explicit list of dates to disable regardless of `min`/`max`.
+///
+/// # Example
+///
 /// ```
-/// <DatePicker
-///     label="Appointment"
-///     name="appointment"
-///     min=Local::now()
-///     max=Local::now() + Duration::days(30)
-///     disabled_dates=vec![some_holiday]
-/// />
+/// use leptos::prelude::*;
+/// use chrono::{Local, Duration};
+/// use detaxine_ui::components::forms::datepicker::DatePicker;
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     view! {
+///         <DatePicker
+///             label="Appointment"
+///             name="appointment"
+///             min=Local::now()
+///             max=Local::now() + Duration::days(30)
+///         />
+///     }
+/// }
 /// ```
 #[component]
 pub fn DatePicker(
     #[prop(into, optional)] label: String,
     #[prop(into, optional)] name: String,
     #[prop(default = false, optional)] required: bool,
-    #[prop(into, default = RwSignal::new(None), optional)] initial_value: RwSignal<
+    #[prop(into, default = MaybeProp::derive(move || None), optional)] initial_value: MaybeProp<
         Option<DateTime<Local>>,
     >,
     #[prop(into, optional)] id_attr: String,
@@ -69,7 +84,10 @@ pub fn DatePicker(
     });
 
     Effect::new(move |_| {
-        set_selected_date.set(initial_value.get());
+        let Some(provided_initial_date) = initial_value.get() else {
+            return;
+        };
+        set_selected_date.set(provided_initial_date);
     });
 
     let toggle_calendar = Callback::new(move |_| {
@@ -442,5 +460,248 @@ fn Calendar(
                 }
             })}
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Duration, Local, NaiveDate, TimeZone};
+
+    // selected_date_display_value
+
+    fn display_value(date: Option<chrono::DateTime<Local>>) -> String {
+        date.map(|dt| dt.format("%b %0e %Y").to_string())
+            .unwrap_or("Select Date".to_string())
+    }
+
+    #[test]
+    fn display_value_none_shows_placeholder() {
+        assert_eq!(display_value(None), "Select Date");
+    }
+
+    #[test]
+    fn display_value_some_formats_date() {
+        let date = Local.with_ymd_and_hms(2024, 6, 15, 0, 0, 0).unwrap();
+        let result = display_value(Some(date));
+        assert!(result.contains("2024"));
+        assert!(result.contains("Jun"));
+    }
+
+    // selected_date_value (RFC3339)
+
+    fn rfc3339_value(date: Option<chrono::DateTime<Local>>) -> String {
+        date.map(|dt| dt.to_rfc3339()).unwrap_or_default()
+    }
+
+    #[test]
+    fn rfc3339_value_none_is_empty() {
+        assert_eq!(rfc3339_value(None), "");
+    }
+
+    #[test]
+    fn rfc3339_value_some_is_parseable() {
+        let date = Local.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
+        let result = rfc3339_value(Some(date));
+        assert!(chrono::DateTime::parse_from_rfc3339(&result).is_ok());
+    }
+
+    // is_disabled logic
+
+    fn is_disabled(
+        date: NaiveDate,
+        min: Option<NaiveDate>,
+        max: Option<NaiveDate>,
+        disabled: &[NaiveDate],
+    ) -> bool {
+        if min.is_some_and(|m| date < m) {
+            return true;
+        }
+        if max.is_some_and(|m| date > m) {
+            return true;
+        }
+        disabled.iter().any(|d| *d == date)
+    }
+
+    #[test]
+    fn date_before_min_is_disabled() {
+        let min = NaiveDate::from_ymd_opt(2024, 6, 1).unwrap();
+        let date = NaiveDate::from_ymd_opt(2024, 5, 31).unwrap();
+        assert!(is_disabled(date, Some(min), None, &[]));
+    }
+
+    #[test]
+    fn date_on_min_is_not_disabled() {
+        let min = NaiveDate::from_ymd_opt(2024, 6, 1).unwrap();
+        assert!(!is_disabled(min, Some(min), None, &[]));
+    }
+
+    #[test]
+    fn date_after_max_is_disabled() {
+        let max = NaiveDate::from_ymd_opt(2024, 6, 30).unwrap();
+        let date = NaiveDate::from_ymd_opt(2024, 7, 1).unwrap();
+        assert!(is_disabled(date, None, Some(max), &[]));
+    }
+
+    #[test]
+    fn date_on_max_is_not_disabled() {
+        let max = NaiveDate::from_ymd_opt(2024, 6, 30).unwrap();
+        assert!(!is_disabled(max, None, Some(max), &[]));
+    }
+
+    #[test]
+    fn explicitly_disabled_date_is_disabled() {
+        let date = NaiveDate::from_ymd_opt(2024, 6, 15).unwrap();
+        assert!(is_disabled(date, None, None, &[date]));
+    }
+
+    #[test]
+    fn date_within_range_and_not_listed_is_enabled() {
+        let date = NaiveDate::from_ymd_opt(2024, 6, 15).unwrap();
+        let min = NaiveDate::from_ymd_opt(2024, 6, 1).unwrap();
+        let max = NaiveDate::from_ymd_opt(2024, 6, 30).unwrap();
+        assert!(!is_disabled(date, Some(min), Some(max), &[]));
+    }
+
+    // last_day_of_month
+
+    fn last_day_of_month(date: NaiveDate) -> Option<NaiveDate> {
+        let (year, month) = if date.month() == 12 {
+            (date.year() + 1, 1)
+        } else {
+            (date.year(), date.month() + 1)
+        };
+        NaiveDate::from_ymd_opt(year, month, 1).map(|first| first - Duration::days(1))
+    }
+
+    #[test]
+    fn last_day_january() {
+        let d = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        assert_eq!(last_day_of_month(d).unwrap().day(), 31);
+    }
+
+    #[test]
+    fn last_day_february_leap_year() {
+        let d = NaiveDate::from_ymd_opt(2024, 2, 1).unwrap();
+        assert_eq!(last_day_of_month(d).unwrap().day(), 29);
+    }
+
+    #[test]
+    fn last_day_february_non_leap_year() {
+        let d = NaiveDate::from_ymd_opt(2023, 2, 1).unwrap();
+        assert_eq!(last_day_of_month(d).unwrap().day(), 28);
+    }
+
+    #[test]
+    fn last_day_december_wraps_to_next_year() {
+        let d = NaiveDate::from_ymd_opt(2024, 12, 1).unwrap();
+        assert_eq!(last_day_of_month(d).unwrap().day(), 31);
+    }
+
+    // calendar_adjustment (weekday offset)
+
+    fn calendar_adjustment(weekday: chrono::Weekday) -> u32 {
+        match weekday {
+            chrono::Weekday::Sun => 0,
+            chrono::Weekday::Mon => 1,
+            chrono::Weekday::Tue => 2,
+            chrono::Weekday::Wed => 3,
+            chrono::Weekday::Thu => 4,
+            chrono::Weekday::Fri => 5,
+            chrono::Weekday::Sat => 6,
+        }
+    }
+
+    #[test]
+    fn sunday_needs_no_offset() {
+        assert_eq!(calendar_adjustment(chrono::Weekday::Sun), 0);
+    }
+
+    #[test]
+    fn saturday_needs_six_blank_cells() {
+        assert_eq!(calendar_adjustment(chrono::Weekday::Sat), 6);
+    }
+
+    #[test]
+    fn wednesday_needs_three_blank_cells() {
+        assert_eq!(calendar_adjustment(chrono::Weekday::Wed), 3);
+    }
+
+    // can_go_prev / can_go_next logic
+
+    fn prev_month(month: u32, year: i32) -> (u32, i32) {
+        if month == 1 {
+            (12, year - 1)
+        } else {
+            (month - 1, year)
+        }
+    }
+
+    fn next_month(month: u32, year: i32) -> (u32, i32) {
+        if month == 12 {
+            (1, year + 1)
+        } else {
+            (month + 1, year)
+        }
+    }
+
+    #[test]
+    fn prev_month_wraps_january_to_december() {
+        assert_eq!(prev_month(1, 2024), (12, 2023));
+    }
+
+    #[test]
+    fn next_month_wraps_december_to_january() {
+        assert_eq!(next_month(12, 2024), (1, 2025));
+    }
+
+    #[test]
+    fn prev_month_normal() {
+        assert_eq!(prev_month(6, 2024), (5, 2024));
+    }
+
+    #[test]
+    fn next_month_normal() {
+        assert_eq!(next_month(6, 2024), (7, 2024));
+    }
+
+    // toggle_calendar reactive signal
+
+    #[test]
+    fn toggle_calendar_opens_and_closes() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (show, set_show) = signal(false);
+            set_show.update(|v| *v = !*v);
+            assert!(show.get());
+            set_show.update(|v| *v = !*v);
+            assert!(!show.get());
+        });
+    }
+
+    // year_page navigation
+
+    #[test]
+    fn year_page_increments() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (year_page, set_year_page) = signal(0usize);
+            set_year_page.update(|v| *v += 1);
+            assert_eq!(year_page.get(), 1);
+        });
+    }
+
+    #[test]
+    fn year_page_does_not_go_below_zero() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (year_page, set_year_page) = signal(0usize);
+            set_year_page.update(|v| {
+                if *v > 0 {
+                    *v -= 1
+                }
+            });
+            assert_eq!(year_page.get(), 0);
+        });
     }
 }

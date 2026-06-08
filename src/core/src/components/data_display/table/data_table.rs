@@ -42,6 +42,10 @@ pub enum SortOrder {
     Descending,
 }
 
+/// Represents a table column with an optional sort capability.
+///
+/// Use `Column::new` to construct, then `toggle_sort` and `toggle_sort_icon`
+/// to cycle through `Default → Ascending → Descending → Default`.
 impl Column {
     pub fn new(name: &str, sortable: bool) -> Self {
         Column {
@@ -86,6 +90,16 @@ impl PartialEq for Column {
     }
 }
 
+/// Represents the value of a single table cell.
+///
+/// - `String(String)` – Plain text.
+/// - `Int32(i32)`, `Int64(i64)` – Signed integers.
+/// - `UInt32(u32)`, `UInt64(u64)`, `UInt128(u128)`, `Usize(usize)` – Unsigned integers.
+/// - `Float32(f32)`, `Float64(f64)` – Floating point, rendered to 2 decimal places.
+/// - `Bool(bool)` – Rendered as `"true"` or `"false"`.
+/// - `Html(ViewFn)` – Arbitrary HTML content rendered inline.
+/// - `DateTime(String)` – RFC3339 string rendered as `dd Mon YYYY`.
+/// - `Duration(String)` – RFC3339 start date; rendered as elapsed time from now.
 #[derive(Clone)]
 #[allow(dead_code)]
 pub enum TableCellData {
@@ -220,7 +234,7 @@ impl Hash for TableCellData {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TableProps {
     pub columns: Vec<Column>,
     pub data: Vec<HashMap<String, TableCellData>>,
@@ -335,45 +349,45 @@ impl TableProps {
     }
 }
 
-/// This component is a data table that can be used to display data in a table format.
-/// It provides sorting, pagination, and row actions such as editing and deleting.
-/// Example usage:
+/// A sortable, paginated data table with optional row-level edit and delete actions.
+///
+/// Each row is represented as a `HashMap<String, TableCellData>` where keys match column names.
+/// Every row **must** include an `"id"` key with a `TableCellData::String` value for keying to work correctly.
+///
+/// # Props
+///
+/// - `data` – `RwSignal<(Vec<Column>, Vec<HashMap<String, TableCellData>>)>` holding columns and rows.
+/// - `page_size` – Number of rows per page. Defaults to `10`.
+/// - `on_row_click` – Callback fired when a row is clicked, receives the row's data map.
+/// - `on_row_action` – Callback fired when an action button is clicked, receives `(row_data, action_type)` where `action_type` is `"edit"` or `"delete"`.
+/// - `editable` – Shows an edit action button per row. Defaults to `false`.
+/// - `deletable` – Shows a delete action button per row. Defaults to `false`.
+///
+/// # Example
+///
 /// ```
-/// // Data preparation:
-/// let columns = vec![
-///    Column::new("Transaction ID", false),
-///    Column::new("Date", true),
-///  ];
+/// use leptos::prelude::*;
+/// use std::collections::HashMap;
+/// use detaxine_ui::components::data_display::table::data_table::{Column, TableCellData, DataTable};
 ///
-/// // Assuming that transactions variable is a vector of Transaction structs probably deserialized from a backend API JSON response
-/// // Use the TableCellData enum to format table cell values to the variants you want.
-/// let transactions = transactions
-///    .iter()
-///    .map(|transaction| {
-///        let mut hash_map_data = HashMap::new();
-///
-///        // This id is the unique identifier of the table row. and is a MUST for the table to function properly.
-///        // *Note:* The id is a MUST for the table to function properly. You might be forced to generate a unique id for each row if your data does not have a unique identifier.
-///        hash_map_data.insert(
-///            "id".to_string(),
-///            TableCellData::String(transaction.id.clone()),
-///        );
-///
-///        hash_map_data.insert(
-///            "Transaction ID".to_string(),
-///            TableCellData::String(transaction.id.clone()),
-///        );
-///        hash_map_data.insert(
-///            "Date".to_string(),
-///            TableCellData::DateTime(transaction.date.clone()),
-///        );
-///        hash_map_data
-///    })
-///    .collect();
-///
-/// let table_data = RwSignal::new((columns, transactions));
-///
-/// <DataTable data=table_data editable=true deletable=true />
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     let columns = vec![
+///         Column::new("Name", true),
+///         Column::new("Age", true),
+///     ];
+///     let rows = vec![{
+///         let mut row = HashMap::new();
+///         row.insert("id".to_string(), TableCellData::String("1".to_string()));
+///         row.insert("Name".to_string(), TableCellData::String("Alice".to_string()));
+///         row.insert("Age".to_string(), TableCellData::UInt32(30));
+///         row
+///     }];
+///     let data = RwSignal::new((columns, rows));
+///     view! {
+///         <DataTable data=data editable=true deletable=true />
+///     }
+/// }
 /// ```
 #[component]
 pub fn DataTable(
@@ -662,5 +676,252 @@ pub fn DataTable(
                 on_page_change={on_page_change}
             />
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    // SortOrder
+
+    #[test]
+    fn sort_order_default() {
+        assert_eq!(SortOrder::default(), SortOrder::Default);
+    }
+
+    // Column::toggle_sort
+
+    #[test]
+    fn toggle_sort_cycles_correctly() {
+        let mut col = Column::new("Name", true);
+        assert_eq!(col.sort_order, SortOrder::Default);
+
+        col.toggle_sort();
+        assert_eq!(col.sort_order, SortOrder::Ascending);
+
+        col.toggle_sort();
+        assert_eq!(col.sort_order, SortOrder::Descending);
+
+        col.toggle_sort();
+        assert_eq!(col.sort_order, SortOrder::Default);
+    }
+
+    #[test]
+    fn non_sortable_column_still_toggles_sort_order() {
+        // sortable flag is enforced by the click handler, not Column itself
+        let mut col = Column::new("Name", false);
+        col.toggle_sort();
+        assert_eq!(col.sort_order, SortOrder::Ascending);
+    }
+
+    #[test]
+    fn column_eq_based_on_name_only() {
+        let a = Column::new("Age", true);
+        let mut b = Column::new("Age", true);
+        b.toggle_sort();
+        assert_eq!(a, b); // sort_order difference ignored
+    }
+
+    #[test]
+    fn columns_with_different_names_not_equal() {
+        let a = Column::new("Age", true);
+        let b = Column::new("Name", true);
+        assert_ne!(a, b);
+    }
+
+    // TableCellData::PartialEq
+
+    #[test]
+    fn string_cells_equal() {
+        assert_eq!(
+            TableCellData::String("hello".into()),
+            TableCellData::String("hello".into())
+        );
+    }
+
+    #[test]
+    fn string_cells_not_equal() {
+        assert_ne!(
+            TableCellData::String("a".into()),
+            TableCellData::String("b".into())
+        );
+    }
+
+    #[test]
+    fn different_variants_not_equal() {
+        assert_ne!(TableCellData::String("1".into()), TableCellData::Int32(1));
+    }
+
+    #[test]
+    fn datetime_cells_equal_by_timestamp() {
+        let a = TableCellData::DateTime("2024-01-01T00:00:00Z".into());
+        let b = TableCellData::DateTime("2024-01-01T00:00:00Z".into());
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn datetime_cells_not_equal_for_different_dates() {
+        let a = TableCellData::DateTime("2024-01-01T00:00:00Z".into());
+        let b = TableCellData::DateTime("2024-06-01T00:00:00Z".into());
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn html_cells_never_equal() {
+        let a = TableCellData::Html(ViewFn::from(|| view! {}));
+        let b = TableCellData::Html(ViewFn::from(|| view! {}));
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn bool_cells_equal() {
+        assert_eq!(TableCellData::Bool(true), TableCellData::Bool(true));
+        assert_ne!(TableCellData::Bool(true), TableCellData::Bool(false));
+    }
+
+    // TableProps::paginate
+
+    fn make_rows(n: usize) -> Vec<HashMap<String, TableCellData>> {
+        (0..n)
+            .map(|i| {
+                let mut row = HashMap::new();
+                row.insert("id".to_string(), TableCellData::String(i.to_string()));
+                row
+            })
+            .collect()
+    }
+
+    fn make_props(rows: usize, page_size: usize) -> TableProps {
+        TableProps {
+            columns: vec![Column::new("id", false)],
+            data: make_rows(rows),
+            page_size,
+            on_row_click: Callback::new(|_| {}),
+            on_row_action: Callback::new(|_| {}),
+            editable: false,
+            deletable: false,
+        }
+    }
+
+    #[test]
+    fn paginate_first_page() {
+        let mut props = make_props(25, 10);
+        let (page, total_pages, rows) = props.paginate(1);
+        assert_eq!(page, 1);
+        assert_eq!(total_pages, 3);
+        assert_eq!(rows.len(), 10);
+    }
+
+    #[test]
+    fn paginate_last_page_partial() {
+        let mut props = make_props(25, 10);
+        let (_, _, rows) = props.paginate(3);
+        assert_eq!(rows.len(), 5);
+    }
+
+    #[test]
+    fn paginate_exact_multiple() {
+        let mut props = make_props(20, 10);
+        let (_, total_pages, _) = props.paginate(1);
+        assert_eq!(total_pages, 2);
+    }
+
+    #[test]
+    fn paginate_single_page() {
+        let mut props = make_props(5, 10);
+        let (_, total_pages, rows) = props.paginate(1);
+        assert_eq!(total_pages, 1);
+        assert_eq!(rows.len(), 5);
+    }
+
+    #[test]
+    fn paginate_empty_data() {
+        let mut props = make_props(0, 10);
+        let (_, total_pages, rows) = props.paginate(1);
+        assert_eq!(total_pages, 0);
+        assert_eq!(rows.len(), 0);
+    }
+
+    // TableProps::sort
+
+    fn make_string_props(values: Vec<&str>) -> TableProps {
+        let rows = values
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let mut row = HashMap::new();
+                row.insert("id".to_string(), TableCellData::String(i.to_string()));
+                row.insert("Name".to_string(), TableCellData::String(v.to_string()));
+                row
+            })
+            .collect();
+
+        TableProps {
+            columns: vec![Column::new("Name", true)],
+            data: rows,
+            page_size: 10,
+            on_row_click: Callback::new(|_| {}),
+            on_row_action: Callback::new(|_| {}),
+            editable: false,
+            deletable: false,
+        }
+    }
+
+    fn get_name(row: &HashMap<String, TableCellData>) -> &str {
+        match row.get("Name") {
+            Some(TableCellData::String(s)) => s.as_str(),
+            _ => "",
+        }
+    }
+
+    #[test]
+    fn sort_ascending_strings() {
+        let mut props = make_string_props(vec!["Charlie", "Alice", "Bob"]);
+        let mut col = Column::new("Name", true);
+        col.toggle_sort(); // Ascending
+        let sorted = props.sort(&col);
+        assert_eq!(get_name(&sorted[0]), "Alice");
+        assert_eq!(get_name(&sorted[1]), "Bob");
+        assert_eq!(get_name(&sorted[2]), "Charlie");
+    }
+
+    #[test]
+    fn sort_descending_strings() {
+        let mut props = make_string_props(vec!["Charlie", "Alice", "Bob"]);
+        let mut col = Column::new("Name", true);
+        col.toggle_sort(); // Ascending
+        col.toggle_sort(); // Descending
+        let sorted = props.sort(&col);
+        assert_eq!(get_name(&sorted[0]), "Charlie");
+        assert_eq!(get_name(&sorted[1]), "Bob");
+        assert_eq!(get_name(&sorted[2]), "Alice");
+    }
+
+    #[test]
+    fn sort_default_order_does_not_change_data() {
+        let mut props = make_string_props(vec!["Charlie", "Alice", "Bob"]);
+        let col = Column::new("Name", true); // SortOrder::Default
+        let sorted = props.sort(&col);
+        assert_eq!(get_name(&sorted[0]), "Charlie");
+        assert_eq!(get_name(&sorted[1]), "Alice");
+        assert_eq!(get_name(&sorted[2]), "Bob");
+    }
+
+    // TableProps::PartialEq
+
+    #[test]
+    fn table_props_equal_ignores_callbacks() {
+        let a = make_props(5, 10);
+        let b = make_props(5, 10);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn table_props_not_equal_different_page_size() {
+        let a = make_props(5, 10);
+        let b = make_props(5, 5);
+        assert_ne!(a, b);
     }
 }

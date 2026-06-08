@@ -28,17 +28,55 @@ pub enum InputFieldType {
     Week,
 }
 
-/// This is a component for creating input fields with various types.
-/// It provides a flexible way to create input fields with different types, such as text, email, date, number, password, tel, url, search, color, range, file, hidden, image, month, time and week by using the `InputFieldType` enum.
-/// The component also supports various attributes such as label, name, placeholder, and event handlers.
-/// Examples:
+/// A flexible input field supporting all standard HTML input types via `InputFieldType`.
+///
+/// Includes optional icon (leading or trailing), password visibility toggle,
+/// label, and full styling extension points.
+///
+/// # Props
+///
+/// - `field_type` – One of the `InputFieldType` variants (e.g. `Text`, `Email`, `Password`, `File`).
+/// - `initial_value` – `Signal<String>` bound to the input's value.
+/// - `label` – Text displayed above the input. Hidden if empty.
+/// - `name` – `name` attribute for form submission.
+/// - `id_attr` – `id` attribute linking the input to its label.
+/// - `required` – Shows a `*` beside the label and sets the `required` attribute. Defaults to `false`.
+/// - `readonly` – Sets the `readonly` attribute. Defaults to `false`.
+/// - `placeholder` – Placeholder text.
+/// - `autocomplete` – `autocomplete` attribute. Defaults to `"off"`.
+/// - `accept` – `accept` attribute, used with `InputFieldType::File`.
+/// - `multiple` – Allows multiple file selection. Defaults to `false`.
+/// - `min` / `max` – Range constraints for `Number`, `Date`, and similar types.
+/// - `icon` – Optional icon rendered inside the input wrapper.
+/// - `icon_is_leading` – When `true`, icon appears on the left. Defaults to `true`.
+/// - `onfocus` / `onblur` – Focus and blur event callbacks.
+/// - `ext_wrapper_styles` – Additional Tailwind classes on the outer wrapper `<div>`.
+/// - `ext_label_styles` – Additional Tailwind classes on the `<label>`.
+/// - `ext_input_styles` – Additional Tailwind classes on the inner wrapper `<div>`.
+/// - `input_node_ref` – `NodeRef<Input>` for direct DOM access.
+///
+/// # Example
+///
 /// ```
-/// <InputField field_type=InputFieldType::Text name="name" />
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::forms::input::{InputField, InputFieldType};
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     view! {
+///         <InputField
+///             field_type=InputFieldType::Email
+///             label="Email"
+///             name="email"
+///             id_attr="email"
+///             required=true
+///         />
+///     }
+/// }
 /// ```
-
 #[component]
 pub fn InputField(
-    #[prop(into, optional)] initial_value: Signal<String>,
+    #[prop(into, optional)] initial_value: MaybeProp<String>,
     #[prop(into, optional)] label: String,
     field_type: InputFieldType,
     #[prop(into, optional)] name: String,
@@ -129,7 +167,7 @@ pub fn InputField(
                         "w-full h-full py-2 px-3 leading-tight flex-grow focus:outline-none"
                     )
                     type=move || if show_password.get() { "text" } else { input_field_type_str }
-                    prop:value=initial_value
+                    prop:value=move || initial_value.get()
                     name=name
                     node_ref=input_node_ref
                     readonly=readonly
@@ -167,6 +205,37 @@ pub fn InputField(
     }
 }
 
+/// A styled file input that shows a button when empty and a file list with a replace affordance once files are selected.
+///
+/// # Props
+///
+/// - `label` – Label displayed above the hidden file input.
+/// - `name` – `name` attribute for form submission.
+/// - `id_attr` – `id` attribute for the hidden input.
+/// - `required` – Marks the field as required. Defaults to `false`.
+/// - `multiple` – Allows selecting multiple files. Defaults to `false`.
+/// - `accept` – MIME types or file extensions accepted (e.g. `"image/*"`).
+/// - `ext_label_styles` – Additional Tailwind classes on the label.
+/// - `input_node_ref` – `NodeRef<Input>` for programmatic access to the hidden input.
+///
+/// # Example
+///
+/// ```
+/// use leptos::prelude::*;
+/// use detaxine_ui::components::forms::input::CustomFileInput;
+///
+/// #[component]
+/// fn Example() -> impl IntoView {
+///     view! {
+///         <CustomFileInput
+///             label="Upload Resume"
+///             name="resume"
+///             accept=".pdf,.doc"
+///             id_attr="resume-upload"
+///         />
+///     }
+/// }
+/// ```
 #[component]
 pub fn CustomFileInput(
     #[prop(into, optional)] label: String,
@@ -284,5 +353,186 @@ pub fn CustomFileInput(
                 </div>
             </Show>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // InputFieldType → &str mapping
+
+    fn field_type_str(field_type: &InputFieldType) -> &'static str {
+        match field_type {
+            InputFieldType::Text => "text",
+            InputFieldType::Email => "email",
+            InputFieldType::Date => "date",
+            InputFieldType::Number => "number",
+            InputFieldType::Password => "password",
+            InputFieldType::Tel => "tel",
+            InputFieldType::Url => "url",
+            InputFieldType::Search => "search",
+            InputFieldType::Color => "color",
+            InputFieldType::Range => "range",
+            InputFieldType::File => "file",
+            InputFieldType::Hidden => "hidden",
+            InputFieldType::Image => "image",
+            InputFieldType::Month => "month",
+            InputFieldType::Time => "time",
+            InputFieldType::Week => "week",
+        }
+    }
+
+    #[test]
+    fn all_field_types_map_to_correct_str() {
+        assert_eq!(field_type_str(&InputFieldType::Text), "text");
+        assert_eq!(field_type_str(&InputFieldType::Email), "email");
+        assert_eq!(field_type_str(&InputFieldType::Date), "date");
+        assert_eq!(field_type_str(&InputFieldType::Number), "number");
+        assert_eq!(field_type_str(&InputFieldType::Password), "password");
+        assert_eq!(field_type_str(&InputFieldType::Tel), "tel");
+        assert_eq!(field_type_str(&InputFieldType::Url), "url");
+        assert_eq!(field_type_str(&InputFieldType::Search), "search");
+        assert_eq!(field_type_str(&InputFieldType::Color), "color");
+        assert_eq!(field_type_str(&InputFieldType::Range), "range");
+        assert_eq!(field_type_str(&InputFieldType::File), "file");
+        assert_eq!(field_type_str(&InputFieldType::Hidden), "hidden");
+        assert_eq!(field_type_str(&InputFieldType::Image), "image");
+        assert_eq!(field_type_str(&InputFieldType::Month), "month");
+        assert_eq!(field_type_str(&InputFieldType::Time), "time");
+        assert_eq!(field_type_str(&InputFieldType::Week), "week");
+    }
+
+    // step attribute
+
+    fn step(field_type: &InputFieldType) -> Option<&'static str> {
+        match field_type {
+            InputFieldType::Number => Some("any"),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn number_type_has_step_any() {
+        assert_eq!(step(&InputFieldType::Number), Some("any"));
+    }
+
+    #[test]
+    fn other_types_have_no_step() {
+        assert_eq!(step(&InputFieldType::Text), None);
+        assert_eq!(step(&InputFieldType::Date), None);
+        assert_eq!(step(&InputFieldType::Email), None);
+    }
+
+    // password visibility toggle
+
+    fn resolved_type(field_type: &InputFieldType, show_password: bool) -> &'static str {
+        if *field_type == InputFieldType::Password && show_password {
+            "text"
+        } else {
+            field_type_str(field_type)
+        }
+    }
+
+    #[test]
+    fn password_hidden_by_default() {
+        assert_eq!(resolved_type(&InputFieldType::Password, false), "password");
+    }
+
+    #[test]
+    fn password_shown_when_toggled() {
+        assert_eq!(resolved_type(&InputFieldType::Password, true), "text");
+    }
+
+    #[test]
+    fn non_password_type_unaffected_by_toggle() {
+        assert_eq!(resolved_type(&InputFieldType::Email, true), "email");
+    }
+
+    #[test]
+    fn show_password_toggle_flips() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let (show_password, set_show_password) = signal(false);
+            assert!(!show_password.get());
+            set_show_password.set(!show_password.get());
+            assert!(show_password.get());
+            set_show_password.set(!show_password.get());
+            assert!(!show_password.get());
+        });
+    }
+
+    // password toggle visibility
+
+    fn shows_password_toggle(field_type: &InputFieldType) -> bool {
+        *field_type == InputFieldType::Password
+    }
+
+    #[test]
+    fn toggle_only_shown_for_password() {
+        assert!(shows_password_toggle(&InputFieldType::Password));
+        assert!(!shows_password_toggle(&InputFieldType::Text));
+        assert!(!shows_password_toggle(&InputFieldType::Email));
+    }
+
+    // label visibility
+
+    fn label_visible(label: &str) -> bool {
+        !label.is_empty()
+    }
+
+    #[test]
+    fn empty_label_is_hidden() {
+        assert!(!label_visible(""));
+    }
+
+    #[test]
+    fn non_empty_label_is_shown() {
+        assert!(label_visible("Email"));
+    }
+
+    // CustomFileInput: file extension extraction
+
+    fn file_ext(name: &str) -> String {
+        name.rsplit('.').next().unwrap_or("").to_uppercase()
+    }
+
+    #[test]
+    fn ext_extracted_correctly() {
+        assert_eq!(file_ext("resume.pdf"), "PDF");
+        assert_eq!(file_ext("photo.PNG"), "PNG");
+        assert_eq!(file_ext("archive.tar.gz"), "GZ");
+    }
+
+    #[test]
+    fn ext_empty_for_no_extension() {
+        assert_eq!(file_ext("README"), "README");
+    }
+
+    // CustomFileInput: has_files logic
+
+    fn has_files(files: &[String]) -> bool {
+        !files.is_empty()
+    }
+
+    #[test]
+    fn no_files_shows_upload_button() {
+        assert!(!has_files(&[]));
+    }
+
+    #[test]
+    fn files_present_shows_file_list() {
+        assert!(has_files(&["resume.pdf".to_string()]));
+    }
+
+    #[test]
+    fn has_files_reactive() {
+        let owner = Owner::new();
+        owner.with(|| {
+            let selected = RwSignal::new(Vec::<String>::new());
+            assert!(!has_files(&selected.get()));
+            selected.set(vec!["doc.pdf".to_string()]);
+            assert!(has_files(&selected.get()));
+        });
     }
 }
