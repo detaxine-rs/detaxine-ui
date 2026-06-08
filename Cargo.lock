@@ -577,7 +577,7 @@ dependencies = [
 
 [[package]]
 name = "detaxine-ui"
-version = "0.8.19"
+version = "0.8.20"
 dependencies = [
  "chrono",
  "gloo",
@@ -597,7 +597,7 @@ dependencies = [
 
 [[package]]
 name = "detaxine-ui-cli"
-version = "0.8.19"
+version = "0.8.20"
 dependencies = [
  "anyhow",
  "clap",
