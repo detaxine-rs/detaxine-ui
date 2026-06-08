@@ -136,10 +136,10 @@ jobs:
       contents: write
       pull-requests: write
 
-    needs: [tests, publish_core]
+    needs: [tests, publish_core, publish_cli]
     if: |
       always() &&
-      (needs.tests.result != 'failure' && needs.publish_core.result != 'failure')
+      (needs.tests.result != 'failure' && needs.publish_core.result != 'failure' && needs.publish_cli.result != 'failure')
     steps:
       - id: automerge
         name: automerge
