@@ -1,0 +1,16 @@
+[package]
+name = "detaxine-ui-cli"
+version = "0.8.19"
+edition = "2024"
+
+[[bin]]
+name = "dtx"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+inquire = { workspace = true }
+reqwest = { workspace = true }
+indicatif = { workspace = true }
+colored = { workspace = true }
+anyhow = { workspace = true }
