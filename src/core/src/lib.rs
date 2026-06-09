@@ -228,6 +228,87 @@
 //! }
 //! ```
 //!
+//! ### [`Form Handling`]
+//!
+//! `ReactiveForm` wraps your fields and fires a native `submit` event
+//! automatically whenever `checkValidity()` returns true, on every
+//! `input` or `change` event. Read form data with the standard
+//! `FormData` API:
+//!
+//! ```rust
+//! use detaxine_ui::{
+//!     components::forms::{
+//!         checkbox::{CheckboxGroup, CheckboxOption},
+//!         ReactiveForm, InputField, InputFieldType,
+//!     },
+//!     leptos::prelude::*,
+//!     web_sys::HtmlFormElement,
+//!     utils::forms::deserialize_form,
+//! };
+//! use detaxine_ui::leptos::wasm_bindgen::JsCast;
+//! use std::collections::HashSet;
+//!
+//! struct RegistrationForm {
+//!     interests: Vec<String>, // note that this matches the form field name attribute
+//!     email: String, // note that this matches the form field name attribute
+//! }
+//!
+//! #[component]
+//! fn Example() -> impl IntoView {
+//!     let selected = RwSignal::new(HashSet::new());
+//!     let form_ref = NodeRef::new();
+//!     let (registration_form_is_valid, set_registration_form_is_valid) = signal(false);
+//!
+//!     let handle_submit = move |ev: SubmitEvent| {
+//!         ev.prevent_default();
+//!
+//!         let target = ev.target()
+//!             .and_then(|t| t.dyn_into::<HtmlFormElement>().ok());
+//!
+//!         if let Some(form) = target {
+//!             set_registration_form_is_valid.set(form.check_validity());
+//!
+//!             // You can use this in case you want to perform an action
+//!             // based on the condition that the submit event was triggered
+//!             // by, let's say a submit button.
+//!             if let Some(_submitter) = ev.submitter() {
+//!
+//!             }
+//!         }
+//!
+//!         // You might also put this into its own Effect for guaranteed reactivity.
+//!         if registration_form_is_valid.get() {
+//!             // This is how you deserialize a form's value.
+//!             let deserialized_registration_form = deserialize_form::<RegistrationForm>(
+//!                 &form_ref,
+//!                 false,
+//!                 Some(&["interests"]), // note that this matches the form field name
+//!             );
+//!         }
+//!     };
+//!
+//!     view! {
+//!         <ReactiveForm form_ref=form_ref on:submit=handle_submit>
+//!             <CheckboxGroup
+//!                 legend="Interests"
+//!                 name="interests"
+//!                 options=RwSignal::new(vec![
+//!                     CheckboxOption::new("rust", "Rust", None),
+//!                     CheckboxOption::new("leptos", "Leptos", None),
+//!                 ])
+//!                 selected_values=selected
+//!             />
+//!             <InputField
+//!                 field_type=InputFieldType::Email
+//!                 name="email"
+//!                 label="Email"
+//!                 required=true
+//!             />
+//!         </ReactiveForm>
+//!     }
+//! }
+//! ```
+//!
 //! ### [`RichTextEditor`]
 //!
 //! ```rust
