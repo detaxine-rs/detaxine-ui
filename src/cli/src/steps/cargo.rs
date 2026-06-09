@@ -9,8 +9,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-leptos = {{ version = "0.8.19", features = ["csr"] }}
-detaxine-ui = "0.8.21"
+detaxine-ui = "0.8.22"
 "#
     );
     fs::write(format!("{}/Cargo.toml", name), contents)?;
