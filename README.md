@@ -213,13 +213,21 @@ use detaxine_ui::{
         ReactiveForm, InputField, InputFieldType,
     },
     leptos::prelude::*,
+    web_sys::HtmlFormElement,
 };
+use detaxine_ui::leptos::wasm_bindgen::JsCast;
 use std::collections::HashSet;
+
+struct RegistrationForm {
+    interests: Vec<String>, // note that this matches the form field name attribute
+    email: String, // note that this matches the form field name attribute
+}
 
 #[component]
 fn Example() -> impl IntoView {
     let selected = RwSignal::new(HashSet::new());
     let form_ref = NodeRef::new();
+    let (registration_form_is_valid, set_registration_form_is_valid) = signal(false);
 
     let handle_submit = move |ev: SubmitEvent| {
         ev.prevent_default();
@@ -227,10 +235,22 @@ fn Example() -> impl IntoView {
             .and_then(|t| t.dyn_into::<HtmlFormElement>().ok());
     
         if let Some(form) = target {
-            if let Ok(form_data) = FormData::new_with_form(&form) {
-                let name = form_data.get("name").as_string().unwrap_or_default();
-                leptos::logging::log!("name: {}", name);
+            set_registration_form_is_valid.set(form.check_validity());
+
+            // You can use this in case you want to perform an action based on the condition that the submit event was triggered by, let's say a submit button
+            if let Some(_submitter) = ev.submitter() {
+                
             }
+        }
+
+        // You might also put this into it's own Effect for guaranteed reactivity
+        if registration_form_is_valid.get() {
+            // This is how you deserialize a form's value
+            let deserialized_registration_form = deserialize_form::<RegistrationForm>(
+                &form_ref,
+                false,
+                Some(&["interests"]), // note that this matches the form field name
+            );
         }
     };
 
