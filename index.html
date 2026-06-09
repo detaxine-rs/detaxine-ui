@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/detaxine-ui/output-46a69e7b291299ca.css" integrity="sha384-lw0vl/bw6QE3whjY036+ZJuvPq2czY5tLE8L3dL8inSzRNiFYYjDzS7cSPyjgFZt"/>
+<link rel="modulepreload" href="/detaxine-ui/detaxine-ui-99609155f755cae1.js" crossorigin="anonymous" integrity="sha384-jT8eGrunIYGJsWxNpURcCklWzZMc9MiVsFTBTm4R9qk/kScPFCSDYyx7O0qGyNA8"><link rel="preload" href="/detaxine-ui/detaxine-ui-99609155f755cae1_bg.wasm" crossorigin="anonymous" integrity="sha384-sSJPHmuziSbwxOdWSk80UiBptN8goG1eudCW/SbM+2L7k9jlMcAZdnAyS2FWFwtR" as="fetch" type="application/wasm"></head>
+
+<body class="overflow-x-hidden font-primary text-body bg-contrast-white dark:bg-navy text-gray dark:text-mid-gray">
+    <div id="modal-root"></div>
+
+<script type="module">
+import init, * as bindings from '/detaxine-ui/detaxine-ui-99609155f755cae1.js';
+const wasm = await init({ module_or_path: '/detaxine-ui/detaxine-ui-99609155f755cae1_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+
+</html>
