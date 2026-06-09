@@ -10,7 +10,7 @@ homepage = "https://elonaire.github.io/detaxine-ui/"
 documentation = "https://docs.rs/detaxine-ui"
 readme = "../../README.md"
 keywords = ["leptos", "ui", "wasm", "rust", "components"]
-categories = ["web-programming", "ui"]
+categories = ["web-programming", "frontend"]
 
 [[bin]]
 name = "dtx"
