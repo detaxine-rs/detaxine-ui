@@ -284,7 +284,6 @@ pub use leptos;
 pub use leptos_icons;
 pub use leptos_meta;
 pub use leptos_router;
-pub use markdown;
 pub use serde;
 pub use serde_json;
 pub use wasm_bindgen_futures;

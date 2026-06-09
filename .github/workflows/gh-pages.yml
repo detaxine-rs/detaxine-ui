@@ -72,6 +72,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Download Tailwind CLI
+        run: |
+          curl -L -o tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.10/tailwindcss-linux-x64
+          chmod +x tailwindcss
+
       - name: install toolchain
         uses: actions-rs/toolchain@v1
         with:

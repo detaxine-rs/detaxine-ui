@@ -1,6 +1,6 @@
 [package]
 name = "detaxine-ui-cli"
-version = "0.8.21"
+version = "0.8.22"
 edition = "2024"
 description = "The Official CLI for Detaxine UI"
 license = "MIT OR Apache-2.0"
@@ -23,3 +23,6 @@ reqwest = { workspace = true }
 indicatif = { workspace = true }
 colored = { workspace = true }
 anyhow = { workspace = true }
+
+[package.metadata.docs.rs]
+no-deps = true
