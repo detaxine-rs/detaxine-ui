@@ -10,19 +10,17 @@
 //!
 //! ## Installation
 //!
-//! Add the crate to your `Cargo.toml`:
-//!
-//! ```toml
-//! [dependencies]
-//! detaxine-ui = "0.8.21"
-//! ```
-//!
-//! Then run the CLI tool to copy the required CSS into your project:
+//! Install the CLI and let it scaffold everything for you:
 //!
 //! ```bash
 //! cargo install detaxine-ui-cli
-//! dtx init
+//! dtx init my-app
+//! cd my-app
+//! trunk serve
 //! ```
+//!
+//! `dtx init` creates a ready-to-run Leptos + Trunk project with `detaxine-ui`
+//! as a dependency, `input.css` configured, and a Tailwind binary in place.
 //!
 //! ## Available Components
 //!
@@ -86,7 +84,7 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use detaxine_ui::leptos::prelude::*;
+//! use leptos::prelude::*;
 //! use detaxine_ui::components::actions::button::BasicButton;
 //!
 //! #[component]
@@ -106,7 +104,7 @@
 //! ### [`BasicButton`] and [`ButtonGroup`]
 //!
 //! ```rust
-//! use detaxine_ui::leptos::prelude::*;
+//! use leptos::prelude::*;
 //! use detaxine_ui::components::actions::button::{BasicButton, ButtonGroup};
 //!
 //! #[component]
@@ -123,7 +121,7 @@
 //! ### [`BasicModal`]
 //!
 //! ```rust
-//! use detaxine_ui::leptos::prelude::*;
+//! use leptos::prelude::*;
 //! use detaxine_ui::components::feedback::modal::modal::{BasicModal, UseCase};
 //!
 //! #[component]
@@ -146,7 +144,7 @@
 //! ### [`DataTable`]
 //!
 //! ```rust
-//! use detaxine_ui::leptos::prelude::*;
+//! use leptos::prelude::*;
 //! use std::collections::HashMap;
 //! use detaxine_ui::components::data_display::table::data_table::{Column, DataTable, TableCellData};
 //!
@@ -173,8 +171,8 @@
 //! ### [`Stepper`]
 //!
 //! ```rust
-//! use detaxine_ui::leptos::prelude::*;
-//! use detaxine_ui::leptos::html::Form;
+//! use leptos::prelude::*;
+//! use leptos::html::Form;
 //! use detaxine_ui::components::navigation::stepper::{Step, Stepper, StepInfo};
 //! use detaxine_ui::components::forms::input::{InputField, InputFieldType};
 //!
@@ -210,7 +208,7 @@
 //! ### [`Tabs`]
 //!
 //! ```rust
-//! use detaxine_ui::leptos::prelude::*;
+//! use leptos::prelude::*;
 //! use detaxine_ui::components::navigation::tabs::{Tab, TabLabel, Tabs};
 //!
 //! #[component]
@@ -236,18 +234,18 @@
 //! `FormData` API:
 //!
 //! ```rust
+//! use leptos::prelude::*;
+//! use web_sys::{HtmlFormElement, SubmitEvent};
+//! use serde::{Deserialize, Serialize};
 //! use detaxine_ui::{
 //!     components::forms::{
 //!         checkbox::{CheckboxGroup, CheckboxOption},
 //!         reactive_form::ReactiveForm,
 //!         input::{InputField, InputFieldType}
 //!     },
-//!     leptos::prelude::*,
-//!     web_sys::{HtmlFormElement, SubmitEvent},
 //!     utils::forms::deserialize_form,
-//!     serde::{Deserialize, Serialize}
 //! };
-//! use detaxine_ui::leptos::wasm_bindgen::JsCast;
+//! use leptos::wasm_bindgen::JsCast;
 //! use std::collections::HashSet;
 //!
 //! #[derive(Debug, Serialize, Deserialize)]
@@ -315,7 +313,7 @@
 //! ### [`RichTextEditor`]
 //!
 //! ```rust
-//! use detaxine_ui::leptos::prelude::*;
+//! use leptos::prelude::*;
 //! use detaxine_ui::components::content::richtext_editor::{ExtraFormatingOption, RichTextEditor};
 //!
 //! #[component]
@@ -356,19 +354,4 @@ pub mod components;
 pub mod utils;
 
 // Re-exports
-// Consumers import everything they need directly from detaxine_ui,
-// eliminating the need to add these crates individually to their Cargo.toml and avoiding version conflicts.
-
-pub use chrono;
-pub use gloo;
-pub use gloo_file;
 pub use icondata;
-pub use js_sys;
-pub use leptos;
-pub use leptos_icons;
-pub use leptos_meta;
-pub use leptos_router;
-pub use serde;
-pub use serde_json;
-pub use wasm_bindgen_futures;
-pub use web_sys;
