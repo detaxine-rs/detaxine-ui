@@ -11,7 +11,9 @@ pub fn write(project: &str) -> Result<()> {
     <link data-trunk rel="rust" />
     <link data-trunk rel="css" href="/styles/output.css" />
   </head>
-  <body></body>
+  <body>
+    <div id="modal-root"></div>
+  </body>
 </html>
 "#
     );

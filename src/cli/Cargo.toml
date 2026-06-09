@@ -2,6 +2,15 @@
 name = "detaxine-ui-cli"
 version = "0.8.21"
 edition = "2024"
+description = "The Official CLI for Detaxine UI"
+license = "MIT OR Apache-2.0"
+license-file = "../../LICENSE-APACHE"
+repository = "https://github.com/elonaire/detaxine-ui"
+homepage = "https://elonaire.github.io/detaxine-ui/"
+documentation = "https://docs.rs/detaxine-ui"
+readme = "../../README.md"
+keywords = ["leptos", "ui", "wasm", "rust", "components"]
+categories = ["web-programming", "ui"]
 
 [[bin]]
 name = "dtx"

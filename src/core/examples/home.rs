@@ -215,7 +215,6 @@ pub fn App() -> impl IntoView {
     ];
 
     view! {
-        <div id="modal-root"></div>
         <div class="min-h-screen bg-white text-gray-900 font-sans">
 
             // ── Mobile topbar ────────────────────────────────────
