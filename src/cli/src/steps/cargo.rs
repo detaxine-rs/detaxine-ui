@@ -10,6 +10,7 @@ edition = "2024"
 
 [dependencies]
 detaxine-ui = "0.8.23"
+leptos = {{ version = "0.8.19", features = ["csr"] }}
 "#
     );
     fs::write(format!("{}/Cargo.toml", name), contents)?;
@@ -17,7 +18,7 @@ detaxine-ui = "0.8.23"
 }
 
 pub fn write_main(name: &str) -> Result<()> {
-    let contents = r#"use detaxine_ui::leptos::prelude::*;
+    let contents = r#"use leptos::prelude::*;
 
 use detaxine_ui::{
     components::{
