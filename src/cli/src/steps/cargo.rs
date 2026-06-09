@@ -9,7 +9,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-detaxine-ui = "0.8.22"
+detaxine-ui = "0.8.23"
 "#
     );
     fs::write(format!("{}/Cargo.toml", name), contents)?;

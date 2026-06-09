@@ -1,6 +1,6 @@
 # detaxine-ui
 
-A Leptos + Tailwind CSS component library compiled to WebAssembly. Build modern, reactive web UIs with a full set of accessible, themeable components — no JavaScript framework required.
+A Leptos + Tailwind CSS component library compiled to WebAssembly. Build modern, reactive web UIs with a full set of accessible, themeable components - no JavaScript framework required.
 
 [![Crates.io](https://img.shields.io/crates/v/detaxine-ui.svg)](https://crates.io/crates/detaxine-ui)
 [![Docs.rs](https://docs.rs/detaxine-ui/badge.svg)](https://docs.rs/detaxine-ui)
@@ -41,7 +41,7 @@ use detaxine_ui::leptos_router::components::Router;
 use detaxine_ui::chrono::{Local, DateTime};
 ```
 
-Consumers who already depend on these crates directly can still do so —
+Consumers who already depend on these crates directly can still do so -
 Cargo's deduplication ensures only one copy is compiled as long as the
 versions are compatible.
 
@@ -54,7 +54,7 @@ versions are compatible.
 ## Prerequisites
 
 - [Rust](https://rustup.rs/) (stable)
-- [Trunk](https://trunkrs.dev/) — WASM bundler for Leptos
+- [Trunk](https://trunkrs.dev/) - WASM bundler for Leptos
 
 ```bash
 cargo install trunk
@@ -184,7 +184,7 @@ Every component exposes one or more style extension props so you can apply any T
 | `ext_label_styles` | The label element |
 | `container_style_ext` | The modal panel |
 
-Example — making a full-width danger button:
+Example - making a full-width danger button:
 
 ```rust
 use detaxine_ui::{components::actions::button::BasicButton, leptos::prelude::*, icondata::AiCheckCircleOutlined};
@@ -213,13 +213,22 @@ use detaxine_ui::{
         ReactiveForm, InputField, InputFieldType,
     },
     leptos::prelude::*,
+    web_sys::HtmlFormElement,
+    utils::forms::deserialize_form,
 };
+use detaxine_ui::leptos::wasm_bindgen::JsCast;
 use std::collections::HashSet;
+
+struct RegistrationForm {
+    interests: Vec<String>, // note that this matches the form field name attribute
+    email: String, // note that this matches the form field name attribute
+}
 
 #[component]
 fn Example() -> impl IntoView {
     let selected = RwSignal::new(HashSet::new());
     let form_ref = NodeRef::new();
+    let (registration_form_is_valid, set_registration_form_is_valid) = signal(false);
 
     let handle_submit = move |ev: SubmitEvent| {
         ev.prevent_default();
@@ -227,10 +236,22 @@ fn Example() -> impl IntoView {
             .and_then(|t| t.dyn_into::<HtmlFormElement>().ok());
     
         if let Some(form) = target {
-            if let Ok(form_data) = FormData::new_with_form(&form) {
-                let name = form_data.get("name").as_string().unwrap_or_default();
-                leptos::logging::log!("name: {}", name);
+            set_registration_form_is_valid.set(form.check_validity());
+
+            // You can use this in case you want to perform an action based on the condition that the submit event was triggered by, let's say a submit button
+            if let Some(_submitter) = ev.submitter() {
+                
             }
+        }
+
+        // You might also put this into it's own Effect for guaranteed reactivity
+        if registration_form_is_valid.get() {
+            // This is how you deserialize a form's value
+            let deserialized_registration_form = deserialize_form::<RegistrationForm>(
+                &form_ref,
+                false,
+                Some(&["interests"]), // note that this matches the form field name
+            );
         }
     };
 
@@ -281,7 +302,7 @@ fn main() {
 
 ---
 
-## Rich Text Editor — Image Upload
+## Rich Text Editor - Image Upload
 
 The `RichTextEditor` defaults to base64 data URLs for image insertion. Supply a custom `on_image_insert` callback to upload to your own storage:
 
@@ -336,5 +357,5 @@ Contributions are welcome. Please open an issue before submitting a pull request
 ## License
 
 This project is licensed under both the MIT license and the Apache License (Version 2.0).
-MIT — see [LICENSE-MIT](LICENSE-MIT) for details.
-APACHE — see [LICENSE-APACHE](LICENSE-APACHE) for details.
+MIT - see [LICENSE-MIT](LICENSE-MIT) for details.
+APACHE - see [LICENSE-APACHE](LICENSE-APACHE) for details.
