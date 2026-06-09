@@ -834,6 +834,12 @@ pub fn App() -> impl IntoView {
                                         ExtraFormatingOption::ImageUpload,
                                         ExtraFormatingOption::MarkdownUpload,
                                     ]
+                                    // on_image_insert=Callback::new(move |file: File| {
+                                    //     Box::pin(async move {
+                                    //         // upload to S3, Cloudflare R2, etc. and return the URL
+                                    //         Some("https://cdn.example.com/image.png".to_string())
+                                    //     }) as Pin<Box<dyn Future<Output = Option<String>>>>
+                                    // })
                                 />
                             </div>
 
