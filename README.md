@@ -28,23 +28,6 @@ trunk serve
 `dtx init` creates a ready-to-run Leptos + Trunk project with `detaxine-ui`
 as a dependency, `input.css` configured, and a Tailwind binary in place.
 
-Import re-exported crates directly from `detaxine_ui` in your code:
-
-```rust
-// Instead of: use leptos::prelude::*;
-use detaxine_ui::leptos::prelude::*;
-
-// Instead of: use leptos_router::components::Router;
-use detaxine_ui::leptos_router::components::Router;
-
-// Instead of: use chrono::{Local, DateTime};
-use detaxine_ui::chrono::{Local, DateTime};
-```
-
-Consumers who already depend on these crates directly can still do so -
-Cargo's deduplication ensures only one copy is compiled as long as the
-versions are compatible.
-
 ### Existing Project
 
 `Coming soon`
