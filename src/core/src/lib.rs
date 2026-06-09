@@ -239,15 +239,18 @@
 //! use detaxine_ui::{
 //!     components::forms::{
 //!         checkbox::{CheckboxGroup, CheckboxOption},
-//!         ReactiveForm, InputField, InputFieldType,
+//!         reactive_form::ReactiveForm,
+//!         input::{InputField, InputFieldType}
 //!     },
 //!     leptos::prelude::*,
-//!     web_sys::HtmlFormElement,
+//!     web_sys::{HtmlFormElement, SubmitEvent},
 //!     utils::forms::deserialize_form,
+//!     serde::{Deserialize, Serialize}
 //! };
 //! use detaxine_ui::leptos::wasm_bindgen::JsCast;
 //! use std::collections::HashSet;
 //!
+//! #[derive(Debug, Serialize, Deserialize)]
 //! struct RegistrationForm {
 //!     interests: Vec<String>, // note that this matches the form field name attribute
 //!     email: String, // note that this matches the form field name attribute
