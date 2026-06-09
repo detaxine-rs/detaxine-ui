@@ -75,7 +75,7 @@ pub fn RichTextEditor(
     #[prop(into, optional)] name: String,
     #[prop(into, optional)] placeholder: String,
     #[prop(optional, default = Vec::new())] extra_formating_options: Vec<ExtraFormatingOption>,
-    #[prop(optional, default = Callback::new(|file: web_sys::File| {
+    #[prop(optional, default = Callback::new(move |file: web_sys::File| {
         Box::pin(async move {
             gloo_file::futures::read_as_data_url(&file.into())
                 .await

@@ -14,7 +14,6 @@ command = "{bin}"
 command_arguments = [
     "-i", "./styles/input.css",
     "-o", "./styles/output.css",
-    "--content", "./src/**/*.rs",
     "--minify",
 ]
 "#

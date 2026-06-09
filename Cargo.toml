@@ -43,3 +43,4 @@ reqwest = { version = "0.13.4", features = ["blocking"] }
 indicatif = "0.18.4"
 colored = "3.1.1"
 anyhow = "1.0.102"
+wasm-bindgen-test = "0.3.72"

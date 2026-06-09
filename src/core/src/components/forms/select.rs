@@ -1,11 +1,11 @@
-use icondata::{BsSearch, CgClose};
+use icondata::BsSearch;
 use leptos::ev;
 use leptos::html::Select;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::components::{
-    actions::button::BasicButton,
+    data_display::chip::Chip,
     forms::{
         checkbox::CheckboxInputField,
         input::{InputField, InputFieldType},
@@ -287,16 +287,9 @@ pub fn CustomSelectInput(
                                 let val = o.value.clone();
 
                                 view! {
-                                    <span
-                                        class="flex items-center gap-1 px-2 py-1
-                                               bg-primary/20 text-primary rounded-[5px] text-sm"
-                                    >
-                                        {o.label}
-                                        <BasicButton icon=Some(CgClose) onclick=Callback::new(move |ev: ev::MouseEvent| {
-                                            ev.stop_propagation();
-                                            remove_value(val.clone());
-                                        }) />
-                                    </span>
+                                    <Chip label=o.label on_remove=Callback::new(move |_| {
+                                        remove_value(val.clone());
+                                    }) />
                                 }
                             })
                             .collect::<Vec<_>>()

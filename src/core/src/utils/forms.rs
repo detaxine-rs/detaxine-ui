@@ -15,12 +15,14 @@ pub fn get_form_data_from_form_ref(form_ref: &NodeRef<Form>) -> Option<FormData>
 /// `deserialize_bool` - Whether to deserialize boolean values
 ///
 /// `vec_fields` - The fields that should be deserialized as Vec<String>, e.g. Checkbox fields
-pub fn deserialize_form_data_to_struct<T: DeserializeOwned>(
-    form_data: &FormData,
+pub fn deserialize_form<T: DeserializeOwned>(
+    form_ref: &NodeRef<Form>,
     deserialize_bool: bool,
     vec_fields: Option<&[&str]>,
 ) -> Option<T> {
-    if let Some(entries) = js_sys::try_iter(form_data).ok()? {
+    let form_data = get_form_data_from_form_ref(form_ref)?;
+
+    if let Some(entries) = js_sys::try_iter(&form_data).ok()? {
         let mut map = Map::new();
 
         for entry in entries {
