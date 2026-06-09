@@ -17,7 +17,7 @@ detaxine-ui = "0.8.23"
 }
 
 pub fn write_main(name: &str) -> Result<()> {
-    let contents = r#"use leptos::prelude::*;
+    let contents = r#"use detaxine_ui::leptos::prelude::*;
 
 use detaxine_ui::{
     components::{
