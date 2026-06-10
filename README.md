@@ -49,7 +49,8 @@ rustup target add wasm32-unknown-unknown
 ## Quick Start
 
 ```rust
-use detaxine_ui::{components::actions::button::BasicButton, leptos::prelude::*, icondata::AiCheckCircleOutlined};
+use leptos::prelude::*;
+use detaxine_ui::{components::actions::button::BasicButton, icondata::AiCheckCircleOutlined};
 
 #[component]
 fn App() -> impl IntoView {
@@ -170,7 +171,8 @@ Every component exposes one or more style extension props so you can apply any T
 Example - making a full-width danger button:
 
 ```rust
-use detaxine_ui::{components::actions::button::BasicButton, leptos::prelude::*, icondata::AiCheckCircleOutlined};
+use leptos::prelude::*;
+use detaxine_ui::{components::actions::button::BasicButton, icondata::AiCheckCircleOutlined};
 
 #[component]
 fn Example() -> impl IntoView {
@@ -293,11 +295,9 @@ fn main() {
 The `RichTextEditor` defaults to base64 data URLs for image insertion. Supply a custom `on_image_insert` callback to upload to your own storage:
 
 ```rust
-use detaxine_ui::{
-    components::content::richtext_editor::{ExtraFormatingOption, RichTextEditor},
-    leptos::prelude::*,
-    web_sys::File
-};
+use leptos::prelude::*;
+use detaxine_ui::components::content::richtext_editor::{ExtraFormatingOption, RichTextEditor};
+use web_sys::File;
 use std::pin::Pin;
 
 #[component]
