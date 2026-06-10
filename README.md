@@ -190,18 +190,21 @@ fn Example() -> impl IntoView {
 `ReactiveForm` wraps your fields and fires a native `submit` event automatically whenever `checkValidity()` returns true, on every `input` or `change` event. Read form data with the standard `FormData` API:
 
 ```rust
+use leptos::prelude::*;
+use web_sys::{HtmlFormElement, SubmitEvent};
+use serde::{Deserialize, Serialize};
 use detaxine_ui::{
     components::forms::{
         checkbox::{CheckboxGroup, CheckboxOption},
-        ReactiveForm, InputField, InputFieldType,
+        reactive_form::ReactiveForm,
+        input::{InputField, InputFieldType}
     },
-    leptos::prelude::*,
-    web_sys::HtmlFormElement,
     utils::forms::deserialize_form,
 };
-use detaxine_ui::leptos::wasm_bindgen::JsCast;
+use leptos::wasm_bindgen::JsCast;
 use std::collections::HashSet;
 
+#[derive(Debug, Serialize, Deserialize)]
 struct RegistrationForm {
     interests: Vec<String>, // note that this matches the form field name attribute
     email: String, // note that this matches the form field name attribute
