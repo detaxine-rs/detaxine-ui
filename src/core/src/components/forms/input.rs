@@ -171,7 +171,7 @@ pub fn InputField(
                     type=move || if show_password.get() { "text" } else { input_field_type_str }
                     prop:value=move || {
                         if is_file {
-                            None
+                            Some(String::new())
                         } else {
                             initial_value.get()
                         }
