@@ -123,6 +123,8 @@ pub fn InputField(
         _ => None,
     };
 
+    let is_file = matches!(field_type, InputFieldType::File);
+
     view! {
         <div class=move || format!("box-border {}", ext_wrapper_styles)>
             {
@@ -167,7 +169,13 @@ pub fn InputField(
                         "w-full h-full py-2 px-3 leading-tight flex-grow focus:outline-none"
                     )
                     type=move || if show_password.get() { "text" } else { input_field_type_str }
-                    prop:value=move || initial_value.get()
+                    prop:value=move || {
+                        if is_file {
+                            None
+                        } else {
+                            initial_value.get()
+                        }
+                    }
                     name=name
                     node_ref=input_node_ref
                     readonly=readonly
