@@ -5,12 +5,12 @@ members = ["src/core", "src/cli"]
 [workspace.dependencies]
 chrono = "0.4.45"
 icondata = "0.7.0"
-js-sys = "0.3.99"
+js-sys = "0.3.100"
 leptos = { version = "0.8.19", features = ["csr"] }
 leptos_icons = "0.7.1"
 leptos_meta = "0.8.6"
 leptos_router = "0.8.13"
-web-sys = { version = "0.3.99", features = [
+web-sys = { version = "0.3.100", features = [
     "Storage",
     "File",
     "FileList",
@@ -31,7 +31,7 @@ web-sys = { version = "0.3.99", features = [
     "ShareData",
     "NodeList",
 ] }
-wasm-bindgen-futures = "0.4.72"
+wasm-bindgen-futures = "0.4.73"
 gloo = "0.12.0"
 markdown = "1.0.0"
 gloo-file = { version = "0.4.0", features = ["futures"] }
@@ -43,4 +43,4 @@ reqwest = { version = "0.13.4", features = ["blocking"] }
 indicatif = "0.18.4"
 colored = "3.1.1"
 anyhow = "1.0.102"
-wasm-bindgen-test = "0.3.72"
+wasm-bindgen-test = "0.3.73"

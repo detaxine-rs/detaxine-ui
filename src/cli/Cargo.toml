@@ -1,6 +1,6 @@
 [package]
 name = "detaxine-ui-cli"
-version = "0.8.32"
+version = "0.8.33"
 edition = "2024"
 description = "The Official CLI for Detaxine UI"
 license = "MIT OR Apache-2.0"
