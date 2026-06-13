@@ -28,6 +28,7 @@ use detaxine_ui::components::schemas::props::ColorTemperature;
 use icondata::{AiCheckCircleOutlined, BsXCircle};
 use leptos::html::*;
 use leptos::prelude::*;
+use leptos_meta::Stylesheet;
 use leptos_router::components::Router;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -220,8 +221,8 @@ pub fn App() -> impl IntoView {
             // ── Mobile topbar ────────────────────────────────────
             <header class="md:hidden sticky top-0 z-20 bg-white border-b border-gray-200
                             flex items-center gap-3 px-4 h-14">
-                <button
-                    class="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition-colors"
+                <BasicButton
+                    style_ext="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition-colors"
                     on:click=move |_| drawer_open.set(true)
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor"
@@ -229,7 +230,7 @@ pub fn App() -> impl IntoView {
                         <path stroke-linecap="round" stroke-linejoin="round"
                               d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
-                </button>
+                </BasicButton>
                 <span class="text-sm font-semibold text-gray-700">"detaxine-ui"</span>
             </header>
 
@@ -251,15 +252,15 @@ pub fn App() -> impl IntoView {
                     <span class="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
                         "Components"
                     </span>
-                    <button
-                        class="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    <BasicButton
+                        style_ext="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                         on:click=move |_| drawer_open.set(false)
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor"
                              stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
-                    </button>
+                    </BasicButton>
                 </div>
                 <nav class="flex flex-col gap-0.5 overflow-y-auto">
                     {nav_items.clone().into_iter().map(|(label, node_ref)| {
@@ -885,6 +886,7 @@ fn Section(section_ref: NodeRef<Div>, label: &'static str, children: Children) -
 fn main() {
     mount_to_body(|| {
         view! {
+            <Stylesheet id="leptos" href="/style/output.css"/>
             <Router>
                 <App />
             </Router>

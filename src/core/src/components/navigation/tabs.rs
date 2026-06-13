@@ -158,7 +158,7 @@ pub fn Tabs(
                 }}
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

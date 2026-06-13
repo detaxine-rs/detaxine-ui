@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["src/core", "src/cli"]
+exclude = ["src/cli/my-app"]
 
 [workspace.dependencies]
 chrono = "0.4.45"

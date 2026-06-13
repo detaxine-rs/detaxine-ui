@@ -86,7 +86,7 @@ pub fn Textarea(
                 {move || initial_value.get()}
             </textarea>
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

@@ -77,20 +77,22 @@ pub fn Spinner(
                 class="opacity-75"
             />
         </svg>
-    };
+    }
+    .into_any();
 
     if with_backdrop {
         view! {
             <div class="fixed inset-0 bg-light-gray opacity-50 flex items-center justify-center z-50">
                 {spinner}
             </div>
-        }
+        }.into_any()
     } else {
         view! {
             <div class="flex items-center justify-center">
                 {spinner}
             </div>
         }
+        .into_any()
     }
 }
 

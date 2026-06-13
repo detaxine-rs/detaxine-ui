@@ -121,6 +121,7 @@ pub fn Breadcrumbs(
             </ul>
         </nav>
     }
+    .into_any()
 }
 
 #[cfg(test)]

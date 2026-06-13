@@ -7,7 +7,7 @@ use leptos::html::Div;
 use leptos::task::spawn_local;
 use leptos::wasm_bindgen::JsCast;
 use leptos::{ev, prelude::*};
-use markdown;
+use markdown::{Options, to_html_with_options};
 use std::pin::Pin;
 use web_sys::{Element, HtmlDivElement, HtmlInputElement, Node, window};
 
@@ -455,11 +455,10 @@ pub fn RichTextEditor(
                         match gloo_file::futures::read_as_text(&file.into()).await {
                             Ok(markdown_content) => {
                                 // Parse markdown to HTML using markdown crate
-                                // let html_output = markdown::to_html(&markdown_content);
-                                if let Ok(html_output) = markdown::to_html_with_options(
-                                    &markdown_content,
-                                    &markdown::Options::gfm(),
-                                ) {
+                                // let html_output = to_html(&markdown_content);
+                                if let Ok(html_output) =
+                                    to_html_with_options(&markdown_content, &Options::gfm())
+                                {
                                     // Also update the initial content
                                     initial_content.set(html_output);
                                 };
@@ -619,7 +618,7 @@ pub fn RichTextEditor(
                 id_attr=format!("{}-md-file-input", id_attr)
             />
         </div>
-    }
+    }.into_any()
 }
 
 fn cursor_inside(tag: &str) -> Option<Element> {

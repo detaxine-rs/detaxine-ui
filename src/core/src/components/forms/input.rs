@@ -210,7 +210,7 @@ pub fn InputField(
                 }
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 /// A styled file input that shows a button when empty and a file list with a replace affordance once files are selected.
@@ -361,7 +361,7 @@ pub fn CustomFileInput(
                 </div>
             </Show>
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

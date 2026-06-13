@@ -150,7 +150,7 @@ pub fn Panel(
                 {move || children.get().map(|c| c())}
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 /// Groups multiple `Panel` components, optionally enforcing accordion behaviour
@@ -229,7 +229,7 @@ pub fn Collapse(
                 }
             </For>
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

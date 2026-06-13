@@ -9,8 +9,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-detaxine-ui = "0.8.31"
+detaxine-ui = "0.8.32"
 leptos = {{ version = "0.8.19", features = ["csr"] }}
+leptos_meta = "0.8.6"
 "#
     );
     fs::write(format!("{}/Cargo.toml", name), contents)?;
@@ -19,6 +20,7 @@ leptos = {{ version = "0.8.19", features = ["csr"] }}
 
 pub fn write_main(name: &str) -> Result<()> {
     let contents = r#"use leptos::prelude::*;
+use leptos_meta::Stylesheet;
 
 use detaxine_ui::{
     components::{
@@ -31,6 +33,7 @@ use detaxine_ui::{
 #[component]
 fn App() -> impl IntoView {
     view! {
+        <Stylesheet id="leptos" href="/style/output.css"/>
         <h1>"Hello from detaxine-ui!"</h1>
         <ButtonGroup style_ext="font-bold bg-primary text-white hover:bg-secondary">
             <BasicButton
