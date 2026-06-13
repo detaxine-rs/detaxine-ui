@@ -96,7 +96,7 @@ pub fn Carousel(mut children: ChildrenFragmentMut) -> impl IntoView {
 
                                    view! {
                                        <BasicButton
-                                           style_ext=format!("w-6 h-[2.5px] rounded-[5px] {}", if extracted_index == i {
+                                           style_ext=format!("p-0! w-6 h-[2.5px] rounded-[5px] {}", if extracted_index == i {
                                                "bg-mid-gray"
                                            } else {
                                                "bg-contrast-white hover:bg-light-gray"

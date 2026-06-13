@@ -28,6 +28,7 @@ use detaxine_ui::components::schemas::props::ColorTemperature;
 use icondata::{AiCheckCircleOutlined, BsXCircle};
 use leptos::html::*;
 use leptos::prelude::*;
+use leptos_meta::Stylesheet;
 use leptos_router::components::Router;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -885,6 +886,7 @@ fn Section(section_ref: NodeRef<Div>, label: &'static str, children: Children) -
 fn main() {
     mount_to_body(|| {
         view! {
+            <Stylesheet id="leptos" href="/style/output.css"/>
             <Router>
                 <App />
             </Router>

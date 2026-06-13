@@ -1,4 +1,4 @@
-use crate::steps::{cargo, css, html, tailwind, trunk};
+use crate::steps::{cargo, css, html, trunk};
 use anyhow::{Result, bail};
 use colored::Colorize;
 use std::fs;
@@ -24,8 +24,8 @@ pub fn run_init(name: &str) -> Result<()> {
     println!("{} src/main.rs", "✔".green());
 
     // 3. Download Tailwind binary — always needed, lib is Tailwind-native
-    tailwind::download_binary(name)?;
-    println!("{} bin/tailwindcss", "✔".green());
+    // tailwind::download_binary(name)?;
+    // println!("{} bin/tailwindcss", "✔".green());
 
     // 4. Clone lib and copy its input.css as the project's style base.
     //    Consumer can extend/override from here.
