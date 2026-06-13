@@ -231,7 +231,7 @@ pub fn Timeline(#[prop(into)] steps: RwSignal<Vec<TimelineItem>>) -> impl IntoVi
                 }
             </For>
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

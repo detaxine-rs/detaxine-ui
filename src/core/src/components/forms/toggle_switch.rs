@@ -98,7 +98,7 @@ pub fn ToggleSwitch(
                 </div>
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

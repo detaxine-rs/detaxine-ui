@@ -162,7 +162,7 @@ pub fn Popover(
                 </div>
             </Show>
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

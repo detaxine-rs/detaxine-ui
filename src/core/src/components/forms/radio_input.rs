@@ -84,7 +84,7 @@ pub fn RadioInputField(
                 {children.map(|children| children.run())}
             </div>
         </label>
-    }
+    }.into_any()
 }
 
 /// A group of radio inputs rendered inside a `<fieldset>`, with shared selection state.
@@ -200,7 +200,7 @@ pub fn RadioInputGroup(
                             .collect_view()}
                     </div>
                 </fieldset>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

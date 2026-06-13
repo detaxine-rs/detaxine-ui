@@ -111,7 +111,7 @@ pub fn CheckboxInputField(
                 </div>
             </label>
         </div>
-    }
+    }.into_any()
 }
 
 /// A group of checkboxes rendered inside a `<fieldset>`, with shared selection state.
@@ -233,7 +233,7 @@ pub fn CheckboxGroup(
                     .collect_view()}
             </div>
         </fieldset>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

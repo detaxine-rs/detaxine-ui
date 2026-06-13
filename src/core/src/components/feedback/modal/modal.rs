@@ -210,7 +210,7 @@ pub fn BasicModal(
             }
         </Show>
         </>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

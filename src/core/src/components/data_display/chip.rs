@@ -73,7 +73,7 @@ pub fn Chip(
                 None
             }}
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

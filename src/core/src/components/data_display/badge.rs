@@ -66,7 +66,7 @@ pub fn Badge(
                 {text}
             </span>
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

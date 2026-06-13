@@ -104,6 +104,7 @@ pub fn ProgressBar(
             })
         } else { None }}
     }
+    .into_any()
 }
 
 /// A circular progress ring with optional percentage label in the center.
@@ -209,6 +210,7 @@ pub fn CircularProgress(
             </svg>
         </div>
     }
+    .into_any()
 }
 
 #[cfg(test)]

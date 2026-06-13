@@ -145,7 +145,7 @@ pub fn DatePicker(
                 </div>
             })}
         </div>
-    }
+    }.into_any()
 }
 
 #[component]
@@ -460,7 +460,7 @@ fn Calendar(
                 }
             })}
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

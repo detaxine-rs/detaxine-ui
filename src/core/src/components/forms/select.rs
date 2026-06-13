@@ -144,7 +144,7 @@ pub fn SelectInput(
                 }}
             </p>
         </div>
-    }
+    }.into_any()
 }
 
 /// A searchable, chip-based custom select supporting both single and multi-select modes.
@@ -366,7 +366,7 @@ pub fn CustomSelectInput(
                 })
             }}
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

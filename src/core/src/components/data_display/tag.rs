@@ -43,6 +43,7 @@ pub fn LabelTag(
             <span>{label}</span>
         </div>
     }
+    .into_any()
 }
 
 #[cfg(test)]

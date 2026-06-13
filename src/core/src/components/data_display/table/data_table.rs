@@ -676,7 +676,7 @@ pub fn DataTable(
                 on_page_change={on_page_change}
             />
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

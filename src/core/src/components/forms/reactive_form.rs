@@ -69,6 +69,7 @@ pub fn ReactiveForm(
             {children()}
         </form>
     }
+    .into_any()
 }
 
 #[cfg(test)]

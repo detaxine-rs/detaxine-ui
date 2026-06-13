@@ -2,6 +2,8 @@ use icondata::{BiChevronLeftRegular, BiChevronRightRegular};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 
+use crate::components::actions::button::BasicButton;
+
 /// A carousel component for displaying a series of slides with previous/next navigation and dot indicators.
 ///
 /// # Props
@@ -71,32 +73,38 @@ pub fn Carousel(mut children: ChildrenFragmentMut) -> impl IntoView {
             </div>
 
             // Previous button
-            <button
-                class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-transparent text-white hover:bg-opacity-75 transition-opacity z-10 h-full cursor-pointer"
+            <BasicButton
+                style_ext="absolute left-0 top-1/2 transform -translate-y-1/2 bg-transparent text-white hover:bg-opacity-75 transition-opacity z-10 h-full cursor-pointer"
                 on:click=move |_| prev_slide()
             >
                 <Icon width="1.5em" height="1.5em" icon=BiChevronLeftRegular />
-            </button>
+            </BasicButton>
 
             // Next button
-            <button
-                class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-transparent text-white hover:bg-opacity-75 transition-opacity z-10 h-full cursor-pointer"
+            <BasicButton
+                style_ext="absolute right-0 top-1/2 transform -translate-y-1/2 bg-transparent text-white hover:bg-opacity-75 transition-opacity z-10 h-full cursor-pointer"
                 on:click=move |_| next_slide()
             >
                 <Icon width="1.5em" height="1.5em" icon=BiChevronRightRegular />
-            </button>
+            </BasicButton>
 
             // Indicators
             <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                           {move || (0..total_slides).map(|i| view! {
-                               <button
-                                   class=move || format!("w-6 h-[2.5px] rounded-[5px] {}", if current_index_read.get() == i {
-                                       "bg-mid-gray"
-                                   } else {
-                                       "bg-contrast-white hover:bg-light-gray"
-                                   })
-                                   on:click=move |_| set_current_index.set(i)
-                               ></button>
+                           {move || (0..total_slides).map(|i| {
+                               move || {
+                                   let extracted_index = current_index_read.get();
+
+                                   view! {
+                                       <BasicButton
+                                           style_ext=format!("w-6 h-[2.5px] rounded-[5px] {}", if extracted_index == i {
+                                               "bg-mid-gray"
+                                           } else {
+                                               "bg-contrast-white hover:bg-light-gray"
+                                           })
+                                           on:click=move |_| set_current_index.set(i)
+                                       ></BasicButton>
+                                   }
+                               }
                            }).collect::<Vec<_>>()}
                        </div>
         </div>

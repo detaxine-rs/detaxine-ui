@@ -109,7 +109,7 @@ pub fn BasicButton(
                 }
             }
         </button>
-    }
+    }.into_any()
 }
 
 /// A group of buttons rendered inline with shared styles and automatic border-radius on the ends.
@@ -175,7 +175,7 @@ pub fn ButtonGroup(
                 })
                 .collect::<Vec<_>>()}
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

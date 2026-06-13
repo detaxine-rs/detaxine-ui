@@ -104,7 +104,7 @@ pub fn Pagination(
                 </ButtonGroup>
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

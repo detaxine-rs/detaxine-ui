@@ -273,7 +273,7 @@ pub fn Stepper(
                 }
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 /// A wrapper component representing a single step inside a `Stepper`.
@@ -300,6 +300,7 @@ pub fn Step(children: Children) -> impl IntoView {
     view! {
         { children() }
     }
+    .into_any()
 }
 
 #[cfg(test)]
