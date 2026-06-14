@@ -107,7 +107,7 @@ pub fn Tabs(
                 >
                     {move || {
                         let labels = tab_labels.get();
-                        let current = current_tab.get();
+                        let _current = current_tab.get();
 
                         labels.into_iter().enumerate().map(|(index, label)| {
                             let dynamic_class = move || {
