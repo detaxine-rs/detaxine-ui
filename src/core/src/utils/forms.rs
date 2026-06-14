@@ -1,8 +1,8 @@
 use leptos::{html::Form, prelude::*};
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, de::DeserializeOwned};
 use web_sys::{CustomEvent, CustomEventInit, Event, EventInit, EventTarget};
 
-use js_sys::Array;
+use js_sys::{Array, IntoIter, wasm_bindgen::JsValue};
 use serde_json::{Map, Number, Value};
 use web_sys::FormData;
 
@@ -47,7 +47,7 @@ pub fn deserialize_form<T: DeserializeOwned>(
     deserialize_form_checked(form_ref, deserialize_bool, vec_fields).ok()
 }
 
-/// This is a counterpart to the `deserialize_form` utility which returns `Option<T>`
+/// This is a counterpart to the `deserialize_form` utility (which returns `Option<T>`).
 ///
 /// This abstraction enables easy debugging by providing errors on why the deserialization failed.
 ///
@@ -62,12 +62,23 @@ pub fn deserialize_form_checked<T: DeserializeOwned>(
     let form_data =
         get_form_data_from_form_ref(form_ref).ok_or(FormDeserializeError::NoFormData)?;
 
-    let entries = js_sys::try_iter(&form_data)
+    let mut entries = js_sys::try_iter(&form_data)
         .ok()
         .flatten()
         .ok_or(FormDeserializeError::IterationFailed)?;
 
     let mut map = Map::new();
+
+    parse_form(&mut map, &mut entries, deserialize_bool, vec_fields)
+}
+
+/// A reusable function to parse the FormData
+fn parse_form<T: DeserializeOwned>(
+    map: &mut Map<String, Value>,
+    entries: &mut IntoIter,
+    deserialize_bool: bool,
+    vec_fields: Option<&[&str]>,
+) -> Result<T, FormDeserializeError> {
     for entry in entries {
         let pair = entry.ok().ok_or(FormDeserializeError::EntryParseFailed)?;
         let arr = Array::from(&pair);
@@ -127,9 +138,44 @@ pub fn deserialize_form_checked<T: DeserializeOwned>(
         }
     }
 
-    let value = Value::Object(map);
+    let value = Value::Object(map.to_owned());
     serde_json::from_value::<T>(value.clone())
         .map_err(|e| FormDeserializeError::DeserializeFailed(e, value))
+}
+
+/// `deserialize_bool` - Whether to deserialize boolean values
+///
+/// `vec_fields` - The fields that should be deserialized as Vec<String>, e.g. Checkbox fields
+///
+/// This is suitable when you want to append to FormData and then deserialize the final form value
+pub fn deserialize_form_data<T: DeserializeOwned>(
+    form_data: &FormData,
+    deserialize_bool: bool,
+    vec_fields: Option<&[&str]>,
+) -> Option<T> {
+    deserialize_form_data_checked(form_data, deserialize_bool, vec_fields).ok()
+}
+
+/// This is a counterpart to the `deserialize_form_data` utility (which returns `Option<T>`).
+///
+/// This abstraction enables easy debugging by providing errors on why the deserialization failed.
+///
+/// `deserialize_bool` - Whether to deserialize boolean values
+///
+/// `vec_fields` - The fields that should be deserialized as Vec<String>, e.g. Checkbox fields
+pub fn deserialize_form_data_checked<T: DeserializeOwned>(
+    form_data: &FormData,
+    deserialize_bool: bool,
+    vec_fields: Option<&[&str]>,
+) -> Result<T, FormDeserializeError> {
+    let mut entries = js_sys::try_iter(&form_data)
+        .ok()
+        .flatten()
+        .ok_or(FormDeserializeError::IterationFailed)?;
+
+    let mut map = Map::new();
+
+    parse_form(&mut map, &mut entries, deserialize_bool, vec_fields)
 }
 
 /// Fire DOM events which take place on an `EventTarget`s
