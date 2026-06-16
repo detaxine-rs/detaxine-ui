@@ -8,6 +8,7 @@ use crate::utils::forms::fire_custom_bubbled_and_cancelable_event;
 
 #[derive(Clone)]
 pub struct PanelInfo {
+    pub id: String, // or u64 — something stable per item
     pub title: ViewFn,
     pub is_open: RwSignal<bool>,
     pub children: ViewFn,
@@ -16,6 +17,7 @@ pub struct PanelInfo {
 impl Default for PanelInfo {
     fn default() -> Self {
         Self {
+            id: String::new(),
             title: ViewFn::from(|| view! {}),
             is_open: RwSignal::new(false),
             children: ViewFn::from(|| view! {}),
@@ -50,6 +52,7 @@ impl PanelInfo {
 
     pub fn build(self) -> PanelInfo {
         PanelInfo {
+            id: self.id,
             title: self.title,
             is_open: self.is_open,
             children: self.children,
@@ -212,14 +215,12 @@ pub fn Collapse(
         <div class="flex flex-col">
             <For
                 each=move || panel_items.get().into_iter().enumerate()
-                key=|(index, _)| *index
+                key=|(_, panel)| panel.id.clone()
                 let:((index, panel_item))
             >
                 {
-                    leptos::logging::log!("panel_item.is_open: {}", panel_item.is_open.get());
                     view! {
                         <Panel on:togglepanel=move |ev: CustomEvent| {
-                            leptos::logging::log!("togglepanel event fired");
                             ev.stop_propagation();
                             handle_panel_toggle(index)
                         } title=panel_item.title.clone() is_open=panel_item.is_open is_accordion=is_accordion>
