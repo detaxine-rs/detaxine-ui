@@ -88,11 +88,11 @@ impl std::fmt::Debug for PanelInfo {
 ///
 /// #[component]
 /// fn Example() -> impl IntoView {
-///     let is_open = RwSignal::new(false);
+///
 ///     view! {
 ///         <Panel
 ///             title=ViewFn::from(|| view! { <span>"Section 1"</span> })
-///             is_open=is_open
+///             is_open=false
 ///         >
 ///             <p>"Panel content goes here."</p>
 ///         </Panel>
