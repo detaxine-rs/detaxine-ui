@@ -987,6 +987,9 @@
   .object-contain {
     object-fit: contain;
   }
+  .p-0 {
+    padding: calc(var(--spacing) * 0);
+  }
   .p-0\! {
     padding: calc(var(--spacing) * 0) !important;
   }
