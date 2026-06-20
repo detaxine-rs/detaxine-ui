@@ -103,19 +103,16 @@ impl std::fmt::Debug for PanelInfo {
 pub fn Panel(
     title: ViewFn,
     #[prop(optional)] children: Option<ChildrenFn>,
-    #[prop(into)] is_open: RwSignal<bool>,
+    #[prop(into)] is_open: MaybeProp<bool>,
     #[prop(optional)] is_accordion: bool,
     #[prop(into, optional)] ext_panel_title_styles: String,
 ) -> impl IntoView {
     let panel_ref = NodeRef::new();
     let (children, _set_children) = signal(children);
+    let internal_is_open = Signal::derive(move || is_open.get().unwrap_or_default());
     let toggle_content = move |_| {
         if let Some(panel_element) = panel_ref.get() {
             fire_custom_bubbled_and_cancelable_event("togglepanel", true, true, &panel_element);
-        }
-
-        if !is_accordion {
-            is_open.update(|value| *value = !*value);
         }
     };
 
@@ -123,13 +120,13 @@ pub fn Panel(
         <div node_ref=panel_ref>
             <span
                 on:click=toggle_content
-                class=move || format!("flex flex-row items-center justify-between gap-4 mb-2 p-2 rounded cursor-pointer ring ring-primary hover:bg-primary hover:text-light-gray {} {}", ext_panel_title_styles, if is_open.get() { "bg-primary text-light-gray" } else { "" })
+                class=move || format!("flex flex-row items-center justify-between gap-4 mb-2 p-2 rounded cursor-pointer ring ring-primary hover:bg-primary hover:text-light-gray {} {}", ext_panel_title_styles, if internal_is_open.get() { "bg-primary text-light-gray" } else { "" })
             >
                 {title.run()}
                 {
                     move || {
                         if children.get().is_some() {
-                            let icon_id = if is_open.get() {
+                            let icon_id = if internal_is_open.get() {
                                 BsDashLg
                             } else {
                                 BsPlusLg
@@ -143,7 +140,7 @@ pub fn Panel(
             </span>
             <div
                 class=move || {
-                    if is_open.get() {
+                    if internal_is_open.get() {
                         "transition-max-height duration-700 ease-in-out overflow-hidden max-h-svh p-2 ml-2"
                     } else {
                         "overflow-hidden h-0 transition-max-height duration-700 ease-in-out"
