@@ -290,6 +290,16 @@ pub fn deserialize_form_data<T: DeserializeOwned>(
     deserialize_form_data_checked(form_data, deserialize_bool, vec_fields).ok()
 }
 
+/// `options` - The fields that should be deserialized differently, e.g. Checkbox fields, Numbers, Boolean
+///
+/// This is suitable when you want to append to FormData and then deserialize the final form value
+pub fn deserialize_form_data_with_options<T: DeserializeOwned>(
+    form_data: &FormData,
+    options: &FormDeserializeOptions<'_>,
+) -> Option<T> {
+    deserialize_form_data_with_options_checked(form_data, options).ok()
+}
+
 /// This is a counterpart to the `deserialize_form_data` utility (which returns `Option<T>`).
 ///
 /// This abstraction enables easy debugging by providing errors on why the deserialization failed.
@@ -299,7 +309,7 @@ pub fn deserialize_form_data<T: DeserializeOwned>(
 /// `vec_fields` - The fields that should be deserialized as Vec<String>, e.g. Checkbox fields
 #[deprecated(
     since = "0.8.37",
-    note = "Use `deserialize_form_with_options_checked` instead, which supports `numeric_fields` for explicit numeric coercion"
+    note = "Use `deserialize_form_data_with_options_checked` instead, which supports `numeric_fields` for explicit numeric coercion"
 )]
 pub fn deserialize_form_data_checked<T: DeserializeOwned>(
     form_data: &FormData,
@@ -314,6 +324,25 @@ pub fn deserialize_form_data_checked<T: DeserializeOwned>(
     let mut map = Map::new();
 
     parse_form(&mut map, &mut entries, deserialize_bool, vec_fields)
+}
+
+/// This is a counterpart to the `deserialize_form_with_options` utility (which returns `Option<T>`).
+///
+/// This abstraction enables easy debugging by providing errors on why the deserialization failed.
+///
+/// `options` - The fields that should be deserialized differently, e.g. Checkbox fields, Numbers, Boolean
+pub fn deserialize_form_data_with_options_checked<T: DeserializeOwned>(
+    form_data: &FormData,
+    options: &FormDeserializeOptions<'_>,
+) -> Result<T, FormDeserializeError> {
+    let mut entries = js_sys::try_iter(&form_data)
+        .ok()
+        .flatten()
+        .ok_or(FormDeserializeError::IterationFailed)?;
+
+    let mut map = Map::new();
+
+    parse_form_with_options(&mut map, &mut entries, options)
 }
 
 /// Fire DOM events which take place on an `EventTarget`s
