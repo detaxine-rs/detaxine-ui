@@ -103,16 +103,20 @@ impl std::fmt::Debug for PanelInfo {
 pub fn Panel(
     title: ViewFn,
     #[prop(optional)] children: Option<ChildrenFn>,
-    #[prop(into)] is_open: MaybeProp<bool>,
+    #[prop(into)] is_open: bool,
     #[prop(optional)] is_accordion: bool,
     #[prop(into, optional)] ext_panel_title_styles: String,
 ) -> impl IntoView {
     let panel_ref = NodeRef::new();
     let (children, _set_children) = signal(children);
-    let internal_is_open = Signal::derive(move || is_open.get().unwrap_or_default());
+    let (internal_is_open, set_internal_is_open) = signal(is_open);
     let toggle_content = move |_| {
         if let Some(panel_element) = panel_ref.get() {
             fire_custom_bubbled_and_cancelable_event("togglepanel", true, true, &panel_element);
+        }
+
+        if !is_accordion {
+            set_internal_is_open.update(|value| *value = !*value);
         }
     };
 
@@ -209,13 +213,21 @@ pub fn Collapse(
                 let:((index, panel_item))
             >
                 {
-                    view! {
-                        <Panel on:togglepanel=move |ev: CustomEvent| {
-                            ev.stop_propagation();
-                            handle_panel_toggle(index)
-                        } title=panel_item.title.clone() is_open=panel_item.is_open is_accordion=is_accordion>
-                            {panel_item.children.run()}
-                        </Panel>
+                    let panel_item_ref = &panel_item;
+                    let panel_item_ref_clone = panel_item_ref.clone();
+
+                    move || {
+                        let is_open_val = panel_item_ref_clone.is_open.get();
+                        let children = panel_item_ref_clone.children.clone();
+
+                        view!{
+                            <Panel on:togglepanel=move |ev: CustomEvent| {
+                                ev.stop_propagation();
+                                handle_panel_toggle(index)
+                            } title=panel_item_ref_clone.title.clone() is_open=is_open_val is_accordion=is_accordion>
+                                {children.run()}
+                            </Panel>
+                        }
                     }
                 }
             </For>

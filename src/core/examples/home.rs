@@ -706,7 +706,7 @@ pub fn App() -> impl IntoView {
                             <p class="text-xs text-gray-500">"Standalone panel"</p>
                             <Panel
                                 title=ViewFn::from(|| view! { <span>"Standalone Panel"</span> })
-                                is_open=RwSignal::new(false)
+                                is_open=false
                             >
                                 <p class="text-sm">"Panel body content goes here."</p>
                             </Panel>
