@@ -8,6 +8,7 @@ use crate::utils::forms::fire_custom_bubbled_and_cancelable_event;
 
 #[derive(Clone)]
 pub struct PanelInfo {
+    pub id: String, // or u64 — something stable per item
     pub title: ViewFn,
     pub is_open: RwSignal<bool>,
     pub children: ViewFn,
@@ -16,6 +17,7 @@ pub struct PanelInfo {
 impl Default for PanelInfo {
     fn default() -> Self {
         Self {
+            id: String::new(),
             title: ViewFn::from(|| view! {}),
             is_open: RwSignal::new(false),
             children: ViewFn::from(|| view! {}),
@@ -50,6 +52,7 @@ impl PanelInfo {
 
     pub fn build(self) -> PanelInfo {
         PanelInfo {
+            id: self.id,
             title: self.title,
             is_open: self.is_open,
             children: self.children,
@@ -85,11 +88,11 @@ impl std::fmt::Debug for PanelInfo {
 ///
 /// #[component]
 /// fn Example() -> impl IntoView {
-///     let is_open = RwSignal::new(false);
+///
 ///     view! {
 ///         <Panel
 ///             title=ViewFn::from(|| view! { <span>"Section 1"</span> })
-///             is_open=is_open
+///             is_open=false
 ///         >
 ///             <p>"Panel content goes here."</p>
 ///         </Panel>
@@ -100,19 +103,20 @@ impl std::fmt::Debug for PanelInfo {
 pub fn Panel(
     title: ViewFn,
     #[prop(optional)] children: Option<ChildrenFn>,
-    #[prop(into)] is_open: RwSignal<bool>,
+    #[prop(into)] is_open: bool,
     #[prop(optional)] is_accordion: bool,
     #[prop(into, optional)] ext_panel_title_styles: String,
 ) -> impl IntoView {
     let panel_ref = NodeRef::new();
     let (children, _set_children) = signal(children);
+    let (internal_is_open, set_internal_is_open) = signal(is_open);
     let toggle_content = move |_| {
         if let Some(panel_element) = panel_ref.get() {
             fire_custom_bubbled_and_cancelable_event("togglepanel", true, true, &panel_element);
         }
 
         if !is_accordion {
-            is_open.update(|value| *value = !*value);
+            set_internal_is_open.update(|value| *value = !*value);
         }
     };
 
@@ -120,13 +124,13 @@ pub fn Panel(
         <div node_ref=panel_ref>
             <span
                 on:click=toggle_content
-                class=move || format!("flex flex-row items-center justify-between gap-4 mb-2 p-2 rounded cursor-pointer ring ring-primary hover:bg-primary hover:text-light-gray {} {}", ext_panel_title_styles, if is_open.get() { "bg-primary text-light-gray" } else { "" })
+                class=move || format!("flex flex-row items-center justify-between gap-4 mb-2 p-2 rounded cursor-pointer ring ring-primary hover:bg-primary hover:text-light-gray {} {}", ext_panel_title_styles, if internal_is_open.get() { "bg-primary text-light-gray" } else { "" })
             >
                 {title.run()}
                 {
                     move || {
                         if children.get().is_some() {
-                            let icon_id = if is_open.get() {
+                            let icon_id = if internal_is_open.get() {
                                 BsDashLg
                             } else {
                                 BsPlusLg
@@ -140,7 +144,7 @@ pub fn Panel(
             </span>
             <div
                 class=move || {
-                    if is_open.get() {
+                    if internal_is_open.get() {
                         "transition-max-height duration-700 ease-in-out overflow-hidden max-h-svh p-2 ml-2"
                     } else {
                         "overflow-hidden h-0 transition-max-height duration-700 ease-in-out"
@@ -190,41 +194,40 @@ pub fn Collapse(
     #[prop(default = false)] is_accordion: bool,
 ) -> impl IntoView {
     let handle_panel_toggle = move |index| {
-        if is_accordion {
-            panel_items.update(|panels| {
-                let mut updated_panels = Vec::new();
-                for (i, panel) in panels.iter().enumerate() {
-                    if i == index {
-                        panel.is_open.update(|val| *val = !*val);
-                    } else {
-                        panel.is_open.set(false);
-                    }
-
-                    updated_panels.push(panel.clone());
+        panel_items.update(|panels| {
+            for (i, panel) in panels.iter().enumerate() {
+                if i == index {
+                    panel.is_open.update(|val| *val = !*val);
+                } else if is_accordion {
+                    panel.is_open.set(false);
                 }
-
-                *panels = updated_panels;
-            });
-        }
+            }
+        });
     };
 
     view! {
         <div class="flex flex-col">
             <For
                 each=move || panel_items.get().into_iter().enumerate()
-                key=|(index, _)| *index
+                key=|(_, panel)| panel.id.clone()
                 let:((index, panel_item))
             >
                 {
-                    leptos::logging::log!("panel_item.is_open: {}", panel_item.is_open.get());
-                    view! {
-                        <Panel on:togglepanel=move |ev: CustomEvent| {
-                            leptos::logging::log!("togglepanel event fired");
-                            ev.stop_propagation();
-                            handle_panel_toggle(index)
-                        } title=panel_item.title.clone() is_open=panel_item.is_open is_accordion=is_accordion>
-                            {panel_item.children.run()}
-                        </Panel>
+                    let panel_item_ref = &panel_item;
+                    let panel_item_ref_clone = panel_item_ref.clone();
+
+                    move || {
+                        let is_open_val = panel_item_ref_clone.is_open.get();
+                        let children = panel_item_ref_clone.children.clone();
+
+                        view!{
+                            <Panel on:togglepanel=move |ev: CustomEvent| {
+                                ev.stop_propagation();
+                                handle_panel_toggle(index)
+                            } title=panel_item_ref_clone.title.clone() is_open=is_open_val is_accordion=is_accordion>
+                                {children.run()}
+                            </Panel>
+                        }
                     }
                 }
             </For>

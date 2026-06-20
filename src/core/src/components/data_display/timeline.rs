@@ -150,11 +150,11 @@ impl TimelineItem {
 /// }
 /// ```
 #[component]
-pub fn Timeline(#[prop(into)] steps: RwSignal<Vec<TimelineItem>>) -> impl IntoView {
+pub fn Timeline(#[prop(into)] steps: MaybeProp<Vec<TimelineItem>>) -> impl IntoView {
     view! {
         <div class="relative">
             <For
-                each=move || steps.get().into_iter().enumerate()
+                each=move || steps.get().unwrap_or_default().into_iter().enumerate()
                 key=|(i, _)| *i
                 let:((_i, item))
             >
