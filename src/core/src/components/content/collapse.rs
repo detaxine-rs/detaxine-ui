@@ -193,22 +193,15 @@ pub fn Collapse(
     #[prop(default = false)] is_accordion: bool,
 ) -> impl IntoView {
     let handle_panel_toggle = move |index| {
-        if is_accordion {
-            panel_items.update(|panels| {
-                let mut updated_panels = Vec::new();
-                for (i, panel) in panels.iter().enumerate() {
-                    if i == index {
-                        panel.is_open.update(|val| *val = !*val);
-                    } else {
-                        panel.is_open.set(false);
-                    }
-
-                    updated_panels.push(panel.clone());
+        panel_items.update(|panels| {
+            for (i, panel) in panels.iter().enumerate() {
+                if i == index {
+                    panel.is_open.update(|val| *val = !*val);
+                } else if is_accordion {
+                    panel.is_open.set(false);
                 }
-
-                *panels = updated_panels;
-            });
-        }
+            }
+        });
     };
 
     view! {

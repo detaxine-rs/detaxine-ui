@@ -1,8 +1,8 @@
 use leptos::{html::Form, prelude::*};
-use serde::{Deserialize, de::DeserializeOwned};
+use serde::de::DeserializeOwned;
 use web_sys::{CustomEvent, CustomEventInit, Event, EventInit, EventTarget};
 
-use js_sys::{Array, IntoIter, wasm_bindgen::JsValue};
+use js_sys::{Array, IntoIter};
 use serde_json::{Map, Number, Value};
 use web_sys::FormData;
 
@@ -30,6 +30,14 @@ impl std::fmt::Display for FormDeserializeError {
     }
 }
 
+#[derive(Default)]
+pub struct FormDeserializeOptions<'a> {
+    pub deserialize_bool: bool,
+    pub vec_fields: Option<&'a [&'a str]>,
+    pub numeric_fields: Option<&'a [&'a str]>,
+}
+
+/// Extract `FormData` from type `NodeRef<Form>`
 pub fn get_form_data_from_form_ref(form_ref: &NodeRef<Form>) -> Option<FormData> {
     let form = form_ref.to_owned().get_untracked()?;
     let form_data = FormData::new_with_form(&form).ok()?;
@@ -39,12 +47,26 @@ pub fn get_form_data_from_form_ref(form_ref: &NodeRef<Form>) -> Option<FormData>
 /// `deserialize_bool` - Whether to deserialize boolean values
 ///
 /// `vec_fields` - The fields that should be deserialized as Vec<String>, e.g. Checkbox fields
+#[deprecated(
+    since = "0.8.37",
+    note = "Use `deserialize_form_with_options` instead, which supports `numeric_fields` for explicit numeric coercion"
+)]
 pub fn deserialize_form<T: DeserializeOwned>(
     form_ref: &NodeRef<Form>,
     deserialize_bool: bool,
     vec_fields: Option<&[&str]>,
 ) -> Option<T> {
     deserialize_form_checked(form_ref, deserialize_bool, vec_fields).ok()
+}
+
+/// `deserialize_bool` - Whether to deserialize boolean values
+///
+/// `options` - The fields that should be deserialized differently, e.g. Checkbox fields, Numbers, Boolean
+pub fn deserialize_form_with_options<T: DeserializeOwned>(
+    form_ref: &NodeRef<Form>,
+    options: &FormDeserializeOptions<'_>,
+) -> Option<T> {
+    deserialize_form_with_options_checked(form_ref, options).ok()
 }
 
 /// This is a counterpart to the `deserialize_form` utility (which returns `Option<T>`).
@@ -54,6 +76,10 @@ pub fn deserialize_form<T: DeserializeOwned>(
 /// `deserialize_bool` - Whether to deserialize boolean values
 ///
 /// `vec_fields` - The fields that should be deserialized as Vec<String>, e.g. Checkbox fields
+#[deprecated(
+    since = "0.8.37",
+    note = "Use `deserialize_form_with_options_checked` instead, which supports `numeric_fields` for explicit numeric coercion"
+)]
 pub fn deserialize_form_checked<T: DeserializeOwned>(
     form_ref: &NodeRef<Form>,
     deserialize_bool: bool,
@@ -72,7 +98,35 @@ pub fn deserialize_form_checked<T: DeserializeOwned>(
     parse_form(&mut map, &mut entries, deserialize_bool, vec_fields)
 }
 
+/// This is a counterpart to the `deserialize_form_with_options` utility (which returns `Option<T>`).
+///
+/// This abstraction enables easy debugging by providing errors on why the deserialization failed.
+///
+/// `deserialize_bool` - Whether to deserialize boolean values
+///
+/// `options` - The fields that should be deserialized differently, e.g. Checkbox fields, Numbers, Boolean
+pub fn deserialize_form_with_options_checked<T: DeserializeOwned>(
+    form_ref: &NodeRef<Form>,
+    options: &FormDeserializeOptions<'_>,
+) -> Result<T, FormDeserializeError> {
+    let form_data =
+        get_form_data_from_form_ref(form_ref).ok_or(FormDeserializeError::NoFormData)?;
+
+    let mut entries = js_sys::try_iter(&form_data)
+        .ok()
+        .flatten()
+        .ok_or(FormDeserializeError::IterationFailed)?;
+
+    let mut map = Map::new();
+
+    parse_form_with_options(&mut map, &mut entries, options)
+}
+
 /// A reusable function to parse the FormData
+#[deprecated(
+    since = "0.8.37",
+    note = "Use `parse_form_with_options` instead, which supports `numeric_fields` for explicit numeric coercion"
+)]
 fn parse_form<T: DeserializeOwned>(
     map: &mut Map<String, Value>,
     entries: &mut IntoIter,
@@ -143,11 +197,91 @@ fn parse_form<T: DeserializeOwned>(
         .map_err(|e| FormDeserializeError::DeserializeFailed(e, value))
 }
 
+/// A reusable function to parse the FormData
+fn parse_form_with_options<T: DeserializeOwned>(
+    map: &mut Map<String, Value>,
+    entries: &mut IntoIter,
+    options: &FormDeserializeOptions<'_>,
+) -> Result<T, FormDeserializeError> {
+    for entry in entries {
+        let pair = entry.ok().ok_or(FormDeserializeError::EntryParseFailed)?;
+        let arr = Array::from(&pair);
+        let key = arr
+            .get(0)
+            .as_string()
+            .ok_or(FormDeserializeError::EntryParseFailed)?;
+        let value = arr.get(1);
+
+        let is_vec_field = options
+            .vec_fields
+            .map(|fields| fields.contains(&key.as_str()))
+            .unwrap_or(false);
+        let is_numeric_field = options
+            .numeric_fields
+            .map(|fields| fields.contains(&key.as_str()))
+            .unwrap_or(false);
+
+        if let Some(s) = value.as_string() {
+            // Convert to bool, null, number, or string
+            let val = if s.is_empty() {
+                Value::Null
+            } else if options.deserialize_bool && (s == "true" || s == "false") {
+                Value::Bool(s.parse::<bool>().unwrap_or_default())
+            } else {
+                let trimmed = s.trim();
+                if is_numeric_field {
+                    if let Ok(i) = trimmed.parse::<i64>() {
+                        Value::Number(Number::from(i))
+                    } else if let Ok(f) = trimmed.parse::<f64>() {
+                        Number::from_f64(f)
+                            .map(Value::Number)
+                            .unwrap_or(Value::String(trimmed.to_string()))
+                    } else {
+                        Value::String(trimmed.to_string())
+                    }
+                } else {
+                    Value::String(trimmed.to_string())
+                }
+            };
+
+            // Merge into existing entry if present
+            match map.get_mut(&key) {
+                Some(existing) => match existing {
+                    Value::Array(arr) => {
+                        arr.push(val);
+                    }
+                    prev => {
+                        // Convert single previous value into array
+                        let new_arr = vec![prev.clone(), val];
+                        *prev = Value::Array(new_arr);
+                    }
+                },
+                None => {
+                    if is_vec_field {
+                        // Always store as array for defined checkbox fields
+                        map.insert(key, Value::Array(vec![val]));
+                    } else {
+                        map.insert(key, val);
+                    }
+                }
+            }
+        }
+    }
+
+    let value = Value::Object(map.to_owned());
+    serde_json::from_value::<T>(value.clone())
+        .map_err(|e| FormDeserializeError::DeserializeFailed(e, value))
+}
+
 /// `deserialize_bool` - Whether to deserialize boolean values
 ///
 /// `vec_fields` - The fields that should be deserialized as Vec<String>, e.g. Checkbox fields
 ///
 /// This is suitable when you want to append to FormData and then deserialize the final form value
+#[deprecated(
+    since = "0.8.37",
+    note = "Use `deserialize_form_data_with_options` instead, which supports `numeric_fields` for explicit numeric coercion"
+)]
 pub fn deserialize_form_data<T: DeserializeOwned>(
     form_data: &FormData,
     deserialize_bool: bool,
@@ -163,6 +297,10 @@ pub fn deserialize_form_data<T: DeserializeOwned>(
 /// `deserialize_bool` - Whether to deserialize boolean values
 ///
 /// `vec_fields` - The fields that should be deserialized as Vec<String>, e.g. Checkbox fields
+#[deprecated(
+    since = "0.8.37",
+    note = "Use `deserialize_form_with_options_checked` instead, which supports `numeric_fields` for explicit numeric coercion"
+)]
 pub fn deserialize_form_data_checked<T: DeserializeOwned>(
     form_data: &FormData,
     deserialize_bool: bool,
