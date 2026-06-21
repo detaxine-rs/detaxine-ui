@@ -326,7 +326,7 @@ pub fn deserialize_form_data_checked<T: DeserializeOwned>(
     parse_form(&mut map, &mut entries, deserialize_bool, vec_fields)
 }
 
-/// This is a counterpart to the `deserialize_form_with_options` utility (which returns `Option<T>`).
+/// This is a counterpart to the `deserialize_form_data_with_options` utility (which returns `Option<T>`).
 ///
 /// This abstraction enables easy debugging by providing errors on why the deserialization failed.
 ///
