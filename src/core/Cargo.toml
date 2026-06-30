@@ -1,11 +1,11 @@
 [package]
 name = "detaxine-ui"
-version = "0.8.38"
+version = "0.8.39"
 edition = "2024"
 description = "A UI Library for Leptos"
 license = "MIT OR Apache-2.0"
 license-file = "../../LICENSE-APACHE"
-repository = "https://github.com/elonaire/detaxine-ui"
+repository = "https://github.com/detaxine-rs/detaxine-ui"
 homepage = "https://elonaire.github.io/detaxine-ui/"
 documentation = "https://docs.rs/detaxine-ui"
 readme = "../../README.md"
