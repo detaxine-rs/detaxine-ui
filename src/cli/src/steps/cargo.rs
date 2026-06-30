@@ -10,7 +10,7 @@ edition = "2024"
 
 [dependencies]
 detaxine-ui = "0.8.40"
-leptos = {{ version = "0.8.19", features = ["csr"] }}
+leptos = {{ version = "0.8.20", features = ["csr"] }}
 leptos_meta = "0.8.6"
 "#
     );
