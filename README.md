@@ -4,11 +4,11 @@ A Leptos + Tailwind CSS component library compiled to WebAssembly. Build modern,
 
 [![Crates.io](https://img.shields.io/crates/v/detaxine-ui.svg)](https://crates.io/crates/detaxine-ui)
 [![Docs.rs](https://docs.rs/detaxine-ui/badge.svg)](https://docs.rs/detaxine-ui)
-![Detaxine UI CI](https://github.com/elonaire/detaxine-ui/actions/workflows/main.yml/badge.svg?branch=)
+![Detaxine UI CI](https://github.com/detaxine-rs/detaxine-ui/actions/workflows/main.yml/badge.svg?branch=)
 
 ## Live Demo
 
-[https://elonaire.github.io/detaxine-ui/](https://elonaire.github.io/detaxine-ui/)
+[https://detaxine-rs.github.io/detaxine-ui/](https://detaxine-rs.github.io/detaxine-ui/)
 
 ---
 ## Limitation ⚠️
