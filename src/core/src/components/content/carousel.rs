@@ -1,5 +1,5 @@
 use icondata::{BiChevronLeftRegular, BiChevronRightRegular};
-use leptos::prelude::*;
+use leptos::{ev, prelude::*};
 use leptos_icons::Icon;
 
 use crate::components::actions::button::BasicButton;
@@ -28,7 +28,10 @@ use crate::components::actions::button::BasicButton;
 /// }
 /// ```
 #[component]
-pub fn Carousel(mut children: ChildrenFragmentMut) -> impl IntoView {
+pub fn Carousel(
+    #[prop(optional, default = true)] show_nav_buttons: bool,
+    mut children: ChildrenFragmentMut,
+) -> impl IntoView {
     let children_vec = children()
         .nodes
         .into_iter()
@@ -56,57 +59,79 @@ pub fn Carousel(mut children: ChildrenFragmentMut) -> impl IntoView {
         });
     };
 
+    let touch_start_x = StoredValue::new(0.0_f64);
+    const SWIPE_THRESHOLD: f64 = 50.0;
+
+    let on_touch_start = move |ev: ev::TouchEvent| {
+        if let Some(touch) = ev.touches().item(0) {
+            touch_start_x.set_value(touch.client_x() as f64);
+        }
+    };
+
+    let on_touch_end = move |ev: ev::TouchEvent| {
+        if let Some(touch) = ev.changed_touches().item(0) {
+            let delta = touch.client_x() as f64 - touch_start_x.get_value();
+            if delta > SWIPE_THRESHOLD {
+                prev_slide();
+            } else if delta < -SWIPE_THRESHOLD {
+                next_slide();
+            }
+        }
+    };
+
     view! {
-        <div class="relative overflow-hidden">
-            // Slides container
-            <div
-                class="flex transition-transform duration-500 ease-in-out"
-                style:transform=move || format!("translateX(-{}%)", current_index_read.get() * 100)
-            >
+        <div class="flex flex-col gap-[10px]">
+            <div class="relative overflow-hidden">
+                // Slides container
+                <div
+                    class="flex transition-transform duration-500 ease-in-out"
+                    style:transform=move || format!("translateX(-{}%)", current_index_read.get() * 100)
+                    on:touchstart=on_touch_start
+                    on:touchend=on_touch_end
+                >
 
-            {children_vec.into_iter().map(|slide| view! {
-                <div class="shrink-0 w-full">
-                    {slide}
+                    {children_vec.into_iter().map(|slide| view! {
+                        <div class="shrink-0 w-full">
+                            {slide}
+                        </div>
+                    }).collect::<Vec<_>>()}
+
                 </div>
-            }).collect::<Vec<_>>()}
 
+                <Show when=move || show_nav_buttons>
+                    <BasicButton
+                        style_ext="absolute left-0 top-1/2 transform -translate-y-1/2 bg-transparent text-white hover:bg-opacity-75 transition-opacity z-10 h-full cursor-pointer"
+                        on:click=move |_| prev_slide()
+                    >
+                        <Icon width="1.5em" height="1.5em" icon=BiChevronLeftRegular />
+                    </BasicButton>
+                    <BasicButton
+                        style_ext="absolute right-0 top-1/2 transform -translate-y-1/2 bg-transparent text-white hover:bg-opacity-75 transition-opacity z-10 h-full cursor-pointer"
+                        on:click=move |_| next_slide()
+                    >
+                        <Icon width="1.5em" height="1.5em" icon=BiChevronRightRegular />
+                    </BasicButton>
+                </Show>
             </div>
-
-            // Previous button
-            <BasicButton
-                style_ext="absolute left-0 top-1/2 transform -translate-y-1/2 bg-transparent text-white hover:bg-opacity-75 transition-opacity z-10 h-full cursor-pointer"
-                on:click=move |_| prev_slide()
-            >
-                <Icon width="1.5em" height="1.5em" icon=BiChevronLeftRegular />
-            </BasicButton>
-
-            // Next button
-            <BasicButton
-                style_ext="absolute right-0 top-1/2 transform -translate-y-1/2 bg-transparent text-white hover:bg-opacity-75 transition-opacity z-10 h-full cursor-pointer"
-                on:click=move |_| next_slide()
-            >
-                <Icon width="1.5em" height="1.5em" icon=BiChevronRightRegular />
-            </BasicButton>
-
             // Indicators
-            <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                           {move || (0..total_slides).map(|i| {
-                               move || {
-                                   let extracted_index = current_index_read.get();
+            <div class="flex gap-[5px] items-center justify-center">
+                {move || (0..total_slides).map(|i| {
+                    move || {
+                        let extracted_index = current_index_read.get();
 
-                                   view! {
-                                       <BasicButton
-                                           style_ext=format!("p-0! w-6 h-[2.5px] rounded-[5px] {}", if extracted_index == i {
-                                               "bg-mid-gray"
-                                           } else {
-                                               "bg-contrast-white hover:bg-light-gray"
-                                           })
-                                           on:click=move |_| set_current_index.set(i)
-                                       ></BasicButton>
-                                   }
-                               }
-                           }).collect::<Vec<_>>()}
-                       </div>
+                        view! {
+                            <BasicButton
+                                style_ext=format!("p-0! w-6 h-[2.5px] rounded-[5px] {}", if extracted_index == i {
+                                    "bg-mid-gray"
+                                } else {
+                                    "bg-contrast-white hover:bg-light-gray"
+                                })
+                                on:click=move |_| set_current_index.set(i)
+                            ></BasicButton>
+                        }
+                    }
+                }).collect::<Vec<_>>()}
+            </div>
         </div>
     }.into_any()
 }
