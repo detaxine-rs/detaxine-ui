@@ -1,15 +1,10 @@
 use leptos::html::*;
 use leptos::prelude::*;
+use tailwind_fuse::tw_merge;
 
 use crate::components::schemas::props::ColorTemperature;
 
 /// A static label tag with a color-coded border and background.
-///
-/// # Props
-///
-/// - `label` – Text displayed inside the tag.
-/// - `color` – Tag color via `ColorTemperature`. Defaults to `ColorTemperature::Primary`.
-///   Supported values: `Primary`, `Success`, `Warning`, `Info`, `Danger`.
 ///
 /// # Example
 ///
@@ -26,10 +21,19 @@ use crate::components::schemas::props::ColorTemperature;
 /// ```
 #[component]
 pub fn LabelTag(
-    #[prop(into, optional)] label: String,
-    #[prop(default = ColorTemperature::Primary)] color: ColorTemperature,
+    /// Text displayed inside the tag.
+    #[prop(into, optional)]
+    label: String,
+
+    /// Tag color via `ColorTemperature`. Defaults to `ColorTemperature::Primary`.
+    /// Supported values: `Primary`, `Success`, `Warning`, `Info`, `Danger`.
+    #[prop(default = ColorTemperature::Primary)]
+    color: ColorTemperature,
+
+    /// Extra Tailwind classes for the label container.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
 ) -> impl IntoView {
-    // Function to return the corresponding tailwind classes
     let color_classes = match color {
         ColorTemperature::Success => "text-success border-2 border-success bg-success/20",
         ColorTemperature::Warning => "text-warning border-2 border-warning bg-warning/20",
@@ -38,8 +42,16 @@ pub fn LabelTag(
         _ => "text-primary border-2 border-primary bg-primary/20",
     };
 
+    let root_class = tw_merge!(
+        format!(
+            "inline-block px-3 text-center rounded text-sm {}",
+            color_classes
+        ),
+        class.get().unwrap_or_default()
+    );
+
     view! {
-        <div class=format!("inline-block px-3 text-center rounded text-sm {}", color_classes)>
+        <div class=root_class>
             <span>{label}</span>
         </div>
     }

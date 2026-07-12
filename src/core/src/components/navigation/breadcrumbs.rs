@@ -4,6 +4,7 @@ use icondata::BiChevronRightRegular;
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_router::{components::A, hooks::use_location};
+use tailwind_fuse::tw_merge;
 
 /// A breadcrumb navigation component that derives crumbs from the current route path.
 ///
@@ -12,10 +13,6 @@ use leptos_router::{components::A, hooks::use_location};
 /// including the home crumb; if fewer names than segments are provided, the raw segment
 /// string is used as the label.
 ///
-/// # Props
-///
-/// - `custom_route_names` – `StringVec` of display names in order of appearance,
-///   starting with the home crumb. Defaults to `["Home"]`.
 ///
 /// # Example
 ///
@@ -32,12 +29,46 @@ use leptos_router::{components::A, hooks::use_location};
 /// ```
 #[component]
 pub fn Breadcrumbs(
+    /// `StringVec` of display names in order of appearance, starting with the home crumb. Defaults to `["Home"]`.
+    ///
     /// These routes are named in order of appearance and if the `custom_route_names` prop is not specified, the first route is by default named "Home". If specified, you need to provide a name for each route, including the first route.
-    #[prop(into, default = StringVec(vec!["Home".to_string()]), optional)]
+    #[prop(into, default = ["Home"].into(), optional)]
     custom_route_names: StringVec,
+
+    /// Extra Tailwind classes for the root `<nav>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+    /// Extra Tailwind classes for the `<ul>` list.
+    #[prop(into, optional)]
+    list_class: MaybeProp<String>,
+    /// Extra Tailwind classes for each `<li>` item.
+    #[prop(into, optional)]
+    item_class: MaybeProp<String>,
+    /// Extra Tailwind classes for the separator icon wrapper.
+    #[prop(into, optional)]
+    separator_class: MaybeProp<String>,
+    /// Extra Tailwind classes for each breadcrumb `<A>` link.
+    #[prop(into, optional)]
+    link_class: MaybeProp<String>,
 ) -> impl IntoView {
     let location = use_location();
     let (breadcrumbs, set_breadcrumbs) = signal(vec![] as Vec<ViewFn>);
+
+    let nav_class = move || tw_merge!("rounded", class.get().unwrap_or_default());
+    let list_class_val = move || {
+        tw_merge!(
+            "flex items-center space-x-2",
+            list_class.get().unwrap_or_default()
+        )
+    };
+    let item_class_val = move || {
+        tw_merge!(
+            "flex flex-row gap-2 items-center",
+            item_class.get().unwrap_or_default()
+        )
+    };
+    let separator_class_val =
+        move || tw_merge!("text-xs mx-2", separator_class.get().unwrap_or_default());
 
     Effect::new(move |_| {
         let path_segments = location
@@ -46,10 +77,7 @@ pub fn Breadcrumbs(
             .split('/')
             .map(|val| val.to_owned())
             .collect::<Vec<_>>();
-
         let mut cumulative_path = String::new();
-        // let mut new_crumbs = vec![] as Vec<ViewFn>;
-
         let mut new_crumbs: Vec<ViewFn> = path_segments
             .into_iter()
             .filter(|segment| !segment.is_empty())
@@ -68,45 +96,48 @@ pub fn Breadcrumbs(
                     segment.clone()
                 };
                 let link_path = cumulative_path.clone();
-
                 let link = ViewFn::from(move || {
                     let segment_text = segment_text.clone();
                     let link_path = link_path.clone();
-                    view! { <A href=link_path>{segment_text}</A> }
+                    view! { <A href=link_path attr:class=link_class.get().unwrap_or_default()>{segment_text}</A> }
                 });
-
                 link
             })
             .collect();
-
         // Append the home link
         let home_route_name = custom_route_names.0[0].clone();
         let home_link = ViewFn::from(move || {
             let home_route_name = home_route_name.clone();
-            view! { <A href="/">{home_route_name}</A> }
+            view! { <A href="/" attr:class=link_class.get().unwrap_or_default()>{home_route_name}</A> }
         });
         new_crumbs.insert(0, home_link);
-
         set_breadcrumbs.set(new_crumbs);
     });
 
     view! {
-        <nav class="rounded">
-            <ul class="flex items-center space-x-2">
+        <nav class=nav_class>
+            <ul class=list_class_val>
                 {move || {
+                    let item_class_val = item_class_val.clone();
+                    let separator_class_val = separator_class_val.clone();
+
                     breadcrumbs
                         .get()
                         .into_iter()
                         .enumerate()
-                        .map(|(i, item)| {
+                        .map(move |(i, item)| {
+                            let item_class_val = item_class_val.clone();
+                            let separator_class_val = separator_class_val.clone();
+                            let len = breadcrumbs.get().len();
+
                             view! {
-                                <li class="flex flex-row gap-2 items-center">
+                                <li class=item_class_val>
                                     {
                                         item.run()
                                     }
-                                    {if i < breadcrumbs.get().len() - 1 {
+                                    {if i < len - 1 {
                                         Some(view! {
-                                            <span class="text-xs mx-2">
+                                            <span class=separator_class_val.clone()>
                                                 <Icon icon=BiChevronRightRegular />
                                             </span>
                                         })

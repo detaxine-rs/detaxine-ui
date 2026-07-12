@@ -2,6 +2,7 @@ use icondata::{BsDashLg, BsPlusLg};
 use leptos::html::*;
 use leptos::prelude::*;
 use leptos_icons::Icon;
+use tailwind_fuse::tw_merge;
 use web_sys::CustomEvent;
 
 use crate::utils::forms::fire_custom_bubbled_and_cancelable_event;
@@ -72,14 +73,6 @@ impl std::fmt::Debug for PanelInfo {
 
 /// A collapsible panel with a clickable title that toggles its content open or closed.
 ///
-/// # Props
-///
-/// - `title` – A `ViewFn` rendered as the panel header.
-/// - `is_open` – `RwSignal<bool>` controlling the open/closed state.
-/// - `is_accordion` – When `true`, delegates toggle handling to a parent `Collapse`. Defaults to `false`.
-/// - `ext_panel_title_styles` – Additional Tailwind classes appended to the title bar.
-/// - `children` – Optional content rendered when the panel is open.
-///
 /// # Example
 ///
 /// ```
@@ -101,31 +94,82 @@ impl std::fmt::Debug for PanelInfo {
 /// ```
 #[component]
 pub fn Panel(
+    /// A `ViewFn` rendered as the panel header.
     title: ViewFn,
-    #[prop(optional)] children: Option<ChildrenFn>,
-    #[prop(into)] is_open: bool,
-    #[prop(optional)] is_accordion: bool,
-    #[prop(into, optional)] ext_panel_title_styles: String,
+
+    /// Optional content rendered when the panel is open.
+    #[prop(optional)]
+    children: Option<ChildrenFn>,
+
+    /// `RwSignal<bool>` controlling the open/closed state.
+    #[prop(into)]
+    is_open: bool,
+
+    /// When `true`, delegates toggle handling to a parent `Collapse`. Defaults to `false`.
+    #[prop(optional)]
+    is_accordion: bool,
+
+    /// **Deprecated**: use `title_class` instead. Still supported and
+    /// merged in alongside `title_class` for backward compatibility.
+    #[prop(into, optional)]
+    ext_panel_title_styles: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the title/header bar. Merged with
+    /// conflict-aware precedence — overrides win over defaults rather
+    /// than just appending.
+    #[prop(into, optional)]
+    title_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the collapsible content wrapper.
+    #[prop(into, optional)]
+    content_class: MaybeProp<String>,
 ) -> impl IntoView {
     let panel_ref = NodeRef::new();
     let (children, _set_children) = signal(children);
     let (internal_is_open, set_internal_is_open) = signal(is_open);
+
     let toggle_content = move |_| {
         if let Some(panel_element) = panel_ref.get() {
             fire_custom_bubbled_and_cancelable_event("togglepanel", true, true, &panel_element);
         }
-
         if !is_accordion {
             set_internal_is_open.update(|value| *value = !*value);
         }
     };
 
+    let root_class = move || tw_merge!("", class.get().unwrap_or_default());
+
+    let title_bar_class = move || {
+        tw_merge!(
+            "flex flex-row items-center justify-between gap-4 mb-2 p-2 rounded cursor-pointer ring-1 ring-primary hover:bg-primary hover:text-light-gray",
+            if internal_is_open.get() {
+                "bg-primary text-light-gray"
+            } else {
+                ""
+            },
+            ext_panel_title_styles.get().unwrap_or_default(),
+            title_class.get().unwrap_or_default(),
+        )
+    };
+
+    let content_wrapper_class = move || {
+        tw_merge!(
+            if internal_is_open.get() {
+                "transition-max-height duration-700 ease-in-out overflow-hidden max-h-svh p-2 ml-2"
+            } else {
+                "overflow-hidden h-0 transition-max-height duration-700 ease-in-out"
+            },
+            content_class.get().unwrap_or_default(),
+        )
+    };
+
     view! {
-        <div node_ref=panel_ref>
-            <span
-                on:click=toggle_content
-                class=move || format!("flex flex-row items-center justify-between gap-4 mb-2 p-2 rounded cursor-pointer ring ring-primary hover:bg-primary hover:text-light-gray {} {}", ext_panel_title_styles, if internal_is_open.get() { "bg-primary text-light-gray" } else { "" })
-            >
+        <div node_ref=panel_ref class=root_class>
+            <span on:click=toggle_content class=title_bar_class>
                 {title.run()}
                 {
                     move || {
@@ -142,28 +186,16 @@ pub fn Panel(
                     }
                 }
             </span>
-            <div
-                class=move || {
-                    if internal_is_open.get() {
-                        "transition-max-height duration-700 ease-in-out overflow-hidden max-h-svh p-2 ml-2"
-                    } else {
-                        "overflow-hidden h-0 transition-max-height duration-700 ease-in-out"
-                    }
-                }
-            >
+            <div class=content_wrapper_class>
                 {move || children.get().map(|c| c())}
             </div>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 /// Groups multiple `Panel` components, optionally enforcing accordion behaviour
 /// (only one panel open at a time).
-///
-/// # Props
-///
-/// - `panel_items` – `RwSignal<Vec<PanelInfo>>` holding each panel's title, content, and open state.
-/// - `is_accordion` – When `true`, opening one panel closes all others. Defaults to `false`.
 ///
 /// # Example
 ///
@@ -190,8 +222,25 @@ pub fn Panel(
 /// ```
 #[component]
 pub fn Collapse(
-    #[prop(into)] panel_items: RwSignal<Vec<PanelInfo>>,
-    #[prop(default = false)] is_accordion: bool,
+    /// `RwSignal<Vec<PanelInfo>>` holding each panel's title, content, and open state.
+    #[prop(into)]
+    panel_items: RwSignal<Vec<PanelInfo>>,
+
+    /// When `true`, opening one panel closes all others. Defaults to `false`.
+    #[prop(default = false)]
+    is_accordion: bool,
+
+    /// Extra Tailwind classes for the outer flex container.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Forwarded to every `Panel`'s `title_class`.
+    #[prop(into, optional)]
+    panel_title_class: MaybeProp<String>,
+
+    /// Forwarded to every `Panel`'s `content_class`.
+    #[prop(into, optional)]
+    panel_content_class: MaybeProp<String>,
 ) -> impl IntoView {
     let handle_panel_toggle = move |index| {
         panel_items.update(|panels| {
@@ -205,8 +254,10 @@ pub fn Collapse(
         });
     };
 
+    let root_class = move || tw_merge!("flex flex-col", class.get().unwrap_or_default());
+
     view! {
-        <div class="flex flex-col">
+        <div class=root_class>
             <For
                 each=move || panel_items.get().into_iter().enumerate()
                 key=|(_, panel)| panel.id.clone()
@@ -215,16 +266,23 @@ pub fn Collapse(
                 {
                     let panel_item_ref = &panel_item;
                     let panel_item_ref_clone = panel_item_ref.clone();
-
+                    let panel_title_class = panel_title_class.clone();
+                    let panel_content_class = panel_content_class.clone();
                     move || {
                         let is_open_val = panel_item_ref_clone.is_open.get();
                         let children = panel_item_ref_clone.children.clone();
-
                         view!{
-                            <Panel on:togglepanel=move |ev: CustomEvent| {
-                                ev.stop_propagation();
-                                handle_panel_toggle(index)
-                            } title=panel_item_ref_clone.title.clone() is_open=is_open_val is_accordion=is_accordion>
+                            <Panel
+                                on:togglepanel=move |ev: CustomEvent| {
+                                    ev.stop_propagation();
+                                    handle_panel_toggle(index)
+                                }
+                                title=panel_item_ref_clone.title.clone()
+                                is_open=is_open_val
+                                is_accordion=is_accordion
+                                title_class=panel_title_class.get().unwrap_or_default()
+                                content_class=panel_content_class.get().unwrap_or_default()
+                            >
                                 {children.run()}
                             </Panel>
                         }
@@ -232,7 +290,8 @@ pub fn Collapse(
                 }
             </For>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[cfg(test)]

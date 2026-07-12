@@ -2,19 +2,9 @@ use crate::components::forms::checkbox::CheckboxInputField;
 use crate::utils::forms::fire_bubbled_and_cancelable_event;
 use leptos::ev;
 use leptos::prelude::*;
+use tailwind_fuse::tw_merge;
 
 /// A toggle switch built on top of a hidden checkbox, suitable for boolean form fields.
-///
-/// # Props
-///
-/// - `name` – `name` attribute for form submission.
-/// - `id_attr` – `id` attribute on the hidden checkbox input.
-/// - `label` – Persistent label passed to the underlying `CheckboxInputField`.
-/// - `label_active` – Text displayed beside the switch when active.
-/// - `label_inactive` – Text displayed beside the switch when inactive.
-/// - `initial_active_state` – Starting state of the toggle. Defaults to `false`.
-/// - `required` – Sets `required` on the hidden checkbox. Defaults to `false`.
-/// - `readonly` – When `true`, clicking the toggle has no effect. Defaults to `false`.
 ///
 /// # Example
 ///
@@ -36,14 +26,53 @@ use leptos::prelude::*;
 /// ```
 #[component]
 pub fn ToggleSwitch(
-    #[prop(into, optional)] name: String,
-    #[prop(into, optional)] label_active: String,
-    #[prop(into, optional)] label_inactive: String,
-    #[prop(into, optional)] id_attr: String,
-    #[prop(into, optional)] label: String,
-    #[prop(default = false)] required: bool,
-    #[prop(optional, default = false)] readonly: bool,
-    #[prop(default = false, optional)] initial_active_state: bool,
+    /// `name` attribute for form submission.
+    #[prop(into, optional)]
+    name: String,
+
+    /// Text displayed beside the switch when active.
+    #[prop(into, optional)]
+    label_active: String,
+
+    /// Text displayed beside the switch when inactive.
+    #[prop(into, optional)]
+    label_inactive: String,
+
+    /// `id` attribute on the hidden checkbox input.
+    #[prop(into, optional)]
+    id_attr: String,
+
+    /// Persistent label passed to the underlying `CheckboxInputField`.
+    #[prop(into, optional)]
+    label: String,
+
+    /// Sets `required` on the hidden checkbox. Defaults to `false`.
+    #[prop(default = false)]
+    required: bool,
+
+    /// When `true`, clicking the toggle has no effect. Defaults to `false`.
+    #[prop(optional, default = false)]
+    readonly: bool,
+
+    /// Starting state of the toggle. Defaults to `false`.
+    #[prop(default = false, optional)]
+    initial_active_state: bool,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the track (the pill-shaped background).
+    #[prop(into, optional)]
+    track_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the dot (the sliding circle).
+    #[prop(into, optional)]
+    dot_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the active/inactive label text.
+    #[prop(into, optional)]
+    label_text_class: MaybeProp<String>,
 ) -> impl IntoView {
     let checkbox_ref = NodeRef::new();
     let is_active = RwSignal::new(initial_active_state);
@@ -57,8 +86,42 @@ pub fn ToggleSwitch(
         }
     };
 
+    let root_class = move || {
+        tw_merge!(
+            "flex flex-col cursor-pointer relative",
+            class.get().unwrap_or_default()
+        )
+    };
+    let track_class_val = move || {
+        tw_merge!(
+            format!(
+                "block w-14 h-8 rounded-full {}",
+                if is_active.get() {
+                    "bg-secondary"
+                } else {
+                    "bg-mid-gray"
+                }
+            ),
+            track_class.get().unwrap_or_default()
+        )
+    };
+    let dot_class_val = move || {
+        tw_merge!(
+            format!(
+                "dot absolute left-1 bottom-1 w-6 h-6 rounded-full transition transform {}",
+                if is_active.get() {
+                    "translate-x-full"
+                } else {
+                    ""
+                }
+            ),
+            dot_class.get().unwrap_or_default()
+        )
+    };
+    let label_text_class_val = move || tw_merge!("", label_text_class.get().unwrap_or_default());
+
     view! {
-        <div class="flex flex-col cursor-pointer relative">
+        <div class=root_class>
             <CheckboxInputField
                 input_node_ref=checkbox_ref
                 initial_value=initial_active_state.to_string()
@@ -66,27 +129,17 @@ pub fn ToggleSwitch(
                 name=name
                 id_attr=id_attr
                 checked=is_active
-                ext_wrapper_styles="absolute opacity-0"
+                class="absolute opacity-0"
                 required=required
                 readonly=readonly
             />
             <div class="flex items-center">
                 <div on:click=handle_toggle class="relative">
-                    <div
-                        class=move || format!(
-                            "block w-14 h-8 rounded-full {}",
-                            if is_active.get() { "bg-secondary" } else { "bg-mid-gray" }
-                        )
-                    ></div>
-                    <div
-                        class=move || format!(
-                            "dot absolute left-1 bottom-1 w-6 h-6 rounded-full transition transform {}",
-                            if is_active.get() { "translate-x-full" } else { "" }
-                        )
-                    ></div>
+                    <div class=track_class_val></div>
+                    <div class=dot_class_val></div>
                 </div>
                 <div class="flex items-center ml-3 font-medium">
-                    <p>{
+                    <p class=label_text_class_val>{
                         move || {
                             if is_active.get() {
                                 label_active.clone()
@@ -98,7 +151,8 @@ pub fn ToggleSwitch(
                 </div>
             </div>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[cfg(test)]

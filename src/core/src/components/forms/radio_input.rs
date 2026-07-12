@@ -1,5 +1,6 @@
 use leptos::ev;
 use leptos::prelude::*;
+use tailwind_fuse::tw_merge;
 
 /// Represents a single radio option with a value and display text.
 /// You can also provide custom children for complex rendering (e.g., with icons).
@@ -33,16 +34,6 @@ impl RadioOption {
 
 /// A single radio input with an associated label and optional custom children content.
 ///
-/// # Props
-///
-/// - `initial_value` – `Signal<String>` bound to the input's `value` attribute.
-/// - `name` – Shared `name` attribute grouping this radio with others.
-/// - `label` – Text displayed beside the radio input.
-/// - `id_attr` – `id` attribute linking the input to its label.
-/// - `is_selected` – Pre-selects this option. Defaults to `false`.
-/// - `required` – Sets the `required` attribute. Defaults to `false`.
-/// - `children` – Optional `ViewFn` rendered below the label (e.g. an icon or description).
-///
 /// # Example
 ///
 /// ```
@@ -58,20 +49,64 @@ impl RadioOption {
 /// ```
 #[component]
 pub fn RadioInputField(
-    #[prop(into, optional)] initial_value: MaybeProp<String>,
-    #[prop(into, optional)] name: String,
-    #[prop(into, optional)] label: String,
-    #[prop(default = false, optional)] required: bool,
-    #[prop(optional, default = false)] is_selected: bool,
-    #[prop(optional)] children: Option<ViewFn>,
-    #[prop(into, optional)] id_attr: String,
+    /// Value bound to the input's `value` attribute.
+    #[prop(into, optional)]
+    initial_value: MaybeProp<String>,
+
+    /// Shared `name` attribute grouping this radio with others.
+    #[prop(into, optional)]
+    name: String,
+
+    /// Text displayed beside the radio input.
+    #[prop(into, optional)]
+    label: String,
+
+    /// Sets the `required` attribute. Defaults to `false`.
+    #[prop(default = false, optional)]
+    required: bool,
+
+    /// Pre-selects this option. Defaults to `false`.
+    #[prop(optional, default = false)]
+    is_selected: bool,
+
+    /// Optional `ViewFn` rendered below the label (e.g. an icon or description).
+    #[prop(optional)]
+    children: Option<ViewFn>,
+
+    /// `id` attribute linking the input to its label.
+    #[prop(into, optional)]
+    id_attr: String,
+
+    /// Extra Tailwind classes for the `<label>` wrapper.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the `<input type="radio">` itself.
+    #[prop(into, optional)]
+    input_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the label text `<span>`.
+    #[prop(into, optional)]
+    label_text_class: MaybeProp<String>,
 ) -> impl IntoView {
+    let label_class_val = move || {
+        tw_merge!(
+            "inline-flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded",
+            class.get().unwrap_or_default()
+        )
+    };
+    let input_class_val = move || {
+        tw_merge!(
+            "leading-tight size-5 rounded-full border-2 border-mid-gray text-secondary shadow-sm focus:outline-none focus:ring-0 focus:border-secondary checked:bg-secondary checked:border-secondary accent-secondary",
+            input_class.get().unwrap_or_default()
+        )
+    };
+    let label_text_class_val = move || tw_merge!("", label_text_class.get().unwrap_or_default());
+
     view! {
-        <label for=id_attr.clone() class="inline-flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded">
+        <label for=id_attr.clone() class=label_class_val>
             <input
-                class="leading-tight size-5 rounded-full border-2 border-mid-gray text-secondary shadow-sm
-                           focus:outline-none focus:ring-0 focus:border-secondary
-                           checked:bg-secondary checked:border-secondary accent-secondary"
+                class=input_class_val
                 type="radio"
                 name=name
                 value=initial_value
@@ -80,26 +115,15 @@ pub fn RadioInputField(
                 required=required
             />
             <div class="flex flex-col">
-                <span>{label}</span>
+                <span class=label_text_class_val>{label}</span>
                 {children.map(|children| children.run())}
             </div>
         </label>
-    }.into_any()
+    }
+    .into_any()
 }
 
 /// A group of radio inputs rendered inside a `<fieldset>`, with shared selection state.
-///
-/// # Props
-///
-/// - `options` – `Vec<RadioOption>` holding the available choices.
-/// - `legend` – Label for the fieldset group.
-/// - `name` – Shared `name` attribute for all radio inputs.
-/// - `initial_value` – `Signal<String>` whose value determines which option is pre-selected.
-/// - `required` – Shows a `*` beside the legend and sets `required` on all inputs. Defaults to `false`.
-/// - `oninput` – Callback fired when the selected value changes.
-/// - `horizontal` – When `true`, renders options in a row. Defaults to `false`.
-/// - `fieldset_class` – Additional Tailwind classes applied to the `<fieldset>`.
-/// - `legend_class` – Additional Tailwind classes applied to the `<legend>`.
 ///
 /// # Example
 ///
@@ -126,80 +150,139 @@ pub fn RadioInputField(
 /// ```
 #[component]
 pub fn RadioInputGroup(
-    #[prop(into, optional)] initial_value: MaybeProp<String>,
-    /// The legend text for the fieldset
+    /// Value whose content determines which option is pre-selected.
+    #[prop(into, optional)]
+    initial_value: MaybeProp<String>,
+
+    /// Label for the fieldset group.
     #[prop(into, optional)]
     legend: String,
-    #[prop(into, optional)] options: Vec<RadioOption>,
-    #[prop(into, optional)] name: String,
-    #[prop(default = false, optional)] required: bool,
-    #[prop(optional, default = Callback::new(|_| {}))] oninput: Callback<ev::Event>,
-    #[prop(default = false, optional)] horizontal: bool,
-    /// Additional CSS classes for the fieldset
+
+    /// `Vec<RadioOption>` holding the available choices.
     #[prop(into, optional)]
-    fieldset_class: String,
-    /// Additional CSS classes for the legend
+    options: Vec<RadioOption>,
+
+    /// Shared `name` attribute for all radio inputs.
     #[prop(into, optional)]
-    legend_class: String,
+    name: String,
+
+    /// Shows a `*` beside the legend and sets `required` on all inputs. Defaults to `false`.
+    #[prop(default = false, optional)]
+    required: bool,
+
+    /// Callback fired when the selected value changes.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    oninput: Callback<ev::Event>,
+
+    /// When `true`, renders options in a row. Defaults to `false`.
+    #[prop(default = false, optional)]
+    horizontal: bool,
+
+    /// Additional Tailwind classes for the fieldset
+    #[prop(into, optional)]
+    fieldset_class: MaybeProp<String>,
+
+    /// Additional Tailwind classes for the legend
+    #[prop(into, optional)]
+    legend_class: MaybeProp<String>,
+
+    /// Additional Tailwind classes for the options container
+    #[prop(into, optional)]
+    container_class: MaybeProp<String>,
+
+    /// Additional Tailwind classes for each option's `<label>`
+    #[prop(into, optional)]
+    option_label_class: MaybeProp<String>,
+
+    /// Additional Tailwind classes for each `<input type="radio">`
+    #[prop(into, optional)]
+    input_class: MaybeProp<String>,
+
+    /// Additional Tailwind classes for each option's text `<span>`
+    #[prop(into, optional)]
+    option_text_class: MaybeProp<String>,
 ) -> impl IntoView {
-    // Create reactive state for display_error
-    let base_fieldset_class = "border border-mid-gray rounded p-4";
-    let base_legend_class = "text-sm font-bold px-2";
-
-    let container_class = if horizontal {
-        "flex flex-wrap gap-4"
-    } else {
-        "space-y-3"
+    let fieldset_class_val = move || {
+        tw_merge!(
+            "border border-mid-gray rounded p-4",
+            fieldset_class.get().unwrap_or_default()
+        )
     };
-
-    let fieldset_combined_class = format!("{} {}", base_fieldset_class, fieldset_class);
-    let legend_combined_class = format!("{} {}", base_legend_class, legend_class);
+    let legend_class_val = move || {
+        tw_merge!(
+            "text-sm font-bold px-2",
+            legend_class.get().unwrap_or_default()
+        )
+    };
+    let container_class_val = move || {
+        tw_merge!(
+            if horizontal {
+                "flex flex-wrap gap-4"
+            } else {
+                "space-y-3"
+            },
+            container_class.get().unwrap_or_default()
+        )
+    };
+    let option_label_class_val = move || {
+        tw_merge!(
+            "inline-flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded",
+            option_label_class.get().unwrap_or_default()
+        )
+    };
+    let input_class_val = move || {
+        tw_merge!(
+            "leading-tight size-5 rounded-full border-2 border-mid-gray text-secondary shadow-sm focus:outline-none focus:ring-0 focus:border-secondary checked:bg-secondary checked:border-secondary accent-secondary",
+            input_class.get().unwrap_or_default()
+        )
+    };
+    let option_text_class_val = move || tw_merge!("", option_text_class.get().unwrap_or_default());
 
     view! {
-        <fieldset class=fieldset_combined_class>
-                    <legend class=legend_combined_class>
-                        {legend}
-                        {if required {
-                            Some(view! { <span class="text-danger ml-1">*</span> })
-                        } else {
-                            None
-                        }}
-                    </legend>
-                    <div class=container_class>
-                        {options
-                            .into_iter()
-                            .map(|option| {
-                                let option_value_selected = option.value.clone();
-                                let option_value = option.value.clone();
+        <fieldset class=fieldset_class_val>
+            <legend class=legend_class_val>
+                {legend}
+                {if required {
+                    Some(view! { <span class="text-danger ml-1">*</span> })
+                } else {
+                    None
+                }}
+            </legend>
+            <div class=container_class_val>
+                {options
+                    .into_iter()
+                    .map(|option| {
+                        let option_value_selected = option.value.clone();
+                        let option_value = option.value.clone();
+                        let is_selected = move || initial_value.get().unwrap_or_default() == option_value_selected;
+                        let option_label_class_val = option_label_class_val.clone();
+                        let input_class_val = input_class_val.clone();
+                        let option_text_class_val = option_text_class_val.clone();
 
-                                let is_selected = move || initial_value.get().unwrap_or_default() == option_value_selected;
-
-                                view! {
-                                    <label class="inline-flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded">
-                                        <input
-                                            class="leading-tight size-5 rounded-full border-2 border-mid-gray text-secondary shadow-sm
-                                                       focus:outline-none focus:ring-0 focus:border-secondary
-                                                       checked:bg-secondary checked:border-secondary accent-secondary"
-                                            type="radio"
-                                            name=name.clone()
-                                            value=option_value.clone()
-                                            id=option_value.clone()
-                                            checked=is_selected
-                                            required=required
-                                            on:input=move |ev| {
-                                                oninput.run(ev);
-                                            }
-                                        />
-                                        <div class="flex flex-col">
-                                            <span>{option.label}</span>
-                                            {option.children.map(|children| children.run())}
-                                        </div>
-                                    </label>
-                                }
-                            })
-                            .collect_view()}
-                    </div>
-                </fieldset>
+                        view! {
+                            <label class=option_label_class_val>
+                                <input
+                                    class=input_class_val
+                                    type="radio"
+                                    name=name.clone()
+                                    value=option_value.clone()
+                                    id=option_value.clone()
+                                    checked=is_selected
+                                    required=required
+                                    on:input=move |ev| {
+                                        oninput.run(ev);
+                                    }
+                                />
+                                <div class="flex flex-col">
+                                    <span class=option_text_class_val>{option.label}</span>
+                                    {option.children.map(|children| children.run())}
+                                </div>
+                            </label>
+                        }
+                    })
+                    .collect_view()}
+            </div>
+        </fieldset>
     }.into_any()
 }
 

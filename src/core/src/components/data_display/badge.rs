@@ -1,18 +1,10 @@
 use leptos::html::*;
 use leptos::prelude::*;
+use tailwind_fuse::tw_merge;
 
 use crate::components::schemas::props::ColorTemperature;
 
 /// A badge overlaid on a child element, typically used to display a count or status indicator.
-///
-/// # Props
-///
-/// - `text` – Optional label rendered inside the badge. If absent, a small dot is shown instead.
-/// - `color` – Badge background color via `ColorTemperature`. Defaults to `ColorTemperature::Primary`.
-///   Supported values: `Primary`, `Danger`, `Success`, `Warning`, `Info`.
-/// - `parent_class` – Additional Tailwind classes applied to the wrapping `div`.
-/// - `badge_position` – Additional Tailwind classes to adjust the badge position.
-/// - `children` – The element the badge is anchored to.
 ///
 /// # Example
 ///
@@ -31,11 +23,36 @@ use crate::components::schemas::props::ColorTemperature;
 /// ```
 #[component]
 pub fn Badge(
-    #[prop(into)] text: MaybeProp<String>,
-    #[prop(default = ColorTemperature::Primary)] color: ColorTemperature,
-    #[prop(into, optional)] parent_class: String,
+    /// Optional label rendered inside the badge. If absent, a small dot is shown instead.
+    #[prop(into)]
+    text: MaybeProp<String>,
+
+    /// Badge background color via `ColorTemperature`. Defaults to
+    /// `ColorTemperature::Primary`. Supported values: `Primary`, `Danger`,
+    /// `Success`, `Warning`, `Info`.
+    #[prop(default = ColorTemperature::Primary)]
+    color: ColorTemperature,
+
+    /// **Deprecated**: use `class` instead. Still supported and merged
+    /// in alongside `class` for backward compatibility.
+    #[prop(into, optional)]
+    parent_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// The element the badge is anchored to.
     children: Children,
-    #[prop(into, optional)] badge_position: String,
+
+    /// **Deprecated**: use `badge_class` instead.
+    #[prop(into, optional)]
+    badge_position: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the badge `<span>` itself (position,
+    /// color, size overrides, etc.).
+    #[prop(into, optional)]
+    badge_class: MaybeProp<String>,
 ) -> impl IntoView {
     let color_classes = move || match color {
         ColorTemperature::Danger => "bg-danger",
@@ -54,19 +71,35 @@ pub fn Badge(
         }
     };
 
-    view! {
-        <div class=format!("relative {}", parent_class)>
-            {children()}
-            <span class=format!(
-                "inline-flex items-center justify-center rounded-full text-xs font-medium text-contrast-white absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 {} {} {}",
+    let root_class = move || {
+        tw_merge!(
+            "relative",
+            parent_class.get().unwrap_or_default(),
+            class.get().unwrap_or_default()
+        )
+    };
+
+    let badge_class_val = move || {
+        tw_merge!(
+            format!(
+                "inline-flex items-center justify-center rounded-full text-xs font-medium text-contrast-white absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 {} {}",
                 color_classes(),
-                width_classes(),
-                badge_position
-            )>
+                width_classes()
+            ),
+            badge_position.get().unwrap_or_default(),
+            badge_class.get().unwrap_or_default()
+        )
+    };
+
+    view! {
+        <div class=root_class>
+            {children()}
+            <span class=badge_class_val>
                 {text}
             </span>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[cfg(test)]

@@ -2,6 +2,7 @@ use icondata::Icon as IconId;
 use leptos::ev;
 use leptos::prelude::*;
 use leptos_icons::Icon; // Adjust based on your icon set (e.g., icondata::BsIcon)
+use tailwind_fuse::tw_merge;
 
 #[derive(Clone, Debug, Default)]
 #[allow(dead_code)]
@@ -13,18 +14,6 @@ pub enum ButtonType {
 }
 
 /// A reusable button component that supports icons, disabled state, and custom styles.
-///
-/// # Props
-///
-/// - `button_text` – Label displayed inside the button.
-/// - `style_ext` – Additional Tailwind classes appended to the button element.
-/// - `children_style_ext` – Additional Tailwind classes appended to the inner content span.
-/// - `onclick` – Click event callback. Defaults to a no-op.
-/// - `icon` – Optional icon rendered alongside the text.
-/// - `icon_before` – If `true`, the icon is placed before the text. Defaults to `false`.
-/// - `disabled` – Accepts a `bool`, `Signal<bool>`, or `RwSignal<bool>`. Defaults to `false`.
-/// - `button_type` – One of `ButtonType::Button`, `ButtonType::Submit`, or `ButtonType::Reset`. Defaults to `ButtonType::Button`.
-/// - `children` – Optional child nodes. If provided, `button_text` and `icon` are ignored.
 ///
 /// # Example
 ///
@@ -47,15 +36,55 @@ pub enum ButtonType {
 /// ```
 #[component]
 pub fn BasicButton(
-    #[prop(into, optional)] button_text: MaybeProp<String>,
-    #[prop(into, optional)] style_ext: MaybeProp<String>,
-    #[prop(into, optional)] children_style_ext: MaybeProp<String>,
-    #[prop(default = Callback::new(|_| {}))] onclick: Callback<ev::MouseEvent>,
-    #[prop(default = None)] icon: Option<IconId>,
-    #[prop(into, default = MaybeProp::derive(move || Some(false)))] disabled: MaybeProp<bool>,
-    #[prop(into, default = ButtonType::Button)] button_type: ButtonType,
-    #[prop(default = false)] icon_before: bool,
-    #[prop(optional)] children: Option<ChildrenFn>,
+    /// Label displayed inside the button.
+    #[prop(into, optional)]
+    button_text: MaybeProp<String>,
+
+    /// **Deprecated**: use `class` instead. Still supported and merged
+    /// in alongside `class` for backward compatibility. Will be removed
+    /// in a future release - see CHANGELOG.
+    #[prop(into, optional)]
+    style_ext: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the button element. Merged with the
+    /// component's default classes using conflict-aware merging — a
+    /// utility you pass here will override the equivalent default
+    /// (e.g. passing `bg-red-500` replaces the default `bg-*`), not
+    /// just append.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// **Deprecated**: use `content_class` instead.
+    #[prop(into, optional)]
+    children_style_ext: MaybeProp<String>,
+
+    /// Additional Tailwind classes appended to the inner content span.
+    #[prop(into, optional)]
+    content_class: MaybeProp<String>,
+
+    /// Click event callback. Defaults to a no-op.
+    #[prop(default = Callback::new(|_| {}))]
+    onclick: Callback<ev::MouseEvent>,
+
+    /// Optional icon rendered alongside the text.
+    #[prop(default = None)]
+    icon: Option<IconId>,
+
+    /// Accepts a `bool`, `Signal<bool>`, or `RwSignal<bool>`. Defaults to `false`.
+    #[prop(into, default = MaybeProp::derive(move || Some(false)))]
+    disabled: MaybeProp<bool>,
+
+    /// One of `ButtonType::Button`, `ButtonType::Submit`, or `ButtonType::Reset`. Defaults to `ButtonType::Button`.
+    #[prop(into, default = ButtonType::Button)]
+    button_type: ButtonType,
+
+    /// If `true`, the icon is placed before the text. Defaults to `false`.
+    #[prop(default = false)]
+    icon_before: bool,
+
+    /// Optional child nodes. If provided, `button_text` and `icon` are ignored.
+    #[prop(optional)]
+    children: Option<ChildrenFn>,
 ) -> impl IntoView {
     let button_text_styles = button_text.clone();
     let button_content_styles = move || {
@@ -68,6 +97,28 @@ pub fn BasicButton(
         }
     };
 
+    // Merge order: base defaults -> deprecated prop -> new prop.
+    // `class` is listed last so it wins conflicts against `style_ext`
+    // when both are supplied during a migration.
+    #[allow(deprecated)]
+    let button_class = move || {
+        tw_merge!(
+            "font-bold py-2 px-4 cursor-pointer rounded-[5px] disabled:opacity-50 disabled:cursor-not-allowed",
+            style_ext.get().unwrap_or_default(),
+            class.get().unwrap_or_default(),
+        )
+    };
+
+    #[allow(deprecated)]
+    let content_class_merged = move || {
+        tw_merge!(
+            "flex flex-row items-center justify-center",
+            button_content_styles(),
+            children_style_ext.get().unwrap_or_default(),
+            content_class.get().unwrap_or_default(),
+        )
+    };
+
     view! {
         <button
             type={
@@ -77,10 +128,7 @@ pub fn BasicButton(
                     ButtonType::Reset => "reset"
                 }
             }
-            class=move || format!(
-                "font-bold py-2 px-4 cursor-pointer rounded-[5px] disabled:opacity-50 disabled:cursor-not-allowed {}",
-                style_ext.get().unwrap_or_default(),
-            )
+            class=button_class
             on:click=move |ev| onclick.run(ev)
             disabled={disabled}
         >
@@ -94,7 +142,7 @@ pub fn BasicButton(
             {
                 if children.is_none() {
                     Some(view! {
-                        <span class=move || format!("flex flex-row items-center justify-center {} {}", button_content_styles(), children_style_ext.get().unwrap_or_default())>
+                        <span class=content_class_merged>
                             {move || match icon {
                                 Some(button_icon) => view! {
                                     <Icon width="1em" height="1em" icon=button_icon />
@@ -109,15 +157,11 @@ pub fn BasicButton(
                 }
             }
         </button>
-    }.into_any()
+    }
+    .into_any()
 }
 
 /// A group of buttons rendered inline with shared styles and automatic border-radius on the ends.
-///
-/// # Props
-///
-/// - `style_ext` – Tailwind classes applied to every button in the group.
-/// - `children` – Two or more `BasicButton` components.
 ///
 /// # Example
 ///
@@ -129,7 +173,7 @@ pub fn BasicButton(
 /// #[component]
 /// fn Example() -> impl IntoView {
 ///     view! {
-///         <ButtonGroup style_ext="bg-primary text-white hover:bg-secondary">
+///         <ButtonGroup class="bg-primary text-white hover:bg-secondary">
 ///             <BasicButton button_text="First" icon=Some(AiCheckCircleOutlined) icon_before=true />
 ///             <BasicButton button_text="Second" icon=Some(BsXCircle) icon_before=false />
 ///             <BasicButton button_text="Third" disabled=true />
@@ -139,35 +183,51 @@ pub fn BasicButton(
 /// ```
 #[component]
 pub fn ButtonGroup(
-    /// `style_ext` property will extend styles for the buttons. `N/B:` All buttons share the same styles(These styles will affect all the buttons).
+    /// **Deprecated**: use `class` instead. Still supported and merged
+    /// in alongside `class` for backward compatibility. `N/B:` All
+    /// buttons share the same styles (these affect all buttons).
     #[prop(into, optional)]
-    style_ext: String,
+    style_ext: MaybeProp<String>,
+
+    /// Extra Tailwind classes applied to every button in the group.
+    /// Merged with conflict-aware precedence - an override here wins
+    /// over the default for the same property (e.g. passing a `border-*`
+    /// color replaces the default border color rather than stacking).
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Two or more `BasicButton` components.
     mut children: ChildrenFragmentMut,
 ) -> impl IntoView {
+    let style_ext = style_ext.get().unwrap_or_default();
+    let class = class.get().unwrap_or_default();
+
     view! {
         <div class="flex" role="group">
             {
-                let style_ext_view = style_ext.clone();
-                let children_len = children().nodes.iter().collect::<Vec<_>>().len();
-                children()
-                .nodes
+                let nodes = children().nodes.into_iter().collect::<Vec<_>>();
+                let children_len = nodes.len();
+
+                nodes
                 .into_iter()
                 .enumerate()
                 .map(|(index, child)| {
-                    let style_ext_view = style_ext_view.clone();
+                    let style_ext = style_ext.clone();
+                    let class = class.clone();
+
                     let class_name = move || {
-                        let mut base = format!(
-                            "font-bold py-2 px-4 border border-light-gray border-l-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed {}",
-                            style_ext_view
+                        let mut merged = tw_merge!(
+                            "font-bold py-2 px-4 border border-light-gray border-l-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+                            style_ext.clone(),
+                            class.clone()
                         );
                         if index == 0 {
-                            base.push_str(" rounded-l-[5px]");
+                            merged.push_str(" rounded-l-[5px]");
                         }
-
                         if index == children_len - 1 {
-                            base.push_str(" rounded-r-[5px]");
+                            merged.push_str(" rounded-r-[5px]");
                         }
-                        base
+                        merged
                     };
                     view! {
                         {child.attr("class", class_name())}

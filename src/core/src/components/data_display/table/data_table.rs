@@ -2,6 +2,7 @@ use icondata::{BsFilter, BsPencil, BsSortDown, BsSortUp, BsThreeDots, BsTrash, I
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::hash::Hasher;
+use tailwind_fuse::tw_merge;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -354,15 +355,6 @@ impl TableProps {
 /// Each row is represented as a `HashMap<String, TableCellData>` where keys match column names.
 /// Every row **must** include an `"id"` key with a `TableCellData::String` value for keying to work correctly.
 ///
-/// # Props
-///
-/// - `data` – `RwSignal<(Vec<Column>, Vec<HashMap<String, TableCellData>>)>` holding columns and rows.
-/// - `page_size` – Number of rows per page. Defaults to `10`.
-/// - `on_row_click` – Callback fired when a row is clicked, receives the row's data map.
-/// - `on_row_action` – Callback fired when an action button is clicked, receives `(row_data, action_type)` where `action_type` is `"edit"` or `"delete"`.
-/// - `editable` – Shows an edit action button per row. Defaults to `false`.
-/// - `deletable` – Shows a delete action button per row. Defaults to `false`.
-///
 /// # Example
 ///
 /// ```
@@ -391,20 +383,62 @@ impl TableProps {
 /// ```
 #[component]
 pub fn DataTable(
-    #[prop(into)] data: RwSignal<(Vec<Column>, Vec<HashMap<String, TableCellData>>)>,
-    #[prop(optional, default = 10)] page_size: usize,
-    #[prop(optional, default = Callback::new(|_| {}))] on_row_click: Callback<
-        HashMap<String, TableCellData>,
-    >,
-    #[prop(optional, default = Callback::new(|_| {}))] on_row_action: Callback<(
-        HashMap<String, TableCellData>,
-        String,
-    )>,
-    // #[prop(optional, default = Callback::new(|_| {}))] on_row_delete: Callback<
-    //     HashMap<String, TableCellData>,
-    // >,
-    #[prop(default = false, optional)] editable: bool,
-    #[prop(default = false, optional)] deletable: bool,
+    /// `RwSignal<(Vec<Column>, Vec<HashMap<String, TableCellData>>)>` holding columns and rows.
+    #[prop(into)]
+    data: RwSignal<(Vec<Column>, Vec<HashMap<String, TableCellData>>)>,
+
+    /// Number of rows per page. Defaults to `10`.
+    #[prop(optional, default = 10)]
+    page_size: usize,
+
+    /// Callback fired when a row is clicked, receives the row's data map.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    on_row_click: Callback<HashMap<String, TableCellData>>,
+
+    /// Callback fired when an action button is clicked, receives
+    /// `(row_data, action_type)` where `action_type` is `"edit"` or `"delete"`.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    on_row_action: Callback<(HashMap<String, TableCellData>, String)>,
+
+    /// Shows an edit action button per row. Defaults to `false`.
+    #[prop(default = false, optional)]
+    editable: bool,
+
+    /// Shows a delete action button per row. Defaults to `false`.
+    #[prop(default = false, optional)]
+    deletable: bool,
+
+    /// Root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// The `<table>` element itself.
+    #[prop(into, optional)]
+    table_class: MaybeProp<String>,
+
+    /// Header row `<tr>` in `<thead>`.
+    #[prop(into, optional)]
+    header_row_class: MaybeProp<String>,
+
+    /// Each header `<th>`.
+    #[prop(into, optional)]
+    header_cell_class: MaybeProp<String>,
+
+    /// Each body `<tr>`.
+    #[prop(into, optional)]
+    row_class: MaybeProp<String>,
+
+    /// Each body `<td>`.
+    #[prop(into, optional)]
+    cell_class: MaybeProp<String>,
+
+    /// The actions `<td>` (edit/delete popover column), when `editable` or `deletable`.
+    #[prop(into, optional)]
+    actions_cell_class: MaybeProp<String>,
+
+    /// Empty-state container, shown when there's no data.
+    #[prop(into, optional)]
+    empty_state_class: MaybeProp<String>,
 ) -> impl IntoView {
     let props = Memo::new(move |_| TableProps {
         columns: data.get().0,
@@ -419,7 +453,6 @@ pub fn DataTable(
     let (current_page, set_current_page) = signal(1);
     let (sorted_column_info, set_sorted_column_info) = signal(String::new());
 
-    // Derived signal for paginated data
     let pagination_state = Memo::new(move |_| props.get().paginate(current_page.get()));
     let current_page_total_pages = Memo::new(move |_| {
         let derived_state = pagination_state.get();
@@ -428,7 +461,6 @@ pub fn DataTable(
 
     let offset_rows = Memo::new(move |_| {
         let no_of_rows = pagination_state.get().2.len();
-
         if no_of_rows > 0 && no_of_rows < page_size {
             page_size - no_of_rows
         } else {
@@ -451,7 +483,6 @@ pub fn DataTable(
             set_sorted_column_info.set(format!("-{}-{:?}", column.name, column.sort_order));
             *c = column.clone();
         }
-
         set_current_page.set(1);
         data.set((updated_columns, sorted_data));
     });
@@ -465,24 +496,53 @@ pub fn DataTable(
             Callback::new(move |_| {
                 let action_type = action_type.clone();
                 let row_data = row_data.clone();
-
                 props.get().on_row_action.run((row_data, action_type));
             })
         };
 
+    // Static (non-reactive) class strings — computed once, since none of
+    // these depend on signals. Reactive ones (that reference sort state,
+    // pagination, etc.) stay as closures further down.
+    let root_class = tw_merge!(
+        "w-full flex flex-col justify-between",
+        class.get().unwrap_or_default()
+    );
+    let table_class_val = tw_merge!(
+        "table-fixed border-separate border border-light-gray rounded-[5px] table-fixed min-w-full h-full mt-4 mb-4 text-md",
+        table_class.get().unwrap_or_default()
+    );
+    let header_row_class_val = tw_merge!("p-2", header_row_class.get().unwrap_or_default());
+    let header_cell_class_val = tw_merge!(
+        "border-b p-2 border-light-gray text-nowrap font-bold text-left cursor-pointer min-w-[150px]",
+        header_cell_class.get().unwrap_or_default()
+    );
+    let row_class_val = tw_merge!(
+        "border-b border-light-gray p-2",
+        row_class.get().unwrap_or_default()
+    );
+    let cell_class_val = tw_merge!("p-2 text-wrap", cell_class.get().unwrap_or_default());
+    let actions_cell_class_val = tw_merge!(
+        "flex flex-row items-center gap-2 h-full py-2",
+        actions_cell_class.get().unwrap_or_default()
+    );
+    let empty_state_class_val = tw_merge!(
+        "py-2 flex items-center justify-center",
+        empty_state_class.get().unwrap_or_default()
+    );
+
     view! {
-        <div class="w-full flex flex-col justify-between">
+        <div class=root_class>
             <div class="overflow-x-auto">
-                <table class="table-fixed border-separate border border-light-gray rounded-[5px] table-fixed min-w-full h-full mt-4 mb-4 text-md">
+                <table class=table_class_val>
                     <thead>
-                        <tr class="p-2">
+                        <tr class=header_row_class_val>
                             <For
                                 each=move || props.get().columns
                                 key=|column| format!("{}-{:?}", column.name.clone(), column.sort_order)
                                 let (column)
                             >
                                 <th
-                                    class="border-b p-2 border-light-gray text-nowrap font-bold text-left cursor-pointer min-w-[150px]"
+                                    class=header_cell_class_val.clone()
                                     on:click=move |_| on_click_sort.run(column.clone())
                                 >
                                     <span class="flex flex-row items-center">
@@ -522,13 +582,15 @@ pub fn DataTable(
                             {
                                 let row_data_row_click = row_data.clone();
                                 let row_data_cols = row_data.clone();
+                                let row_class_val = row_class_val.clone();
+                                let cell_class_val = cell_class_val.clone();
+                                let actions_cell_class_val = actions_cell_class_val.clone();
 
                                 view! {
                                     <tr
-                                        class="border-b border-light-gray p-2"
+                                        class=row_class_val
                                         on:click=move |_| on_click_row_handler(row_data_row_click.clone())
                                     >
-                                        // Computed row columns
                                         {
                                             let id = match row_data.get("id").clone() {
                                                 Some(TableCellData::String(s)) => s.clone(),
@@ -543,7 +605,7 @@ pub fn DataTable(
                                                     }
                                                     let(column)
                                                 >
-                                                    <td class="p-2 text-wrap">
+                                                    <td class=cell_class_val.clone()>
                                                         {match row_data_cols.get(&column.name).clone() {
                                                             Some(TableCellData::String(s)) => s.clone().into_any().into_view(),
                                                             Some(TableCellData::Int32(i)) => i.to_string().into_any().into_view(),
@@ -564,23 +626,21 @@ pub fn DataTable(
                                                             },
                                                             Some(TableCellData::Duration(dt)) => {
                                                                 let utc: DateTime<Utc> = Utc::now();
-
                                                                 get_elapsed_time(dt, &utc).into_any().into_view()
                                                             },
                                                             None => "N/A".into_any().into_view(),
                                                         }}
                                                     </td>
                                                 </For>
-                                                // Action columns
                                                 {if props.get().editable || props.get().deletable {
                                                     let showing = RwSignal::new(false);
 
                                                     Some(view! {
-                                                        <td class="flex flex-row items-center gap-2 h-full py-2">
+                                                        <td class=actions_cell_class_val.clone()>
                                                             <Popover showing=showing display_item=|| view!{
                                                                 <BasicButton
-                                                                                icon=Some(BsThreeDots)
-                                                                            />
+                                                                    icon=Some(BsThreeDots)
+                                                                />
                                                                 }>
                                                                 <div class="flex flex-col gap-2">
                                                                     {if props.get().editable {
@@ -589,7 +649,7 @@ pub fn DataTable(
                                                                                 style_ext="px-0 hover:bg-primary hover:text-contrast-white"
                                                                                 onclick=on_click_action_handler((row_data.clone(), "edit".into()))
                                                                                 >
-                                                                                <span class="flex items-center justify-between">
+                                                                                <span class="flex items-center justify-center gap-[5px]">
                                                                                     <span>Edit</span>
                                                                                     <Icon icon=BsPencil />
                                                                                 </span>
@@ -604,7 +664,7 @@ pub fn DataTable(
                                                                                 style_ext="text-danger px-0 hover:bg-danger hover:text-contrast-white"
                                                                                 onclick=on_click_action_handler((row_data.clone(), "delete".into()))
                                                                                 >
-                                                                                <span class="flex items-center justify-between">
+                                                                                <span class="flex items-center justify-center gap-[5px]">
                                                                                     <span>Delete</span>
                                                                                     <Icon icon=BsTrash />
                                                                                 </span>
@@ -635,7 +695,6 @@ pub fn DataTable(
                                         <For
                                             each=move || blank_rows.clone()
                                             key=move |row| row.to_string()
-
                                             let(_)
                                         >
                                             {
@@ -652,22 +711,25 @@ pub fn DataTable(
                                 None
                             }
                         }
-                        {move || if pagination_state.get().2.is_empty() {
-                            Some(view! {
-                                <tr>
-                                    <td colspan={props.get().columns.len() + 1}>
-                                        <div class="py-2 flex items-center justify-center">
-                                            <div class="flex-1 flex flex-col items-center justify-center">
-                                                <Icon width="2em" height="2em" icon=ImDrawer2 />
-                                                <p>"No Content"</p>
+                        {
+                            let empty_state_class_val = empty_state_class_val.clone();
+                            move || if pagination_state.get().2.is_empty() {
+                                Some(view! {
+                                    <tr>
+                                        <td colspan={props.get().columns.len() + 1}>
+                                            <div class=empty_state_class_val.clone()>
+                                                <div class="flex-1 flex flex-col items-center justify-center">
+                                                    <Icon width="2em" height="2em" icon=ImDrawer2 />
+                                                    <p>"No Content"</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            })
-                        } else {
-                            None
-                        }}
+                                        </td>
+                                    </tr>
+                                })
+                            } else {
+                                None
+                            }
+                        }
                     </tbody>
                 </table>
             </div>

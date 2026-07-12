@@ -8,24 +8,13 @@ use icondata::{BiChevronLeftRegular, BiChevronRightRegular};
 use leptos::ev;
 use leptos::html::*;
 use leptos::prelude::*;
+use tailwind_fuse::tw_merge;
 use web_sys::HtmlInputElement;
 
 /// A date picker with a calendar popup, supporting min/max constraints and explicitly disabled dates.
 ///
 /// Renders a read-only display input that opens a calendar on click. The selected date is
 /// written as an RFC3339 string to a hidden input for form submission.
-///
-/// # Props
-///
-/// - `label` – Label displayed above the visible input.
-/// - `name` – `name` attribute on the hidden form input.
-/// - `id_attr` – `id` attribute base; the display input receives `"{id_attr}-display"`.
-/// - `required` – Marks the field as required. Defaults to `false`.
-/// - `initial_value` – `RwSignal<Option<DateTime<Local>>>` pre-selecting a date. Defaults to `None`.
-/// - `input_node_ref` – `NodeRef<Input>` for the hidden input, useful for programmatic access.
-/// - `min` – Earliest selectable date (inclusive). Dates before this are disabled.
-/// - `max` – Latest selectable date (inclusive). Dates after this are disabled.
-/// - `disabled_dates` – Explicit list of dates to disable regardless of `min`/`max`.
 ///
 /// # Example
 ///
@@ -48,23 +37,53 @@ use web_sys::HtmlInputElement;
 /// ```
 #[component]
 pub fn DatePicker(
-    #[prop(into, optional)] label: String,
-    #[prop(into, optional)] name: String,
-    #[prop(default = false, optional)] required: bool,
-    #[prop(into, default = MaybeProp::derive(move || None), optional)] initial_value: MaybeProp<
-        Option<DateTime<Local>>,
-    >,
-    #[prop(into, optional)] id_attr: String,
-    #[prop(optional)] input_node_ref: NodeRef<Input>,
+    /// Label displayed above the visible input.
+    #[prop(into, optional)]
+    label: String,
+
+    /// `name` attribute on the hidden form input.
+    #[prop(into, optional)]
+    name: String,
+
+    /// Marks the field as required. Defaults to `false`.
+    #[prop(default = false, optional)]
+    required: bool,
+
+    /// `RwSignal<Option<DateTime<Local>>>` pre-selecting a date. Defaults to `None`.
+    #[prop(into, default = MaybeProp::derive(move || None), optional)]
+    initial_value: MaybeProp<Option<DateTime<Local>>>,
+
+    /// `id` attribute base; the display input receives `"{id_attr}-display"`.
+    #[prop(into, optional)]
+    id_attr: String,
+
+    /// `NodeRef<Input>` for the hidden input, useful for programmatic access.
+    #[prop(optional)]
+    input_node_ref: NodeRef<Input>,
+
     /// Earliest selectable date (inclusive). Dates before this are disabled.
     #[prop(optional)]
     min: Option<DateTime<Local>>,
+
     /// Latest selectable date (inclusive). Dates after this are disabled.
     #[prop(optional)]
     max: Option<DateTime<Local>>,
-    /// Explicit list of dates to disable regardless of min/max.
+
+    /// Explicit list of dates to disable regardless of `min`/`max`.
     #[prop(optional)]
     disabled_dates: Vec<DateTime<Local>>,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the calendar popover panel.
+    #[prop(into, optional)]
+    calendar_panel_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes forwarded to the internal `Calendar`'s day/nav buttons.
+    #[prop(into, optional)]
+    calendar_class: MaybeProp<String>,
 ) -> impl IntoView {
     let (show_calendar, set_show_calendar) = signal(false);
     let (selected_date, set_selected_date) = signal(None);
@@ -107,14 +126,22 @@ pub fn DatePicker(
         }
     });
 
+    let root_class = move || tw_merge!("relative", class.get().unwrap_or_default());
+    let calendar_panel_class_val = move || {
+        tw_merge!(
+            "absolute bg-slate-50 rounded shadow-lg z-10 w-[300px] max-h-[400px] overflow-auto",
+            calendar_panel_class.get().unwrap_or_default()
+        )
+    };
+
     view! {
-        <div class="relative">
+        <div class=root_class>
             <InputField
                 initial_value=selected_date_value
                 name=name
                 field_type=InputFieldType::Text
                 required=required
-                ext_wrapper_styles="sr-only"
+                class="sr-only"
                 id_attr=id_attr.clone()
                 input_node_ref=input_node_ref
             />
@@ -133,7 +160,7 @@ pub fn DatePicker(
             {move || show_calendar.get().then(|| view! {
                 <div
                     on:mousedown=|e: ev::MouseEvent| e.prevent_default()
-                    class="absolute bg-slate-50 rounded shadow-lg z-10 w-[300px] max-h-[400px] overflow-auto"
+                    class=calendar_panel_class_val.clone()
                 >
                     <Calendar
                         select_date=select_date
@@ -141,11 +168,13 @@ pub fn DatePicker(
                         min=min
                         max=max
                         disabled_dates=disabled_dates.clone()
+                        button_class=calendar_class
                     />
                 </div>
             })}
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[component]
@@ -155,6 +184,14 @@ fn Calendar(
     min: Option<DateTime<Local>>,
     max: Option<DateTime<Local>>,
     #[prop(optional)] disabled_dates: Vec<DateTime<Local>>,
+
+    /// Extra Tailwind classes for the root panel.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+    /// Extra Tailwind classes applied to nav/year/day buttons (appended after
+    /// their computed state classes — active/disabled/hover states are preserved).
+    #[prop(into, optional)]
+    button_class: MaybeProp<String>,
 ) -> impl IntoView {
     let today: DateTime<Local> = Local::now();
     let default_year = today.year();
@@ -176,7 +213,6 @@ fn Calendar(
         }
     });
 
-    // Returns true if the given date should not be selectable.
     let is_disabled = StoredValue::new(move |date: DateTime<Local>| -> bool {
         let date_naive = date.date_naive();
         if min.is_some_and(|m| date_naive < m.date_naive()) {
@@ -188,8 +224,6 @@ fn Calendar(
         disabled_dates.iter().any(|d| d.date_naive() == date_naive)
     });
 
-    // Whether the user can navigate to the previous month (blocked if it would
-    // go entirely before `min`).
     let can_go_prev = move || {
         min.map(|m| {
             let (prev_year, prev_month) = if current_month.get() == 1 {
@@ -197,10 +231,8 @@ fn Calendar(
             } else {
                 (current_year.get(), current_month.get() - 1)
             };
-            // The last day of the candidate prev-month must be >= min date.
             NaiveDate::from_ymd_opt(prev_year, prev_month, 1)
                 .and_then(|_first| {
-                    // last day of that month
                     let (ny, nm) = if prev_month == 12 {
                         (prev_year + 1, 1u32)
                     } else {
@@ -214,8 +246,6 @@ fn Calendar(
         .unwrap_or(true)
     };
 
-    // Whether the user can navigate to the next month (blocked if it would
-    // go entirely after `max`).
     let can_go_next = move || {
         max.map(|m| {
             let (next_year, next_month) = if current_month.get() == 12 {
@@ -223,7 +253,6 @@ fn Calendar(
             } else {
                 (current_year.get(), current_month.get() + 1)
             };
-            // The first day of the candidate next-month must be <= max date.
             NaiveDate::from_ymd_opt(next_year, next_month, 1)
                 .is_some_and(|first_day| first_day <= m.date_naive())
         })
@@ -255,7 +284,6 @@ fn Calendar(
         let start = current_page * years_per_page;
         let end = (start + years_per_page).min(total_years.len());
 
-        // Optionally grey out years that are entirely out of range.
         let min_year = min.map(|m| m.year());
         let max_year = max.map(|m| m.year());
 
@@ -264,6 +292,7 @@ fn Calendar(
             .map(|&year| {
                 let out_of_range =
                     min_year.is_some_and(|my| year < my) || max_year.is_some_and(|my| year > my);
+                let button_class = button_class;
 
                 view! {
                     <BasicButton
@@ -272,11 +301,14 @@ fn Calendar(
                                 change_year.run(year);
                             }
                         })
-                        style_ext=if out_of_range {
-                            "flex text-xs border-none rounded m-1 text-gray-300 cursor-not-allowed"
-                        } else {
-                            "flex text-xs border-none rounded m-1 hover:bg-blue-200 cursor-pointer"
-                        }
+                        class=Signal::derive(move || tw_merge!(
+                            if out_of_range {
+                                "flex text-xs border-none rounded m-1 text-gray-300 cursor-not-allowed"
+                            } else {
+                                "flex text-xs border-none rounded m-1 hover:bg-blue-200 cursor-pointer"
+                            },
+                            button_class.get().unwrap_or_default()
+                        ))
                         button_text=year.to_string()
                     />
                 }
@@ -343,9 +375,8 @@ fn Calendar(
                                 })
                         };
 
-                        // Pre-compute disabled so it's available in both the
-                        // click handler and the reactive style memo.
                         let disabled = date.map(is_disabled.get_value()).unwrap_or(false);
+                        let button_class = button_class;
 
                         view! {
                             <BasicButton
@@ -357,7 +388,7 @@ fn Calendar(
                                         }
                                     }
                                 })
-                                style_ext=MaybeProp::derive(move || {
+                                class=MaybeProp::derive(move || {
                                     let base = "flex text-xs items-center justify-center border-none rounded m-1";
 
                                     let variant = if is_blank {
@@ -374,7 +405,7 @@ fn Calendar(
                                         "hover:bg-blue-200 cursor-pointer"
                                     };
 
-                                    Some(format!("{base} {variant}"))
+                                    Some(tw_merge!(format!("{base} {variant}"), button_class.get().unwrap_or_default()))
                                 })
                                 button_text={if is_blank { "".to_string() } else { day.to_string() }}
                             />
@@ -387,8 +418,15 @@ fn Calendar(
         }
     });
 
+    let root_class = move || {
+        tw_merge!(
+            "w-full max-w-md bg-contrast-white border-none rounded",
+            class.get().unwrap_or_default()
+        )
+    };
+
     view! {
-        <div class="w-full max-w-md bg-contrast-white border-none rounded">
+        <div class=root_class>
             {move || viewing_years.get().then(|| view! {
                 <div>
                     <div class="flex justify-between items-center mb-2">
@@ -419,7 +457,7 @@ fn Calendar(
                                         });
                                     }
                                 })
-                                style_ext=if can_go_prev() { "cursor-pointer" } else { "opacity-30 cursor-not-allowed" }
+                                class=Signal::derive(move || if can_go_prev() { "cursor-pointer".to_string() } else { "opacity-30 cursor-not-allowed".to_string() })
                                 icon=Some(BiChevronLeftRegular)
                             />
                             <span
@@ -446,7 +484,7 @@ fn Calendar(
                                         });
                                     }
                                 })
-                                style_ext=if can_go_next() { "cursor-pointer" } else { "opacity-30 cursor-not-allowed" }
+                                class=Signal::derive(move || if can_go_next() { "cursor-pointer".to_string() } else { "opacity-30 cursor-not-allowed".to_string() })
                                 icon=Some(BiChevronRightRegular)
                             />
                         </div>

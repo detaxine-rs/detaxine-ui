@@ -4,6 +4,7 @@ use leptos::ev;
 use leptos::html::*;
 use leptos::prelude::*;
 use leptos_icons::Icon;
+use tailwind_fuse::tw_merge;
 
 use crate::components::actions::button::BasicButton;
 
@@ -33,28 +34,6 @@ pub enum InputFieldType {
 /// Includes optional icon (leading or trailing), password visibility toggle,
 /// label, and full styling extension points.
 ///
-/// # Props
-///
-/// - `field_type` – One of the `InputFieldType` variants (e.g. `Text`, `Email`, `Password`, `File`).
-/// - `initial_value` – `Signal<String>` bound to the input's value.
-/// - `label` – Text displayed above the input. Hidden if empty.
-/// - `name` – `name` attribute for form submission.
-/// - `id_attr` – `id` attribute linking the input to its label.
-/// - `required` – Shows a `*` beside the label and sets the `required` attribute. Defaults to `false`.
-/// - `readonly` – Sets the `readonly` attribute. Defaults to `false`.
-/// - `placeholder` – Placeholder text.
-/// - `autocomplete` – `autocomplete` attribute. Defaults to `"off"`.
-/// - `accept` – `accept` attribute, used with `InputFieldType::File`.
-/// - `multiple` – Allows multiple file selection. Defaults to `false`.
-/// - `min` / `max` – Range constraints for `Number`, `Date`, and similar types.
-/// - `icon` – Optional icon rendered inside the input wrapper.
-/// - `icon_is_leading` – When `true`, icon appears on the left. Defaults to `true`.
-/// - `onfocus` / `onblur` – Focus and blur event callbacks.
-/// - `ext_wrapper_styles` – Additional Tailwind classes on the outer wrapper `<div>`.
-/// - `ext_label_styles` – Additional Tailwind classes on the `<label>`.
-/// - `ext_input_styles` – Additional Tailwind classes on the inner wrapper `<div>`.
-/// - `input_node_ref` – `NodeRef<Input>` for direct DOM access.
-///
 /// # Example
 ///
 /// ```
@@ -76,27 +55,109 @@ pub enum InputFieldType {
 /// ```
 #[component]
 pub fn InputField(
-    #[prop(into, optional)] initial_value: MaybeProp<String>,
-    #[prop(into, optional)] label: String,
+    /// Value bound to the input.
+    #[prop(into, optional)]
+    initial_value: MaybeProp<String>,
+
+    /// Text displayed above the input. Hidden if empty.
+    #[prop(into, optional)]
+    label: String,
+
+    /// One of the `InputFieldType` variants (e.g. `Text`, `Email`, `Password`, `File`).
     field_type: InputFieldType,
-    #[prop(into, optional)] name: String,
-    #[prop(optional)] input_node_ref: NodeRef<Input>,
-    #[prop(default = false)] readonly: bool,
-    #[prop(default = false)] required: bool,
-    #[prop(into, optional)] placeholder: String,
-    #[prop(into, optional)] ext_wrapper_styles: String,
-    #[prop(into, optional)] ext_label_styles: String,
-    #[prop(into, optional)] ext_input_styles: String,
-    #[prop(into, optional, default = "off".to_string())] autocomplete: String,
-    #[prop(into, optional)] id_attr: String,
-    #[prop(into, optional)] accept: String,
-    #[prop(into, optional)] multiple: bool,
-    #[prop(optional, default = None)] icon: Option<IconId>,
-    #[prop(optional, default = true)] icon_is_leading: bool,
-    #[prop(into, optional)] min: String,
-    #[prop(into, optional)] max: String,
-    #[prop(optional, default = Callback::new(|_| {}))] onfocus: Callback<ev::FocusEvent>,
-    #[prop(optional, default = Callback::new(|_| {}))] onblur: Callback<ev::FocusEvent>,
+
+    /// `name` attribute for form submission.
+    #[prop(into, optional)]
+    name: String,
+
+    /// `NodeRef<Input>` for direct DOM access.
+    #[prop(optional)]
+    input_node_ref: NodeRef<Input>,
+
+    /// Sets the `readonly` attribute. Defaults to `false`.
+    #[prop(default = false)]
+    readonly: bool,
+
+    /// Shows a `*` beside the label and sets the `required` attribute. Defaults to `false`.
+    #[prop(default = false)]
+    required: bool,
+
+    /// Placeholder text.
+    #[prop(into, optional)]
+    placeholder: String,
+
+    /// **Deprecated**: use `class` instead.
+    #[prop(into, optional)]
+    ext_wrapper_styles: MaybeProp<String>,
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// **Deprecated**: use `label_class` instead.
+    #[prop(into, optional)]
+    ext_label_styles: MaybeProp<String>,
+    /// Extra Tailwind classes for the `<label>`.
+    #[prop(into, optional)]
+    label_class: MaybeProp<String>,
+
+    /// **Deprecated**: use `field_class` instead. Note: this styles the
+    /// bordered field container, not the raw `<input>` — see `input_class`
+    /// for the input element itself.
+    #[prop(into, optional)]
+    ext_input_styles: MaybeProp<String>,
+    /// Extra Tailwind classes for the bordered field container (wraps icon + input + toggle).
+    #[prop(into, optional)]
+    field_class: MaybeProp<String>,
+
+    /// `autocomplete` attribute. Defaults to `"off"`.
+    #[prop(into, optional, default = "off".to_string())]
+    autocomplete: String,
+
+    /// `id` attribute linking the input to its label.
+    #[prop(into, optional)]
+    id_attr: String,
+
+    /// `accept` attribute, used with `InputFieldType::File`.
+    #[prop(into, optional)]
+    accept: String,
+
+    /// Allows multiple file selection. Defaults to `false`.
+    #[prop(into, optional)]
+    multiple: bool,
+
+    /// Optional icon rendered inside the input wrapper.
+    #[prop(optional, default = None)]
+    icon: Option<IconId>,
+
+    /// When `true`, icon appears on the left. Defaults to `true`.
+    #[prop(optional, default = true)]
+    icon_is_leading: bool,
+
+    /// Range constraint for `Number`, `Date`, and similar types.
+    #[prop(into, optional)]
+    min: String,
+
+    /// Range constraint for `Number`, `Date`, and similar types.
+    #[prop(into, optional)]
+    max: String,
+
+    /// Focus event callback.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    onfocus: Callback<ev::FocusEvent>,
+
+    /// Blur event callback.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    onblur: Callback<ev::FocusEvent>,
+
+    /// Extra Tailwind classes for the raw `<input>` element itself.
+    #[prop(into, optional)]
+    input_class: MaybeProp<String>,
+    /// Extra Tailwind classes for the leading/trailing icon container.
+    #[prop(into, optional)]
+    icon_wrapper_class: MaybeProp<String>,
+    /// Extra Tailwind classes for the password show/hide toggle button.
+    #[prop(into, optional)]
+    toggle_class: MaybeProp<String>,
 ) -> impl IntoView {
     let input_field_type_str = match field_type {
         InputFieldType::Text => "text",
@@ -125,8 +186,55 @@ pub fn InputField(
 
     let is_file = matches!(field_type, InputFieldType::File);
 
+    let wrapper_class_val = move || {
+        tw_merge!(
+            "box-border",
+            ext_wrapper_styles.get().unwrap_or_default(),
+            class.get().unwrap_or_default()
+        )
+    };
+    let label_class_val = move || {
+        tw_merge!(
+            "block text-sm font-bold",
+            ext_label_styles.get().unwrap_or_default(),
+            label_class.get().unwrap_or_default()
+        )
+    };
+    let field_class_val = move || {
+        tw_merge!(
+            format!(
+                "h-[45px] flex items-center border border-mid-gray rounded-[5px] shadow-sm appearance-none focus-within:ring-2 focus-within:ring-secondary focus-within:border-transparent {}",
+                if icon_is_leading {
+                    ""
+                } else {
+                    "flex-row-reverse"
+                }
+            ),
+            ext_input_styles.get().unwrap_or_default(),
+            field_class.get().unwrap_or_default()
+        )
+    };
+    let input_class_val = move || {
+        tw_merge!(
+            "w-full h-full py-2 px-3 leading-tight flex-grow focus:outline-none",
+            input_class.get().unwrap_or_default()
+        )
+    };
+    let icon_wrapper_class_val = move || {
+        tw_merge!(
+            "h-full flex items-center px-3 justify-center",
+            icon_wrapper_class.get().unwrap_or_default()
+        )
+    };
+    let toggle_class_val = move || {
+        tw_merge!(
+            "h-full flex items-center px-3 justify-center cursor-pointer",
+            toggle_class.get().unwrap_or_default()
+        )
+    };
+
     view! {
-        <div class=move || format!("box-border {}", ext_wrapper_styles)>
+        <div class=wrapper_class_val>
             {
                 if label.is_empty() {
                     None
@@ -134,7 +242,7 @@ pub fn InputField(
                     Some(
                         view! {
                             <label
-                                class={format!("block text-sm font-bold {}", ext_label_styles)}
+                                class=label_class_val
                                 for=id_attr.clone()
                             >
                                 {label}
@@ -146,28 +254,16 @@ pub fn InputField(
                     )
                 }
             }
-            <div
-            class=move || format!(
-                    "h-[45px] flex items-center border border-mid-gray rounded-[5px]
-                     shadow-sm appearance-none
-                     focus-within:ring-2 focus-within:ring-secondary
-                     focus-within:border-transparent
-                     {} {}",
-                    if icon_is_leading { "" } else { "flex-row-reverse" },
-                    ext_input_styles
-                )
-                >
+            <div class=field_class_val>
                 {
                     icon.map(|icon_id| view!{
-                        <div class=format!("h-full flex items-center px-3 justify-center")>
+                        <div class=icon_wrapper_class_val>
                             <Icon icon=icon_id width="1rem" height="1rem" />
                         </div>
                     })
                 }
                 <input
-                    class=format!(
-                        "w-full h-full py-2 px-3 leading-tight flex-grow focus:outline-none"
-                    )
+                    class=input_class_val
                     type=move || if show_password.get() { "text" } else { input_field_type_str }
                     prop:value=move || {
                         if is_file {
@@ -198,7 +294,7 @@ pub fn InputField(
                         if field_type == InputFieldType::Password {
                             Some(
                                 view!{
-                                    <div on:click=move |_e| set_show_password.set(!show_password.get()) class=format!("h-full flex items-center px-3 justify-center cursor-pointer")>
+                                    <div on:click=move |_e| set_show_password.set(!show_password.get()) class=toggle_class_val>
                                         <Icon icon={if show_password_val { IconData::BsEyeSlash } else { IconData::BsEye }} width="1rem" height="1rem" />
                                     </div>
                                 }
@@ -214,17 +310,6 @@ pub fn InputField(
 }
 
 /// A styled file input that shows a button when empty and a file list with a replace affordance once files are selected.
-///
-/// # Props
-///
-/// - `label` – Label displayed above the hidden file input.
-/// - `name` – `name` attribute for form submission.
-/// - `id_attr` – `id` attribute for the hidden input.
-/// - `required` – Marks the field as required. Defaults to `false`.
-/// - `multiple` – Allows selecting multiple files. Defaults to `false`.
-/// - `accept` – MIME types or file extensions accepted (e.g. `"image/*"`).
-/// - `ext_label_styles` – Additional Tailwind classes on the label.
-/// - `input_node_ref` – `NodeRef<Input>` for programmatic access to the hidden input.
 ///
 /// # Example
 ///
@@ -246,14 +331,64 @@ pub fn InputField(
 /// ```
 #[component]
 pub fn CustomFileInput(
-    #[prop(into, optional)] label: String,
-    #[prop(into, optional)] name: String,
-    #[prop(default = false, optional)] required: bool,
-    #[prop(into, optional)] id_attr: String,
-    #[prop(into, optional)] ext_label_styles: String,
-    #[prop(optional)] input_node_ref: NodeRef<Input>,
-    #[prop(into, optional)] multiple: bool,
-    #[prop(into, optional)] accept: String,
+    /// Label displayed above the hidden file input.
+    #[prop(into, optional)]
+    label: String,
+
+    /// `name` attribute for form submission.
+    #[prop(into, optional)]
+    name: String,
+
+    /// Marks the field as required. Defaults to `false`.
+    #[prop(default = false, optional)]
+    required: bool,
+
+    /// `id` attribute for the hidden input.
+    #[prop(into, optional)]
+    id_attr: String,
+
+    /// **Deprecated**: use `label_class` instead.
+    #[prop(into, optional)]
+    ext_label_styles: MaybeProp<String>,
+    /// Extra Tailwind classes forwarded to the `InputField` label.
+    #[prop(into, optional)]
+    label_class: MaybeProp<String>,
+
+    /// `NodeRef<Input>` for programmatic access to the hidden input.
+    #[prop(optional)]
+    input_node_ref: NodeRef<Input>,
+
+    /// Allows selecting multiple files. Defaults to `false`.
+    #[prop(into, optional)]
+    multiple: bool,
+
+    /// MIME types or file extensions accepted (e.g. `"image/*"`).
+    #[prop(into, optional)]
+    accept: String,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the "Choose File" button (shown when empty).
+    #[prop(into, optional)]
+    upload_button_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the selected-files list container.
+    #[prop(into, optional)]
+    file_list_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for each file row.
+    #[prop(into, optional)]
+    file_item_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the file name text.
+    #[prop(into, optional)]
+    file_name_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the "Choose different file(s)" button.
+    #[prop(into, optional)]
+    change_button_class: MaybeProp<String>,
 ) -> impl IntoView {
     let selected_files = RwSignal::new(Vec::<String>::new());
 
@@ -278,14 +413,58 @@ pub fn CustomFileInput(
     let id_attr_c = id_attr.clone();
     let accept_c = accept.clone();
 
+    let root_class = move || {
+        tw_merge!(
+            "relative flex flex-col gap-2 box-border",
+            class.get().unwrap_or_default()
+        )
+    };
+    let label_class_val = move || {
+        tw_merge!(
+            ext_label_styles.get().unwrap_or_default(),
+            label_class.get().unwrap_or_default()
+        )
+    };
+    let upload_button_class_val = move || {
+        tw_merge!(
+            "w-full bg-primary text-contrast-white",
+            upload_button_class.get().unwrap_or_default()
+        )
+    };
+    let file_list_class_val = move || {
+        tw_merge!(
+            "flex flex-col gap-2",
+            file_list_class.get().unwrap_or_default()
+        )
+    };
+    let file_item_class_val = move || {
+        tw_merge!(
+            "flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm shadow-sm",
+            file_item_class.get().unwrap_or_default()
+        )
+    };
+    let file_name_class_val = move || {
+        tw_merge!(
+            "truncate font-medium text-foreground leading-tight",
+            file_name_class.get().unwrap_or_default()
+        )
+    };
+    let change_button_class_val = move || {
+        tw_merge!(
+            "mt-1 flex items-center gap-1.5 self-start text-xs text-muted underline-offset-2 hover:text-primary hover:underline transition-colors focus:outline-none cursor-pointer",
+            change_button_class.get().unwrap_or_default()
+        )
+    };
+
     view! {
-        <div class="relative flex flex-col gap-2 box-border">
+        <div class=root_class>
             <InputField
                 name=name_c
                 label=label_c
                 required=required
                 field_type=InputFieldType::File
-                ext_input_styles="sr-only"
+                field_class="sr-only"
+                label_class=Signal::derive(label_class_val)
                 id_attr=id_attr_c
                 input_node_ref=input_node_ref
                 multiple=multiple
@@ -299,7 +478,7 @@ pub fn CustomFileInput(
                     button_text="Choose File"
                     icon=Some(IconData::FiUpload)
                     icon_before=true
-                    style_ext="w-full bg-primary text-contrast-white"
+                    class=Signal::derive(upload_button_class_val)
                     on:click=move |_| {
                         if let Some(ref input) = input_node_ref.get() {
                             input.click();
@@ -310,7 +489,7 @@ pub fn CustomFileInput(
 
             // File list + replace affordance — shown when files are selected
             <Show when=has_files>
-                <div class="flex flex-col gap-2">
+                <div class=file_list_class_val>
                     <For
                         each=move || {
                             selected_files
@@ -328,14 +507,16 @@ pub fn CustomFileInput(
                                 .unwrap_or("")
                                 .to_uppercase();
                             let display_name = name.clone();
+                            let file_item_class_val = file_item_class_val.clone();
+                            let file_name_class_val = file_name_class_val.clone();
 
                             view! {
-                                <div class="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm shadow-sm">
+                                <div class=file_item_class_val>
                                     <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                                         <span class="h-4 w-4"><Icon icon=IconData::FiFile /></span>
                                     </div>
                                     <div class="flex flex-col min-w-0">
-                                        <span class="truncate font-medium text-foreground leading-tight">
+                                        <span class=file_name_class_val>
                                             {display_name}
                                         </span>
                                         <span class="text-xs text-muted uppercase tracking-wide">
@@ -348,7 +529,7 @@ pub fn CustomFileInput(
                     />
 
                     <BasicButton
-                        style_ext="mt-1 flex items-center gap-1.5 self-start text-xs text-muted underline-offset-2 hover:text-primary hover:underline transition-colors focus:outline-none cursor-pointer"
+                        class=Signal::derive(change_button_class_val)
                         on:click=move |_| {
                             if let Some(ref input) = input_node_ref.get() {
                                 input.click();

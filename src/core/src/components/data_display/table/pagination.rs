@@ -3,12 +3,9 @@ use leptos::prelude::*;
 
 use crate::components::actions::button::{BasicButton, ButtonGroup};
 
+use tailwind_fuse::tw_merge;
+
 /// A pagination control that emits page-change events via a callback.
-///
-/// # Props
-///
-/// - `pagination_state` – `Signal<(usize, usize)>` where the tuple is `(current_page, total_pages)`.
-/// - `on_page_change` – Callback fired with the new page number when a navigation button is clicked. Defaults to a no-op.
 ///
 /// # Example
 ///
@@ -30,10 +27,26 @@ use crate::components::actions::button::{BasicButton, ButtonGroup};
 /// ```
 #[component]
 pub fn Pagination(
-    /// pagination_state: (current_page, total_pages)
+    /// `Signal<(usize, usize)>` where the tuple is `(current_page, total_pages)`.
     #[prop(into)]
     pagination_state: Signal<(usize, usize)>,
-    #[prop(optional, default = Callback::new(|_| {}))] on_page_change: Callback<usize>,
+
+    /// Callback fired with the new page number when a navigation button is
+    /// clicked. Defaults to a no-op.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    on_page_change: Callback<usize>,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the "Page X of Y" text.
+    #[prop(into, optional)]
+    page_info_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes forwarded to the internal `ButtonGroup`.
+    #[prop(into, optional)]
+    button_group_class: MaybeProp<String>,
 ) -> impl IntoView {
     let current_page = Memo::new(move |_| pagination_state.get().0);
     let total_pages = Memo::new(move |_| pagination_state.get().1);
@@ -45,7 +58,6 @@ pub fn Pagination(
             None
         }
     });
-
     let prev_page = Memo::new(move |_| {
         if current_page.get() > 1 {
             Some(current_page.get() - 1)
@@ -58,16 +70,13 @@ pub fn Pagination(
         let page = prev_page.get().unwrap_or(current_page.get());
         on_page_change.run(page);
     });
-
     let on_next_click = Callback::new(move |_| {
         let page = next_page.get().unwrap_or(current_page.get());
         on_page_change.run(page);
     });
-
     let on_first_click = Callback::new(move |_| {
         on_page_change.run(1);
     });
-
     let on_last_click = Callback::new(move |_| {
         on_page_change.run(total_pages.get());
     });
@@ -78,15 +87,20 @@ pub fn Pagination(
     let can_go_to_next =
         Memo::new(move |_| total_pages.get() <= 1 || current_page.get() == total_pages.get());
 
+    let root_class = move || tw_merge!("flex flex-col", class.get().unwrap_or_default());
+    let page_info_class_val =
+        move || tw_merge!("text-xs mr-2", page_info_class.get().unwrap_or_default());
+
     view! {
-        <div class="flex flex-col">
+        <div class=root_class>
             <div class="flex items-center justify-end">
                 {
+                    let page_info_class_val = page_info_class_val.clone();
                     move || {
                         if pagination_state.get().1 > 0 {
                             Some(
                                 view!{
-                                    <span class="text-xs mr-2">
+                                    <span class=page_info_class_val.clone()>
                                         {move || format!("Page {} of {}", current_page.get(), pagination_state.get().1)}
                                     </span>
                                 }
@@ -96,12 +110,23 @@ pub fn Pagination(
                         }
                     }
                 }
-                <ButtonGroup style_ext="font-bold bg-primary text-contrast-white hover:bg-secondary".to_string()>
-                    <BasicButton onclick=on_first_click disabled=is_first_page icon=Some(BsChevronBarLeft) />
-                    <BasicButton onclick=on_prev_click disabled=can_go_to_prev icon=Some(BsChevronLeft) />
-                    <BasicButton onclick=on_next_click disabled=can_go_to_next icon=Some(BsChevronRight) />
-                    <BasicButton onclick=on_last_click disabled=is_last_page icon=Some(BsChevronBarRight) />
-                </ButtonGroup>
+                {
+                    move || {
+                        let button_group_class_val = tw_merge!(
+                                "font-bold bg-primary text-contrast-white hover:bg-secondary",
+                                button_group_class.get().unwrap_or_default()
+                            );
+
+                        view! {
+                            <ButtonGroup class=button_group_class_val>
+                                <BasicButton onclick=on_first_click disabled=is_first_page icon=Some(BsChevronBarLeft) />
+                                <BasicButton onclick=on_prev_click disabled=can_go_to_prev icon=Some(BsChevronLeft) />
+                                <BasicButton onclick=on_next_click disabled=can_go_to_next icon=Some(BsChevronRight) />
+                                <BasicButton onclick=on_last_click disabled=is_last_page icon=Some(BsChevronBarRight) />
+                            </ButtonGroup>
+                        }
+                    }
+                }
             </div>
         </div>
     }.into_any()

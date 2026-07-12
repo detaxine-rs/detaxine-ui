@@ -1,6 +1,7 @@
 use leptos::html::*;
 use leptos::prelude::*;
 use std::collections::HashSet;
+use tailwind_fuse::tw_merge;
 
 /// Represents a single checkbox option with a value and display text.
 /// You can also provide custom children for complex rendering (e.g., with icons).
@@ -35,21 +36,6 @@ impl CheckboxOption {
 
 /// A single checkbox input with an associated label, suitable for standalone use in forms.
 ///
-/// # Props
-///
-/// - `initial_value` – The `value` attribute submitted with the form.
-/// - `label` – Text displayed beside the checkbox.
-/// - `name` – `name` attribute for form submission.
-/// - `id_attr` – `id` attribute linking the input to its label.
-/// - `checked` – Accepts a `bool`, `Signal<bool>`, or `RwSignal<bool>`. Defaults to `false`.
-/// - `required` – Marks the field as required. Defaults to `false`.
-/// - `readonly` – Marks the field as read-only. Defaults to `false`.
-/// - `placeholder` – Placeholder text.
-/// - `autocomplete` – `autocomplete` attribute. Defaults to `"off"`.
-/// - `ext_input_styles` – Additional Tailwind classes applied to the `<input>`.
-/// - `ext_wrapper_styles` – Additional Tailwind classes applied to the wrapper `<div>`.
-/// - `input_node_ref` – Optional `NodeRef<Input>` for direct DOM access.
-///
 /// # Example
 ///
 /// ```
@@ -69,32 +55,101 @@ impl CheckboxOption {
 /// ```
 #[component]
 pub fn CheckboxInputField(
-    #[prop(into, optional)] initial_value: MaybeProp<String>,
-    #[prop(into, optional)] label: String,
-    #[prop(into, optional)] name: String,
-    #[prop(optional)] input_node_ref: NodeRef<Input>,
-    #[prop(default = false, optional)] readonly: bool,
-    #[prop(default = false, optional)] required: bool,
-    #[prop(into, default = MaybeProp::derive(move || Some(false)), optional)] checked: MaybeProp<
-        bool,
-    >,
-    #[prop(into, optional)] placeholder: String,
-    #[prop(into, optional)] id_attr: String,
-    #[prop(into, optional)] ext_input_styles: String,
-    #[prop(into, optional)] ext_wrapper_styles: String,
-    #[prop(into, optional,default = "off".to_string())] autocomplete: String,
+    /// The `value` attribute submitted with the form.
+    #[prop(into, optional)]
+    initial_value: MaybeProp<String>,
+
+    /// Text displayed beside the checkbox.
+    #[prop(into, optional)]
+    label: String,
+
+    /// `name` attribute for form submission.
+    #[prop(into, optional)]
+    name: String,
+
+    /// Optional `NodeRef<Input>` for direct DOM access.
+    #[prop(optional)]
+    input_node_ref: NodeRef<Input>,
+
+    /// Marks the field as read-only. Defaults to `false`.
+    #[prop(default = false, optional)]
+    readonly: bool,
+
+    /// Marks the field as required. Defaults to `false`.
+    #[prop(default = false, optional)]
+    required: bool,
+
+    /// Accepts a `bool`, `Signal<bool>`, or `RwSignal<bool>`. Defaults to `false`.
+    #[prop(into, default = MaybeProp::derive(move || Some(false)), optional)]
+    checked: MaybeProp<bool>,
+
+    /// Placeholder text.
+    #[prop(into, optional)]
+    placeholder: String,
+
+    /// `id` attribute linking the input to its label.
+    #[prop(into, optional)]
+    id_attr: String,
+
+    /// **Deprecated**: use `input_class` instead. Still supported and
+    /// merged in alongside `input_class` for backward compatibility.
+    #[prop(into, optional)]
+    ext_input_styles: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the `<input type="checkbox">` itself.
+    #[prop(into, optional)]
+    input_class: MaybeProp<String>,
+
+    /// **Deprecated**: use `class` instead.
+    #[prop(into, optional)]
+    ext_wrapper_styles: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the `<label>` element (flex row containing checkbox + text).
+    #[prop(into, optional)]
+    label_wrapper_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the label text `<span>`.
+    #[prop(into, optional)]
+    label_class: MaybeProp<String>,
+
+    /// `autocomplete` attribute. Defaults to `"off"`.
+    #[prop(into, optional, default = "off".to_string())]
+    autocomplete: String,
 ) -> impl IntoView {
+    let root_class = move || {
+        tw_merge!(
+            "",
+            ext_wrapper_styles.get().unwrap_or_default(),
+            class.get().unwrap_or_default()
+        )
+    };
+    let input_class_val = move || {
+        tw_merge!(
+            "leading-tight size-5 shrink-0 rounded-[5px] border-2 border-mid-gray text-secondary shadow-sm focus:outline-none focus:ring-0 bg-transparent focus:border-secondary checked:bg-secondary checked:border-secondary accent-secondary",
+            ext_input_styles.get().unwrap_or_default(),
+            input_class.get().unwrap_or_default()
+        )
+    };
+    let label_wrapper_class_val = move || {
+        tw_merge!(
+            "inline-flex items-start gap-2",
+            label_wrapper_class.get().unwrap_or_default()
+        )
+    };
+    let label_class_val = move || tw_merge!("", label_class.get().unwrap_or_default());
+
     view! {
-        <div class=format!("{}", ext_wrapper_styles)>
+        <div class=root_class>
             <label
-                class="inline-flex items-start gap-2"
+                class=label_wrapper_class_val
                 for=id_attr.clone()
             >
                 <input
-                    class=format!("leading-tight size-5 shrink-0 rounded-[5px] border-2 border-mid-gray text-secondary shadow-sm
-                               focus:outline-none focus:ring-0 bg-transparent focus:border-secondary
-                               checked:bg-secondary checked:border-secondary
-                               accent-secondary {}", ext_input_styles)
+                    class=input_class_val
                     type="checkbox"
                     value=initial_value
                     name=name
@@ -107,26 +162,15 @@ pub fn CheckboxInputField(
                     checked=checked
                 />
                 <div class="flex flex-col">
-                    <span>{label}</span>
+                    <span class=label_class_val>{label}</span>
                 </div>
             </label>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 /// A group of checkboxes rendered inside a `<fieldset>`, with shared selection state.
-///
-/// # Props
-///
-/// - `legend` – Label for the fieldset group.
-/// - `options` – `RwSignal<Vec<CheckboxOption>>` holding the available choices.
-/// - `selected_values` – `RwSignal<HashSet<String>>` tracking which values are checked.
-/// - `name` – Shared `name` attribute for all checkboxes in the group.
-/// - `horizontal` – When `true`, renders options in a row instead of a column. Defaults to `false`.
-/// - `required` – Marks all checkboxes as required and shows a `*` beside the legend. Defaults to `false`.
-/// - `readonly` – Marks all checkboxes as read-only. Defaults to `false`.
-/// - `autocomplete` – `autocomplete` attribute shared by all inputs. Defaults to `"off"`.
-/// - `ext_input_styles` – Additional Tailwind classes applied to each `<input>`.
 ///
 /// # Example
 ///
@@ -154,65 +198,132 @@ pub fn CheckboxInputField(
 /// ```
 #[component]
 pub fn CheckboxGroup(
-    /// The legend text for the fieldset
+    /// Label for the fieldset group.
     #[prop(into)]
     legend: String,
-    /// Options for multiple checkboxes
+
+    /// `RwSignal<Vec<CheckboxOption>>` holding the available choices.
     #[prop(into)]
     options: RwSignal<Vec<CheckboxOption>>,
-    /// Selected values for multiple checkboxes
+
+    /// `RwSignal<HashSet<String>>` tracking which values are checked.
     #[prop(into, optional)]
     selected_values: RwSignal<HashSet<String>>,
-    #[prop(into)] name: String,
-    #[prop(default = false, optional)] readonly: bool,
-    #[prop(default = false, optional)] required: bool,
-    #[prop(into, optional)] ext_input_styles: String,
-    #[prop(into, optional,default = "off".to_string())] autocomplete: String,
+
+    /// Shared `name` attribute for all checkboxes in the group.
+    #[prop(into)]
+    name: String,
+
+    /// Marks all checkboxes as read-only. Defaults to `false`.
+    #[prop(default = false, optional)]
+    readonly: bool,
+
+    /// Marks all checkboxes as required and shows a `*` beside the legend. Defaults to `false`.
+    #[prop(default = false, optional)]
+    required: bool,
+
+    /// **Deprecated**: use `input_class` instead. Still supported and
+    /// merged in alongside `input_class` for backward compatibility.
+    #[prop(into, optional)]
+    ext_input_styles: MaybeProp<String>,
+
+    /// Extra Tailwind classes for each `<input type="checkbox">`.
+    #[prop(into, optional)]
+    input_class: MaybeProp<String>,
+
+    /// `autocomplete` attribute shared by all inputs. Defaults to `"off"`.
+    #[prop(into, optional, default = "off".to_string())]
+    autocomplete: String,
+
     /// Display options horizontally instead of vertically
     #[prop(default = false, optional)]
     horizontal: bool,
-) -> impl IntoView {
-    let base_fieldset_class = "border border-mid-gray rounded p-4";
-    let base_legend_class = "text-sm font-bold px-2";
 
-    let container_class = if horizontal {
-        "flex flex-wrap gap-4"
-    } else {
-        "space-y-3"
+    /// Extra Tailwind classes for the `<fieldset>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the `<legend>`.
+    #[prop(into, optional)]
+    legend_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the options container (the flex/space-y wrapper).
+    #[prop(into, optional)]
+    container_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for each option's `<label>`.
+    #[prop(into, optional)]
+    option_label_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for each option's text `<span>`.
+    #[prop(into, optional)]
+    option_text_class: MaybeProp<String>,
+) -> impl IntoView {
+    let fieldset_class_val = move || {
+        tw_merge!(
+            "border border-mid-gray rounded p-4",
+            class.get().unwrap_or_default()
+        )
+    };
+    let legend_class_val = move || {
+        tw_merge!(
+            "text-sm font-bold px-2",
+            legend_class.get().unwrap_or_default()
+        )
+    };
+    let container_class_val = move || {
+        tw_merge!(
+            if horizontal {
+                "flex flex-wrap gap-4"
+            } else {
+                "space-y-3"
+            },
+            container_class.get().unwrap_or_default()
+        )
+    };
+    let option_label_class_val = move || {
+        tw_merge!(
+            "flex gap-2 text-sm cursor-pointer",
+            option_label_class.get().unwrap_or_default()
+        )
+    };
+    let option_text_class_val = move || tw_merge!("", option_text_class.get().unwrap_or_default());
+    let input_class_val = move || {
+        tw_merge!(
+            "leading-tight shrink-0 size-5 rounded-[5px] border-2 border-mid-gray text-secondary shadow-sm focus:outline-none focus:ring-0 focus:border-secondary bg-transparent checked:bg-secondary checked:border-secondary accent-secondary mt-0.5",
+            ext_input_styles.get().unwrap_or_default(),
+            input_class.get().unwrap_or_default()
+        )
     };
 
-    let fieldset_combined_class = base_fieldset_class.to_string();
-    let legend_combined_class = base_legend_class.to_string();
-
     view! {
-        <fieldset class=fieldset_combined_class>
-            <legend class=legend_combined_class>
+        <fieldset class=fieldset_class_val>
+            <legend class=legend_class_val>
                 {legend}
                 {move || required.then_some(view! {
                     <span class="text-danger ml-1">*</span>
                 })}
             </legend>
-            <div class=container_class>
+            <div class=container_class_val>
                 {move || options.get()
                     .into_iter()
                     .map(|option| {
                         let option_value = option.value.clone();
                         let option_value_checked = option.value.clone();
-
                         let is_checked = move || selected_values.get().contains(&option_value_checked);
                         let option_id = format!("{}-{}", name, option_value);
+                        let option_label_class_val = option_label_class_val.clone();
+                        let option_text_class_val = option_text_class_val.clone();
+                        let input_class_val = input_class_val.clone();
 
                         view! {
                             <div>
                                 <label
-                                    class="flex gap-2 text-sm cursor-pointer"
+                                    class=option_label_class_val
                                     for=option_id.clone()
                                 >
                                     <input
-                                        class=format!("leading-tight shrink-0 size-5 rounded-[5px] border-2 border-mid-gray text-secondary shadow-sm
-                                                focus:outline-none focus:ring-0 focus:border-secondary bg-transparent
-                                                checked:bg-secondary checked:border-secondary
-                                                accent-secondary mt-0.5 {}", ext_input_styles)
+                                        class=input_class_val
                                         type="checkbox"
                                         value=option_value.clone()
                                         name=name.clone()
@@ -223,7 +334,7 @@ pub fn CheckboxGroup(
                                         required=required
                                     />
                                     <div class="flex flex-col">
-                                        <span>{option.label}</span>
+                                        <span class=option_text_class_val>{option.label}</span>
                                         {option.children.map(|child| child.run())}
                                     </div>
                                 </label>

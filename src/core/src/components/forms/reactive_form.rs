@@ -1,4 +1,5 @@
 use leptos::{ev, html::Form, prelude::*};
+use tailwind_fuse::tw_merge;
 
 use crate::utils::forms::fire_bubbled_and_cancelable_event;
 
@@ -7,13 +8,6 @@ use crate::utils::forms::fire_bubbled_and_cancelable_event;
 ///
 /// Use a `NodeRef<Form>` to access the underlying `HtmlFormElement` and read `FormData`
 /// in your submit handler.
-///
-/// # Props
-///
-/// - `form_ref` – `NodeRef<Form>` providing direct access to the form element.
-/// - `ext_styles` – `Signal<String>` of additional Tailwind classes applied to the `<form>`.
-/// - `onreset` – Callback fired when the form is reset. Defaults to a no-op.
-/// - `children` – Form field components rendered inside the form.
 ///
 /// # Example
 ///
@@ -38,18 +32,39 @@ use crate::utils::forms::fire_bubbled_and_cancelable_event;
 ///     }
 /// }
 /// ```
-
 #[component]
 pub fn ReactiveForm(
+    /// `NodeRef<Form>` providing direct access to the form element.
     form_ref: NodeRef<Form>,
-    #[prop(into, optional)] ext_styles: MaybeProp<String>,
-    #[prop(default = Callback::new(|_| {}))] onreset: Callback<ev::Event>,
+
+    /// **Deprecated**: use `class` instead. Still supported and merged
+    /// in alongside `class` for backward compatibility.
+    #[prop(into, optional)]
+    ext_styles: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the `<form>` element.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Callback fired when the form is reset. Defaults to a no-op.
+    #[prop(default = Callback::new(|_| {}))]
+    onreset: Callback<ev::Event>,
+
+    /// Form field components rendered inside the form.
     children: Children,
 ) -> impl IntoView {
+    let form_class = move || {
+        tw_merge!(
+            "",
+            ext_styles.get().unwrap_or_default(),
+            class.get().unwrap_or_default()
+        )
+    };
+
     view! {
         <form
             node_ref=form_ref
-            class=move || ext_styles.get()
+            class=form_class
             on:input=move |_| {
                 if let Some(form) = form_ref.get() {
                     if form.check_validity() {

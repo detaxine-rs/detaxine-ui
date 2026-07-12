@@ -6,6 +6,7 @@ use leptos::html::Form;
 use leptos::prelude::*;
 use leptos::wasm_bindgen::JsCast;
 use leptos_icons::Icon;
+use tailwind_fuse::tw_merge;
 use web_sys::HtmlFormElement;
 use web_sys::SubmitEvent;
 
@@ -32,18 +33,6 @@ impl StepInfo {
 ///
 /// Form refs for all steps are sent to the parent via `send_all_form_refs` whenever the
 /// user navigates to the final step or clicks a step indicator directly.
-///
-/// # Props
-///
-/// - `step_labels` – `RwSignal<Vec<StepInfo>>` holding the label and optional icon for each step indicator.
-/// - `final_button_text` – Label on the submit button shown at the last step.
-/// - `on_click_final_button` – Callback fired when the final button is clicked.
-/// - `send_all_form_refs` – Callback receiving `Vec<NodeRef<Form>>` for all steps.
-/// - `is_linear` – When `true`, the Next button is disabled until the current step is valid. Defaults to `false`.
-/// - `final_button_is_disabled` – `Signal<bool>` that disables the final button. Defaults to `false`.
-/// - `ext_wrapper_styles` – `Signal<String>` of additional Tailwind classes on the step content wrapper.
-/// - `handle_on_cleanup` – Callback fired when the component is cleaned up.
-/// - `children` – One or more `<Step>` components.
 ///
 /// # Example
 ///
@@ -73,22 +62,87 @@ impl StepInfo {
 /// ```
 #[component]
 pub fn Stepper(
-    mut children: ChildrenFragmentMut, // Children passed as a function
-    #[prop(into, optional)] final_button_text: String,
-    #[prop(optional, default = Callback::new(|_| {}))] on_click_final_button: Callback<()>,
-    #[prop(into)] step_labels: RwSignal<Vec<StepInfo>>,
-    #[prop(optional, default = false)] is_linear: bool,
-    #[prop(optional, default = Callback::new(|_| {}))] send_all_form_refs: Callback<
-        Vec<NodeRef<Form>>,
-    >,
-    #[prop(into, optional)] ext_wrapper_styles: Signal<String>,
-    #[prop(into, optional, default = Signal::derive(|| false))] final_button_is_disabled: Signal<
-        bool,
-    >,
-    #[prop(optional, default = Callback::new(|_| {}))] handle_on_cleanup: Callback<()>,
+    /// One or more `<Step>` components.
+    mut children: ChildrenFragmentMut,
+
+    /// Label on the submit button shown at the last step.
+    #[prop(into, optional)]
+    final_button_text: String,
+
+    /// Callback fired when the final button is clicked.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    on_click_final_button: Callback<()>,
+
+    /// `RwSignal<Vec<StepInfo>>` holding the label and optional icon for each step indicator.
+    #[prop(into)]
+    step_labels: RwSignal<Vec<StepInfo>>,
+
+    /// When `true`, the Next button is disabled until the current step is valid. Defaults to `false`.
+    #[prop(optional, default = false)]
+    is_linear: bool,
+
+    /// Callback receiving `Vec<NodeRef<Form>>` for all steps.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    send_all_form_refs: Callback<Vec<NodeRef<Form>>>,
+
+    /// **Deprecated**: use `form_area_class` instead. Still supported and
+    /// merged in alongside `form_area_class` for backward compatibility.
+    #[prop(into, optional)]
+    ext_wrapper_styles: MaybeProp<String>,
+    /// Extra Tailwind classes for the form area wrapper.
+    #[prop(into, optional)]
+    form_area_class: MaybeProp<String>,
+
+    /// `Signal<bool>` that disables the final button. Defaults to `false`.
+    #[prop(into, optional, default = Signal::derive(|| false))]
+    final_button_is_disabled: Signal<bool>,
+
+    /// Callback fired when the component is cleaned up.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    handle_on_cleanup: Callback<()>,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the step-rail container (holds all step circles/connectors).
+    #[prop(into, optional)]
+    rail_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for each step's clickable container (circle + label).
+    #[prop(into, optional)]
+    step_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the step circle.
+    #[prop(into, optional)]
+    step_circle_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the step label text.
+    #[prop(into, optional)]
+    step_label_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the connector line between steps.
+    #[prop(into, optional)]
+    connector_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the bottom action-buttons row.
+    #[prop(into, optional)]
+    actions_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the "Previous" button.
+    #[prop(into, optional)]
+    prev_button_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the "Next" button.
+    #[prop(into, optional)]
+    next_button_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the final-step submit button.
+    #[prop(into, optional)]
+    final_button_class: MaybeProp<String>,
 ) -> impl IntoView {
-    let (current_step, set_current_step) = signal(0); // Leptos signal for state
-    let (step_form_is_valid, set_step_form_is_valid) = signal(false); // Leptos signal for state
+    let (current_step, set_current_step) = signal(0);
+    let (step_form_is_valid, set_step_form_is_valid) = signal(false);
     let child_nodes: Vec<AnyView> = children().nodes.into_iter().map(|n| n.into_any()).collect();
     let step_count = child_nodes.len();
     let form_refs = RwSignal::new(
@@ -102,7 +156,6 @@ pub fn Stepper(
             set_current_step.update(|step| *step += 1);
         }
 
-        // if second last, send all form_refs to parent in a callback
         if current_step.get() == step_count - 1 {
             let form_refs = form_refs.get();
             send_all_form_refs.run(form_refs);
@@ -122,13 +175,11 @@ pub fn Stepper(
     let handle_step_form_submit = move |ev: SubmitEvent| {
         ev.prevent_default();
         ev.stop_propagation();
-        // Implement logic to show form validity
         let target = ev
             .target()
             .and_then(|t| t.dyn_into::<HtmlFormElement>().ok());
 
         if let Some(form) = target {
-            // let form_data = FormData::new_with_form(&form).unwrap_or_default();
             let is_valid = form.check_validity();
             set_step_form_is_valid.set(is_valid);
         }
@@ -136,7 +187,6 @@ pub fn Stepper(
 
     let next_is_disabled = Memo::new(move |_| !step_form_is_valid.get() && is_linear);
 
-    // A workaround for updating the next step's form's validity state when navigating to the next step or previous step
     Effect::new(move || {
         if let Some(form_ref) = form_refs.get().get(current_step.get()) {
             if let Some(form) = form_ref.get() as Option<HtmlFormElement> {
@@ -145,15 +195,68 @@ pub fn Stepper(
         }
     });
 
-    // Cleanup
     on_cleanup(move || {
         handle_on_cleanup.run(());
     });
 
+    let root_class = move || {
+        tw_merge!(
+            "flex flex-col items-center gap-[40px] w-full h-full p-4",
+            class.get().unwrap_or_default()
+        )
+    };
+    let rail_class_val = move || {
+        tw_merge!(
+            "relative flex items-center justify-between w-full",
+            rail_class.get().unwrap_or_default()
+        )
+    };
+    let step_class_val = move || {
+        tw_merge!(
+            "flex items-center gap-[10px] cursor-pointer shrink-0",
+            step_class.get().unwrap_or_default()
+        )
+    };
+    let step_circle_class_val = step_circle_class;
+    let step_label_class_val = step_label_class;
+    let connector_class_val = move || {
+        tw_merge!(
+            "flex-1 h-px bg-mid-gray mx-2",
+            connector_class.get().unwrap_or_default()
+        )
+    };
+    let form_area_class_val = move || {
+        tw_merge!(
+            "flex-1 w-full",
+            ext_wrapper_styles.get().unwrap_or_default(),
+            form_area_class.get().unwrap_or_default()
+        )
+    };
+    let actions_class_val = move || {
+        tw_merge!(
+            "mt-auto flex w-full justify-start gap-4",
+            actions_class.get().unwrap_or_default()
+        )
+    };
+    let prev_button_class_val =
+        move || tw_merge!("bg-white", prev_button_class.get().unwrap_or_default());
+    let next_button_class_val = move || {
+        tw_merge!(
+            "bg-primary text-contrast-white",
+            next_button_class.get().unwrap_or_default()
+        )
+    };
+    let final_button_class_val = move || {
+        tw_merge!(
+            "bg-primary text-contrast-white",
+            final_button_class.get().unwrap_or_default()
+        )
+    };
+
     view! {
-        <div class="flex flex-col items-center gap-[40px] w-full h-full p-4">
+        <div class=root_class>
             <div class="relative flex items-center w-full overflow-x-auto">
-                <div class="relative flex items-center justify-between w-full">
+                <div class=rail_class_val>
                     <For
                         each=move || step_labels.get().into_iter().enumerate()
                         key=|(index, _)| *index
@@ -162,8 +265,11 @@ pub fn Stepper(
                         {
                             let is_current = move || index == current_step.get();
                             let step_count_inner = step_count;
+                            let step_class_val = step_class_val.clone();
+                            let step_circle_class_val = step_circle_class_val;
+                            let step_label_class_val = step_label_class_val;
+
                             view! {
-                                // Step circle + label
                                 <div
                                     on:click=move |_| {
                                         if next_is_disabled.get() {
@@ -173,15 +279,14 @@ pub fn Stepper(
                                         let form_refs = form_refs.get();
                                         send_all_form_refs.run(form_refs);
                                     }
-                                    class="flex items-center gap-[10px] cursor-pointer shrink-0"
+                                    class=step_class_val
                                 >
-                                    <div class=move || format!(
-                                        "w-8 h-8 flex items-center justify-center rounded-full text-sm {}",
-                                        if is_current() {
-                                            "bg-primary text-contrast-white"
-                                        } else {
-                                            "bg-light-gray"
-                                        }
+                                    <div class=move || tw_merge!(
+                                        format!(
+                                            "w-8 h-8 flex items-center justify-center rounded-full text-sm {}",
+                                            if is_current() { "bg-primary text-contrast-white" } else { "bg-light-gray" }
+                                        ),
+                                        step_circle_class_val.get().unwrap_or_default()
                                     )>
                                         {if step_label.icon.is_none() {
                                             Some(index + 1)
@@ -194,22 +299,20 @@ pub fn Stepper(
                                             None
                                         }}
                                     </div>
-                                    <div class=move || format!(
-                                        "text-sm {}",
-                                        if is_current() {
-                                            "font-bold text-primary"
-                                        } else {
-                                            "hidden md:flex"
-                                        }
+                                    <div class=move || tw_merge!(
+                                        format!(
+                                            "text-sm {}",
+                                            if is_current() { "font-bold text-primary" } else { "hidden md:flex" }
+                                        ),
+                                        step_label_class_val.get().unwrap_or_default()
                                     )>
                                         {step_label.label.clone()}
                                     </div>
                                 </div>
 
-                                // Connector — only between steps, never after the last
                                 {if index < step_count_inner - 1 {
                                     Some(view! {
-                                        <div class="flex-1 h-px bg-mid-gray mx-2" />
+                                        <div class=connector_class_val.clone() />
                                     })
                                 } else {
                                     None
@@ -219,14 +322,14 @@ pub fn Stepper(
                     </For>
                 </div>
             </div>
-            <div on:submit=handle_step_form_submit class=move || format!("flex-1 w-full {}", ext_wrapper_styles.get())>
+            <div on:submit=handle_step_form_submit class=form_area_class_val>
             {
                     child_nodes.into_iter().enumerate().map(|(i, child)| {
                         let form_ref = form_refs.get_untracked()[i].clone();
                         view! {
                             <ReactiveForm
                                 form_ref=form_ref
-                                ext_styles=Signal::derive(move || {
+                                class=Signal::derive(move || {
                                     if current_step.get() == i { "block".to_string() } else { "hidden".to_string() }
                                 })
                             >
@@ -236,7 +339,7 @@ pub fn Stepper(
                     }).collect_view()
                 }
             </div>
-            <div class="mt-auto flex w-full justify-start gap-4">
+            <div class=actions_class_val>
                 {
                     move || if current_step.get() == 0 {
                         None
@@ -245,7 +348,7 @@ pub fn Stepper(
                             <BasicButton
                                 onclick=onclick_prev
                                 button_text="Previous"
-                                style_ext="bg-white"
+                                class=Signal::derive(prev_button_class_val)
                             />
                         })
                     }
@@ -256,7 +359,7 @@ pub fn Stepper(
                             <BasicButton
                                 onclick=handle_final_button_click
                                 button_text=final_button_text.clone()
-                                style_ext="bg-primary text-contrast-white"
+                                class=Signal::derive(final_button_class_val)
                                 disabled=final_button_is_disabled
                             />
                         }
@@ -266,7 +369,7 @@ pub fn Stepper(
                                 disabled=next_is_disabled
                                 onclick=onclick_next
                                 button_text="Next"
-                                style_ext="bg-primary text-contrast-white"
+                                class=Signal::derive(next_button_class_val)
                             />
                         }
                     }
