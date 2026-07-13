@@ -1,5 +1,13 @@
-mod commands;
-mod steps;
+mod commands {
+    pub mod init;
+}
+mod steps {
+    pub mod cargo;
+    pub mod css;
+    pub mod html;
+    pub mod preflight;
+    pub mod trunk;
+}
 
 use clap::{Parser, Subcommand};
 use commands::init::run_init;

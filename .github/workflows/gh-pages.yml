@@ -90,7 +90,7 @@ jobs:
           version: latest
       - name: Build dashboard
         working-directory: src/core
-        run: trunk build --example home --release --public-url /detaxine-ui/
+        run: trunk build --example csr --release --public-url /detaxine-ui/
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:

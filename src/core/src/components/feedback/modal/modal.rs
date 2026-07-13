@@ -192,7 +192,18 @@ pub fn BasicModal(
         <>
         <Show when=move || is_open.get() fallback=|| ()>
             {
-                match document().get_element_by_id("modal-root") {
+                // SSR-safe: `document()` calls a JS global that doesn't exist
+                // on a native server target. On wasm32 we look up the real
+                // `#modal-root` element; on any other target we skip the
+                // lookup entirely and render nothing for this Show branch.
+                // The modal becomes visible once hydration runs client-side.
+                #[cfg(target_arch = "wasm32")]
+                let modal_root = document().get_element_by_id("modal-root");
+
+                #[cfg(not(target_arch = "wasm32"))]
+                let modal_root: Option<web_sys::Element> = None;
+
+                match modal_root {
                     Some(root) => Some(
                         view! {
                             <Portal mount=root>
