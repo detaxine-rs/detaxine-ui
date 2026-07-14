@@ -1,5 +1,6 @@
 use leptos::{ev, html::*, prelude::*};
 use leptos_router::hooks::use_location;
+use tailwind_fuse::tw_merge;
 
 #[derive(Clone, PartialEq, Debug)]
 #[allow(dead_code)]
@@ -10,14 +11,6 @@ pub enum Position {
 
 /// A popover that toggles open/closed when its trigger element is clicked,
 /// automatically aligns to the viewport edge, and closes on route change.
-///
-/// # Props
-///
-/// - `display_item` – `ViewFn` rendered as the clickable trigger.
-/// - `showing` – `RwSignal<bool>` controlling open/closed state.
-/// - `position` – `Position::Top` or `Position::Bottom` relative to the trigger. Defaults to `Position::Bottom`.
-/// - `style_ext` – Additional Tailwind classes applied to the popover panel.
-/// - `children` – Optional content rendered inside the popover panel.
 ///
 /// # Example
 ///
@@ -41,11 +34,30 @@ pub enum Position {
 /// ```
 #[component]
 pub fn Popover(
-    #[prop(optional)] children: Option<ChildrenFn>,
-    #[prop(into)] display_item: ViewFn,
-    #[prop(default = Position::Bottom, optional)] position: Position,
-    #[prop(into, optional)] style_ext: String,
-    #[prop(into)] showing: RwSignal<bool>,
+    /// Optional content rendered inside the popover panel.
+    #[prop(optional)]
+    children: Option<ChildrenFn>,
+
+    /// `ViewFn` rendered as the clickable trigger.
+    #[prop(into)]
+    display_item: ViewFn,
+
+    /// `Position::Top` or `Position::Bottom` relative to the trigger. Defaults to `Position::Bottom`.
+    #[prop(default = Position::Bottom, optional)]
+    position: Position,
+
+    /// **Deprecated**: use `class` instead. Still supported and merged
+    /// in alongside `class` for backward compatibility.
+    #[prop(into, optional)]
+    style_ext: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the popover panel.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// `RwSignal<bool>` controlling open/closed state.
+    #[prop(into)]
+    showing: RwSignal<bool>,
 ) -> impl IntoView {
     let (children, _set_children) = signal(children);
     let trigger_ref = NodeRef::<Div>::new();
@@ -65,11 +77,9 @@ pub fn Popover(
     });
 
     let arrow_class = StoredValue::new(match position {
-        Position::Top => "-bottom-[10px] rotate-180",
-        Position::Bottom => "-top-[10px]",
+        Position::Top => "-bottom-[5px] rotate-180",
+        Position::Bottom => "-top-[5px]",
     });
-
-    let style_ext = StoredValue::new(style_ext);
 
     Effect::new(move |_| {
         // any time the pathname changes, close the popover
@@ -121,7 +131,6 @@ pub fn Popover(
         recalculate.get_value()();
     });
 
-    // Ensure removal when component goes out of scope
     on_cleanup(move || {
         window_resize_listener.remove(); // Explicitly detach
     });
@@ -137,26 +146,26 @@ pub fn Popover(
                     class="fixed inset-0 z-20 bg-transparent"
                 ></div>
                 <div
-                    class=move || format!(
-                        "absolute {} {} z-30
-                         w-max min-w-32 max-w-[calc(100vw-1rem)]
-                         bg-contrast-white border border-light-gray
-                         shadow-lg text-sm rounded-[5px] {}",
-                        align.get().0,
-                        position_class.get_value(),
-                        style_ext.get_value()
+                    class=move || tw_merge!(
+                        format!(
+                            "absolute {} {} z-30 w-max min-w-32 max-w-[calc(100vw-1rem)] bg-white border border-light-gray shadow-lg text-sm rounded-[5px]",
+                            align.get().0,
+                            position_class.get_value()
+                        ),
+                        style_ext.get().unwrap_or_default(),
+                        class.get().unwrap_or_default()
                     )
                 >
                     <div
                         class=move || format!(
-                            "absolute {} {}",
+                            "absolute bg-inherit {} {}",
                             align.get().1,
                             arrow_class.get_value()
                         )
                     >
-                        <div class="w-[20px] h-[20px] bg-contrast-white border-l border-t border-light-gray rotate-45"></div>
+                        <div class="w-[15px] h-[15px] bg-inherit border-l border-t border-light-gray rotate-45"></div>
                     </div>
-                    <div class="relative z-10 bg-contrast-white rounded-[5px]">
+                    <div class="relative z-10 bg-inherit rounded-[5px]">
                         {move || children.get().map(|child| child())}
                     </div>
                 </div>

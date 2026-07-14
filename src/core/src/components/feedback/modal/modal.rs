@@ -3,6 +3,7 @@ use icondata::{
 };
 use leptos::{control_flow::Show, ev, portal::Portal, prelude::*};
 use leptos_icons::Icon;
+use tailwind_fuse::tw_merge;
 
 use crate::components::actions::button::BasicButton;
 
@@ -19,23 +20,6 @@ pub enum UseCase {
 
 /// A modal dialog rendered into a `#modal-root` portal, supporting multiple use cases
 /// with contextual icons and configurable footer actions.
-///
-/// # Props
-///
-/// - `title` – Heading text displayed in the modal header.
-/// - `use_case` – Controls the header icon and cancel button visibility. One of `UseCase::General`,
-///   `UseCase::Error`, `UseCase::Success`, `UseCase::Info`, `UseCase::Confirmation`. Defaults to `General`.
-/// - `is_open` – `RwSignal<bool>` controlling visibility. Defaults to `false`.
-/// - `primary_button_text` – Label for the primary action button. Defaults to `"OK"`.
-/// - `on_click_primary` – Callback fired when the primary button is clicked. Defaults to a no-op.
-/// - `on_cancel` – Callback fired when the cancel button or backdrop is clicked. Defaults to a no-op.
-/// - `disable_auto_close` – When `true`, clicking the backdrop does not close the modal. Defaults to `true`.
-/// - `disable_primary_close` – When `true`, clicking the primary button does not close the modal. Defaults to `false`.
-/// - `primary_is_disabled` – `Signal<bool>` that disables the primary button. Defaults to `false`.
-/// - `stack_number` – Z-index offset for stacking multiple modals. Defaults to `0`.
-/// - `container_style_ext` – Additional Tailwind classes applied to the modal panel.
-/// - `show_footer` – When `false`, hides the footer entirely. Defaults to `true`.
-/// - `children` – Optional body content rendered inside the modal.
 ///
 /// # Example
 ///
@@ -61,21 +45,84 @@ pub enum UseCase {
 /// ```
 #[component]
 pub fn BasicModal(
-    #[prop(into)] title: String,
-    #[prop(optional)] children: Option<ChildrenFn>,
-    #[prop(default = UseCase::General, optional)] use_case: UseCase,
-    #[prop(default = Callback::new(|_| {}), optional)] on_click_primary: Callback<()>,
-    #[prop(default = Callback::new(|_| {}), optional)] on_cancel: Callback<()>,
-    #[prop(default = RwSignal::new(false), into, optional)] is_open: RwSignal<bool>,
-    #[prop(into, default = "OK".to_string())] primary_button_text: String,
-    #[prop(default = true, optional)] disable_auto_close: bool,
-    #[prop(default = false, optional)] disable_primary_close: bool,
-    #[prop(into, default = Signal::derive(move || false), optional)] primary_is_disabled: Signal<
-        bool,
-    >,
-    #[prop(into, default = 0, optional)] stack_number: u8,
-    #[prop(into, optional)] container_style_ext: String,
-    #[prop(into, optional, default = true)] show_footer: bool,
+    /// Heading text displayed in the modal header.
+    #[prop(into)]
+    title: String,
+
+    /// Optional body content rendered inside the modal.
+    #[prop(optional)]
+    children: Option<ChildrenFn>,
+
+    /// Controls the header icon and cancel button visibility. One of
+    /// `UseCase::General`, `UseCase::Error`, `UseCase::Success`,
+    /// `UseCase::Info`, `UseCase::Confirmation`. Defaults to `General`.
+    #[prop(default = UseCase::General, optional)]
+    use_case: UseCase,
+
+    /// Callback fired when the primary button is clicked. Defaults to a no-op.
+    #[prop(default = Callback::new(|_| {}), optional)]
+    on_click_primary: Callback<()>,
+
+    /// Callback fired when the cancel button or backdrop is clicked. Defaults to a no-op.
+    #[prop(default = Callback::new(|_| {}), optional)]
+    on_cancel: Callback<()>,
+
+    /// `RwSignal<bool>` controlling visibility. Defaults to `false`.
+    #[prop(default = RwSignal::new(false), into, optional)]
+    is_open: RwSignal<bool>,
+
+    /// Label for the primary action button. Defaults to `"OK"`.
+    #[prop(into, default = "OK".to_string())]
+    primary_button_text: String,
+
+    /// When `true`, clicking the backdrop does not close the modal. Defaults to `true`.
+    #[prop(default = true, optional)]
+    disable_auto_close: bool,
+
+    /// When `true`, clicking the primary button does not close the modal. Defaults to `false`.
+    #[prop(default = false, optional)]
+    disable_primary_close: bool,
+
+    /// `Signal<bool>` that disables the primary button. Defaults to `false`.
+    #[prop(into, default = Signal::derive(move || false), optional)]
+    primary_is_disabled: Signal<bool>,
+
+    /// Z-index offset for stacking multiple modals. Defaults to `0`.
+    #[prop(into, default = 0, optional)]
+    stack_number: u8,
+
+    /// **Deprecated**: use `class` instead. Still supported and merged
+    /// in alongside `class` for backward compatibility.
+    #[prop(into, optional)]
+    container_style_ext: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the modal panel container.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the header row.
+    #[prop(into, optional)]
+    header_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the title `<h2>`.
+    #[prop(into, optional)]
+    title_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the body/content wrapper.
+    #[prop(into, optional)]
+    body_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the footer row.
+    #[prop(into, optional)]
+    footer_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the backdrop overlay.
+    #[prop(into, optional)]
+    backdrop_class: MaybeProp<String>,
+
+    /// When `false`, hides the footer entirely. Defaults to `true`.
+    #[prop(into, optional, default = true)]
+    show_footer: bool,
 ) -> impl IntoView {
     let (title, _set_title) = signal(title);
     let (primary_button_text, _set_primary_button_text) = signal(primary_button_text);
@@ -108,19 +155,61 @@ pub fn BasicModal(
         };
     };
 
+    let panel_class = move || {
+        tw_merge!(
+            "bg-contrast-white dark:bg-navy rounded shadow-lg min-w-sm flex flex-col animate-modal-in",
+            container_style_ext.get().unwrap_or_default(),
+            class.get().unwrap_or_default(),
+        )
+    };
+    let backdrop_class_val = move || {
+        tw_merge!(
+            "fixed inset-0 bg-gray opacity-50 animate-fade-in",
+            backdrop_class.get().unwrap_or_default()
+        )
+    };
+    let header_class_val = move || {
+        tw_merge!(
+            "flex items-center border-light-gray border-b p-[10px]",
+            header_class.get().unwrap_or_default()
+        )
+    };
+    let title_class_val = move || tw_merge!("", title_class.get().unwrap_or_default());
+    let body_class_val = move || {
+        tw_merge!(
+            "flex-1 overflow-y-auto",
+            body_class.get().unwrap_or_default()
+        )
+    };
+    let footer_class_val = move || {
+        tw_merge!(
+            "mt-auto flex gap-[20px] p-[10px] border-light-gray border-t",
+            footer_class.get().unwrap_or_default()
+        )
+    };
+
     view! {
         <>
         <Show when=move || is_open.get() fallback=|| ()>
             {
-                let container_style_ext_clone = container_style_ext.clone();
+                // SSR-safe: `document()` calls a JS global that doesn't exist
+                // on a native server target. On wasm32 we look up the real
+                // `#modal-root` element; on any other target we skip the
+                // lookup entirely and render nothing for this Show branch.
+                // The modal becomes visible once hydration runs client-side.
+                #[cfg(target_arch = "wasm32")]
+                let modal_root = document().get_element_by_id("modal-root");
 
-                match document().get_element_by_id("modal-root") {
+                #[cfg(not(target_arch = "wasm32"))]
+                let modal_root: Option<web_sys::Element> = None;
+
+                match modal_root {
                     Some(root) => Some(
                         view! {
                             <Portal mount=root>
                                 // Backdrop
                                 <div
-                                    class="fixed inset-0 bg-gray opacity-50 animate-fade-in"
+                                    class=backdrop_class_val
                                     style=format!("z-index: {}", 10 + stack_number)
                                 />
 
@@ -133,10 +222,10 @@ pub fn BasicModal(
                                     // Modal panel
                                     <div
                                         on:click=move |e| e.stop_propagation()
-                                        class=format!("bg-contrast-white dark:bg-navy rounded shadow-lg min-w-sm flex flex-col animate-modal-in {}", container_style_ext_clone)
+                                        class=panel_class
                                     >
                                         // Header
-                                        <div class="flex items-center border-light-gray border-b p-[10px]">
+                                        <div class=header_class_val>
                                             {
                                                 move || match use_case {
                                                     UseCase::Error => Some(view! {
@@ -162,11 +251,11 @@ pub fn BasicModal(
                                                     UseCase::General => None,
                                                 }
                                             }
-                                            <h2>{move || title.get()}</h2>
+                                            <h2 class=title_class_val>{move || title.get()}</h2>
                                         </div>
 
                                         // Body
-                                        <div class="flex-1 overflow-y-auto">
+                                        <div class=body_class_val>
                                             {move || children.get().map(|c| c())}
                                         </div>
 
@@ -175,7 +264,7 @@ pub fn BasicModal(
                                             if show_footer {
                                                 Some(
                                                     view! {
-                                                        <div class="mt-auto flex gap-[20px] p-[10px] border-light-gray border-t">
+                                                        <div class=footer_class_val>
                                                             {move || {
                                                                 if use_case == UseCase::Confirmation {
                                                                     Some(view! {

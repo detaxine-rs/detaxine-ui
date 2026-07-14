@@ -11,9 +11,9 @@ A Leptos + Tailwind CSS component library compiled to WebAssembly. Build modern,
 [https://detaxine-rs.github.io/detaxine-ui/](https://detaxine-rs.github.io/detaxine-ui/)
 
 ---
-## Limitation ⚠️
+## New - SSR Support ✅
 
-The library currently only supports CSR but, SSR support is in the pipeline.
+The library currently supports both CSR and SSR. The CLI will help you to bootstrap quickly.
 
 ---
 

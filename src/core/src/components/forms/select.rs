@@ -3,6 +3,7 @@ use leptos::ev;
 use leptos::html::Select;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
+use tailwind_fuse::tw_merge;
 
 use crate::components::{
     data_display::chip::Chip,
@@ -32,19 +33,6 @@ impl SelectOption {
 
 /// A native `<select>` dropdown with optional label, placeholder, and required indicator.
 ///
-/// # Props
-///
-/// - `options` – `RwSignal<Vec<SelectOption>>` holding the available choices.
-/// - `initial_value` – `Signal<String>` pre-selecting an option by value.
-/// - `label` – Text displayed above the select. Hidden if empty.
-/// - `placeholder` – Renders a disabled empty-value option at the top when provided.
-/// - `name` – `name` attribute for form submission.
-/// - `id_attr` – `id` attribute linking the select to its label.
-/// - `required` – Shows a `*` beside the label and sets `required`. Defaults to `false`.
-/// - `readonly` – Marks the field as read-only. Defaults to `false`.
-/// - `ext_input_styles` – Additional Tailwind classes applied to the `<select>`.
-/// - `input_node_ref` – `NodeRef<Select>` for direct DOM access.
-///
 /// # Example
 ///
 /// ```
@@ -65,23 +53,83 @@ impl SelectOption {
 /// ```
 #[component]
 pub fn SelectInput(
-    #[prop(into, optional)] initial_value: MaybeProp<String>,
-    #[prop(into, optional)] label: String,
-    #[prop(into, optional)] placeholder: String,
-    #[prop(into, optional)] name: String,
-    #[prop(optional)] input_node_ref: NodeRef<Select>,
-    #[prop(default = false, optional)] readonly: bool,
-    #[prop(into)] options: RwSignal<Vec<SelectOption>>,
-    #[prop(default = false, optional)] required: bool,
-    // #[prop(optional, default = Callback::new(|_| {}))] onchange: Callback<ev::Event>,
-    #[prop(into, optional)] ext_input_styles: String,
-    #[prop(into, optional)] id_attr: String,
+    /// Pre-selects an option by value.
+    #[prop(into, optional)]
+    initial_value: MaybeProp<String>,
+
+    /// Text displayed above the select. Hidden if empty.
+    #[prop(into, optional)]
+    label: String,
+
+    /// Renders a disabled empty-value option at the top when provided.
+    #[prop(into, optional)]
+    placeholder: String,
+
+    /// `name` attribute for form submission.
+    #[prop(into, optional)]
+    name: String,
+
+    /// `NodeRef<Select>` for direct DOM access.
+    #[prop(optional)]
+    input_node_ref: NodeRef<Select>,
+
+    /// `RwSignal<Vec<SelectOption>>` holding the available choices.
+    #[prop(into)]
+    options: RwSignal<Vec<SelectOption>>,
+
+    /// Shows a `*` beside the label and sets `required`. Defaults to `false`.
+    #[prop(default = false, optional)]
+    required: bool,
+
+    /// **Deprecated**: use `select_class` instead.
+    #[prop(into, optional)]
+    ext_input_styles: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the `<select>` element itself.
+    #[prop(into, optional)]
+    select_class: MaybeProp<String>,
+
+    /// `id` attribute linking the select to its label.
+    #[prop(into, optional)]
+    id_attr: String,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the `<label>`.
+    #[prop(into, optional)]
+    label_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the error message `<p>`.
+    #[prop(into, optional)]
+    error_class: MaybeProp<String>,
 ) -> impl IntoView {
-    // Create reactive state for display_error
     let (display_error, _set_display_error) = signal(false);
 
+    let wrapper_class_val = move || tw_merge!("box-border", class.get().unwrap_or_default());
+    let label_class_val = move || {
+        tw_merge!(
+            "block text-sm font-bold",
+            label_class.get().unwrap_or_default()
+        )
+    };
+    let select_class_val = move || {
+        tw_merge!(
+            "form-input ring-0 shadow-sm appearance-none border border-mid-gray rounded-[5px] w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow",
+            ext_input_styles.get().unwrap_or_default(),
+            select_class.get().unwrap_or_default(),
+        )
+    };
+    let error_class_val = move || {
+        tw_merge!(
+            "text-danger text-xs italic",
+            error_class.get().unwrap_or_default()
+        )
+    };
+
     view! {
-        <div class="box-border">
+        <div class=wrapper_class_val>
             {
                 if label.is_empty() {
                     None
@@ -89,7 +137,7 @@ pub fn SelectInput(
                     Some(
                         view! {
                             <label
-                                class={format!("block text-sm font-bold")}
+                                class=label_class_val
                                 for=id_attr.clone()
                             >
                                 {label}
@@ -104,13 +152,8 @@ pub fn SelectInput(
             <select
                 node_ref=input_node_ref
                 name=name
-                class=move || format!(
-                    "form-input ring-0 shadow-sm appearance-none border border-mid-gray rounded-[5px] w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow {}",
-                    ext_input_styles
-                )
+                class=select_class_val
                 prop:value=move || initial_value.get()
-                // readonly={readonly}
-                // on:change=move |ev| onchange.run(ev)
                 id=id_attr.clone()
                 required=required
             >
@@ -124,19 +167,14 @@ pub fn SelectInput(
                 {move || options.get().into_iter()
                     .map(|option| {
                         view! {
-                            <option
-                                value={option.value.clone()}
-                                // selected={ move ||
-                                //     !initial_value.get().is_empty() && initial_value.get() == option.value.clone()
-                                // }
-                            >
+                            <option value={option.value.clone()}>
                                 {option.label.clone()}
                             </option>
                         }
                     })
                     .collect::<Vec<_>>()}
             </select>
-            <p class="text-danger text-xs italic">
+            <p class=error_class_val>
                 {move || if display_error.get() {
                     "This field is required"
                 } else {
@@ -144,22 +182,14 @@ pub fn SelectInput(
                 }}
             </p>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 /// A searchable, chip-based custom select supporting both single and multi-select modes.
 ///
 /// Selected values are displayed as removable chips in the control. A search box filters
 /// the dropdown options in real time.
-///
-/// # Props
-///
-/// - `label` – Text displayed above the control.
-/// - `options` – `RwSignal<Vec<SelectOption>>` holding the available choices.
-/// - `value` – `RwSignal<Vec<String>>` holding the currently selected values. Defaults to empty.
-/// - `multiple` – When `true`, enables checkbox-style multi-select. Defaults to `false`.
-/// - `required` – Shows a `*` beside the label. Defaults to `false`.
-/// - `id_attr` – `id` base used to generate unique ids for each option's input.
 ///
 /// # Example
 ///
@@ -186,23 +216,60 @@ pub fn SelectInput(
 /// ```
 #[component]
 pub fn CustomSelectInput(
-    #[prop(into)] label: String,
-    #[prop(into)] options: MaybeProp<Vec<SelectOption>>,
-    #[prop(into, optional, default = RwSignal::new(Vec::new()))] value: RwSignal<Vec<String>>,
+    /// Text displayed above the control.
+    #[prop(into)]
+    label: String,
 
-    // false = normal select (single)
-    // true  = checkbox-style multi select
-    #[prop(optional, default = false)] multiple: bool,
+    /// `MaybeProp<Vec<SelectOption>>` holding the available choices.
+    #[prop(into)]
+    options: MaybeProp<Vec<SelectOption>>,
 
-    #[prop(optional, default = false)] required: bool,
-    #[prop(into, optional)] id_attr: String,
-    // #[prop(optional, default = Callback::new(|_| {}))] onchange: Callback<Vec<String>>,
+    /// `RwSignal<Vec<String>>` holding the currently selected values. Defaults to empty.
+    #[prop(into, optional, default = RwSignal::new(Vec::new()))]
+    value: RwSignal<Vec<String>>,
+
+    /// When `true`, enables checkbox-style multi-select. Defaults to `false`.
+    #[prop(optional, default = false)]
+    multiple: bool,
+
+    /// Shows a `*` beside the label. Defaults to `false`.
+    #[prop(optional, default = false)]
+    required: bool,
+
+    /// `id` base used to generate unique ids for each option's input.
+    #[prop(into, optional)]
+    id_attr: String,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the label `<span>`.
+    #[prop(into, optional)]
+    label_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the clickable control (chip container).
+    #[prop(into, optional)]
+    control_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the dropdown panel.
+    #[prop(into, optional)]
+    dropdown_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the options `<ul>`.
+    #[prop(into, optional)]
+    options_list_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for each option `<li>`.
+    #[prop(into, optional)]
+    option_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the selected-option text (in addition to `font-semibold`).
+    #[prop(into, optional)]
+    option_text_class: MaybeProp<String>,
 ) -> impl IntoView {
     let (open, set_open) = signal(false);
     let (query, set_query) = signal(String::new());
-    // let input_ref = NodeRef::new();
-
-    // ---------- Derived state ----------
 
     let filtered_options = Signal::derive(move || {
         let q = query.get().to_lowercase();
@@ -213,8 +280,6 @@ pub fn CustomSelectInput(
             .filter(|o| o.label.to_lowercase().contains(&q))
             .collect::<Vec<_>>()
     });
-
-    // ---------- Selection logic ----------
 
     let select_value = move |val: String| {
         value.update(|current| {
@@ -230,8 +295,6 @@ pub fn CustomSelectInput(
             }
         });
 
-        // onchange.run(value.get());
-
         if !multiple {
             set_open.set(false);
             set_query.set(String::new());
@@ -242,13 +305,44 @@ pub fn CustomSelectInput(
         value.update(|current| {
             current.retain(|v| v != &val);
         });
-
-        // onchange.run(value.get());
     };
 
+    let wrapper_class_val = move || tw_merge!("relative w-full", class.get().unwrap_or_default());
+    let label_class_val = move || {
+        tw_merge!(
+            "block text-sm font-bold",
+            label_class.get().unwrap_or_default()
+        )
+    };
+    let control_class_val = move || {
+        tw_merge!(
+            "relative rounded-[5px] px-3 py-2 cursor-pointer flex items-center flex-wrap gap-2 min-h-[40px] border border-mid-gray leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow",
+            control_class.get().unwrap_or_default()
+        )
+    };
+    let dropdown_class_val = move || {
+        tw_merge!(
+            "absolute z-30 mt-1 w-full bg-contrast-white rounded-[5px] shadow-sm",
+            dropdown_class.get().unwrap_or_default()
+        )
+    };
+    let options_list_class_val = move || {
+        tw_merge!(
+            "max-h-48 overflow-y-auto",
+            options_list_class.get().unwrap_or_default()
+        )
+    };
+    let option_class_val = move || {
+        tw_merge!(
+            "px-3 py-2 hover:bg-light-gray flex items-center gap-2 cursor-pointer",
+            option_class.get().unwrap_or_default()
+        )
+    };
+    let option_text_class_val = move || option_text_class.get().unwrap_or_default();
+
     view! {
-        <div class="relative w-full">
-            <span class="block text-sm font-bold">
+        <div class=wrapper_class_val>
+            <span class=label_class_val>
                 {label.clone()}
                 {move || required.then_some(view! {
                     <span class="text-danger ml-1">*</span>
@@ -257,7 +351,7 @@ pub fn CustomSelectInput(
 
             // Control with chips
             <div
-                class="relative rounded-[5px] px-3 py-2 cursor-pointer flex items-center flex-wrap gap-2 min-h-[40px] border border-mid-gray leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow"
+                class=control_class_val
                 on:click=move |_| set_open.set(true)
             >
                 {move || {
@@ -313,58 +407,74 @@ pub fn CustomSelectInput(
             })}
 
             // Dropdown
-            {move || {
-                let id_attr_clone = id_attr.clone();
-                open.get().then_some(view! {
-                    <div class="absolute z-30 mt-1 w-full bg-contrast-white rounded-[5px] shadow-sm">
-                        // Search
-                        <InputField placeholder="Search…" field_type=InputFieldType::Text icon=BsSearch id_attr="search" on:input=move |ev: ev::Event| {
-                            set_query.set(event_target_value(&ev));
-                        } />
+            {
+                let dropdown_class_val = dropdown_class_val.clone();
+                let options_list_class_val = options_list_class_val.clone();
+                let option_class_val = option_class_val.clone();
+                let option_text_class_val = option_text_class_val.clone();
 
-                        // Options
-                        <ul class="max-h-48 overflow-y-auto">
-                            {move || filtered_options.get().into_iter().map(|opt| {
-                                let selected = value.get().contains(&opt.value);
-                                let val = opt.value.clone();
-                                let current_id_attr = format!("{}_{}", id_attr_clone, opt.value);
+                move || {
+                    let id_attr_clone = id_attr.clone();
+                    let dropdown_class_val = dropdown_class_val.clone();
+                    let options_list_class_val = options_list_class_val.clone();
+                    let option_class_val = option_class_val.clone();
+                    let option_text_class_val = option_text_class_val.clone();
 
-                                view! {
-                                    <li
-                                        class="px-3 py-2 hover:bg-light-gray flex items-center
-                                               gap-2 cursor-pointer"
-                                        on:click=move |_| select_value(val.clone())
-                                    >
-                                        {multiple.then_some(view! {
-                                            <CheckboxInputField checked=selected id_attr=current_id_attr.clone() />
-                                        })}
+                    open.get().then_some(view! {
+                        <div class=dropdown_class_val.clone()>
+                            <InputField placeholder="Search…" field_type=InputFieldType::Text icon=BsSearch id_attr="search" on:input=move |ev: ev::Event| {
+                                set_query.set(event_target_value(&ev));
+                            } />
 
-                                        {
-                                            if !multiple {
-                                                Some(
-                                                    view! {
-                                                        <RadioInputField is_selected=selected id_attr=current_id_attr.clone() />
+                            <ul class=options_list_class_val.clone()>
+                                {move || {
+                                    let option_class_val = option_class_val.clone();
+                                    let option_text_class_val = option_text_class_val.clone();
+                                    let id_attr_clone = id_attr_clone.clone();
+
+                                    filtered_options.get().into_iter().map(move |opt| {
+                                        let selected = value.get().contains(&opt.value);
+                                        let val = opt.value.clone();
+                                        let current_id_attr = format!("{}_{}", id_attr_clone, opt.value);
+                                        let option_class_val = option_class_val.clone();
+                                        let option_text_class_val = option_text_class_val.clone();
+
+                                        view! {
+                                            <li
+                                                class=option_class_val
+                                                on:click=move |_| select_value(val.clone())
+                                            >
+                                                {multiple.then_some(view! {
+                                                    <CheckboxInputField checked=selected id_attr=current_id_attr.clone() />
+                                                })}
+
+                                                {
+                                                    if !multiple {
+                                                        Some(
+                                                            view! {
+                                                                <RadioInputField is_selected=selected id_attr=current_id_attr.clone() />
+                                                            }
+                                                        )
+                                                    } else {
+                                                        None
                                                     }
-                                                )
-                                            } else {
-                                                None
-                                            }
-                                        }
+                                                }
 
-                                        <span class=move || if selected {
-                                            "font-semibold"
-                                        } else {
-                                            ""
-                                        }>
-                                            {opt.label.clone()}
-                                        </span>
-                                    </li>
-                                }
-                            }).collect::<Vec<_>>()}
-                        </ul>
-                    </div>
-                })
-            }}
+                                                <span class=move || tw_merge!(
+                                                    if selected { "font-semibold" } else { "" },
+                                                    option_text_class_val()
+                                                )>
+                                                    {opt.label.clone()}
+                                                </span>
+                                            </li>
+                                        }
+                                    }).collect::<Vec<_>>()
+                                }}
+                            </ul>
+                        </div>
+                    })
+                }
+            }
         </div>
     }.into_any()
 }

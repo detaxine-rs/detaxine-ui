@@ -218,7 +218,7 @@ pub fn App() -> impl IntoView {
     view! {
         <div class="min-h-screen bg-white text-gray-900 font-sans">
 
-            // ── Mobile topbar ────────────────────────────────────
+            // Mobile topbar
             <header class="md:hidden sticky top-0 z-20 bg-white border-b border-gray-200
                             flex items-center gap-3 px-4 h-14">
                 <BasicButton
@@ -234,7 +234,7 @@ pub fn App() -> impl IntoView {
                 <span class="text-sm font-semibold text-gray-700">"detaxine-ui"</span>
             </header>
 
-            // ── Drawer backdrop ──────────────────────────────────
+            // Drawer backdrop
             <div
                 class="md:hidden fixed inset-0 z-30 bg-black/40 transition-opacity duration-200"
                 class:opacity-0=move || !drawer_open.get()
@@ -242,7 +242,7 @@ pub fn App() -> impl IntoView {
                 on:click=move |_| drawer_open.set(false)
             />
 
-            // ── Drawer panel ─────────────────────────────────────
+            // Drawer panel
             <div
                 class="md:hidden fixed top-0 left-0 z-40 h-full w-56 bg-white
                         shadow-xl flex flex-col py-6 transition-transform duration-200"
@@ -274,10 +274,10 @@ pub fn App() -> impl IntoView {
                 </nav>
             </div>
 
-            // ── Page body ────────────────────────────────────────
+            // Page body
             <div class="flex">
 
-                // ── Desktop sidebar ──────────────────────────────
+                // Desktop sidebar
                 <nav class="hidden md:flex shrink-0 w-48 sticky top-0 h-screen
                              overflow-y-auto border-r border-gray-200
                              flex-col gap-0.5 py-6">
@@ -295,11 +295,11 @@ pub fn App() -> impl IntoView {
                     }).collect::<Vec<_>>()}
                 </nav>
 
-                // ── Main content ─────────────────────────────────
+                // Main content
                 <main class="flex-1 min-w-0 px-4 py-8 sm:px-8 md:px-10 md:py-10
                               flex flex-col gap-16 max-w-4xl">
 
-                    // ── Buttons ──────────────────────────────────
+                    // Buttons
                     <Section section_ref=buttons_ref label="Buttons">
                         <div class="flex flex-col gap-6 w-full">
                             <div class="flex flex-wrap gap-3 items-center">
@@ -331,7 +331,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Carousel ─────────────────────────────────
+                    // Carousel
                     <Section section_ref=carousel_ref label="Carousel">
                         <div class="w-full rounded overflow-hidden">
                             <Carousel>
@@ -348,7 +348,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Badge ────────────────────────────────────
+                    // Badge
                     <Section section_ref=badges_ref label="Badge">
                         <div class="flex flex-wrap gap-8 items-center">
                             <Badge text="5" color=ColorTemperature::Primary>
@@ -363,7 +363,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Chip ─────────────────────────────────────
+                    // Chip
                     <Section section_ref=chips_ref label="Chip">
                         <div class="flex flex-wrap gap-3">
                             <Chip label="Rust" color=ColorTemperature::Primary
@@ -378,7 +378,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── LabelTag ─────────────────────────────────
+                    // LabelTag
                     <Section section_ref=labels_ref label="Label Tag">
                         <div class="flex flex-wrap gap-3">
                             <LabelTag label="Primary" color=ColorTemperature::Primary />
@@ -389,12 +389,12 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Timeline ─────────────────────────────────
+                    // Timeline
                     <Section section_ref=timeline_ref label="Timeline">
                         <Timeline steps=timeline_steps />
                     </Section>
 
-                    // ── DataTable ────────────────────────────────
+                    // DataTable
                     <Section section_ref=table_ref label="Table">
                         <DataTable
                             data=table_data
@@ -407,7 +407,7 @@ pub fn App() -> impl IntoView {
                         />
                     </Section>
 
-                    // ── Modal ────────────────────────────────────
+                    // Modal
                     <Section section_ref=modal_ref label="Modal">
                         <div class="flex flex-wrap gap-3">
                             <BasicButton
@@ -446,7 +446,7 @@ pub fn App() -> impl IntoView {
                         </BasicModal>
                     </Section>
 
-                    // ── Popover ──────────────────────────────────
+                    // Popover
                     <Section section_ref=popover_ref label="Popover">
                         <Popover
                             showing=popover_showing
@@ -465,7 +465,7 @@ pub fn App() -> impl IntoView {
                         </Popover>
                     </Section>
 
-                    // ── Progress ─────────────────────────────────
+                    // Progress
                     <Section section_ref=progress_ref label="Progress">
                         <div class="flex flex-col gap-6 w-full">
                             <div class="flex flex-col gap-2 w-full">
@@ -508,7 +508,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Spinner ──────────────────────────────────
+                    // Spinner
                     <Section section_ref=spinner_ref label="Spinner">
                         <div class="flex flex-wrap gap-8 items-center">
                             <div class="flex flex-col items-center gap-1">
@@ -526,7 +526,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Input ────────────────────────────────────
+                    // Input
                     <Section section_ref=inputs_ref label="Input">
                         <div class="flex flex-col gap-4 w-full max-w-md">
                             <InputField
@@ -567,7 +567,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Select ───────────────────────────────────
+                    // Select
                     <Section section_ref=selects_ref label="Select">
                         <div class="flex flex-col gap-4 w-full max-w-md">
                             <SelectInput
@@ -606,7 +606,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Checkbox ─────────────────────────────────
+                    // Checkbox
                     <Section section_ref=checks_ref label="Checkbox">
                         <div class="flex flex-col gap-4 w-full max-w-md">
                             <CheckboxInputField
@@ -627,7 +627,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Radio ────────────────────────────────────
+                    // Radio
                     <Section section_ref=radios_ref label="Radio">
                         <div class="flex flex-col gap-4 w-full max-w-md">
                             <RadioInputField
@@ -648,7 +648,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Textarea ─────────────────────────────────
+                    // Textarea
                     <Section section_ref=textarea_ref label="Textarea">
                         <div class="w-full max-w-md">
                             <Textarea
@@ -661,7 +661,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Toggle ───────────────────────────────────
+                    // Toggle
                     <Section section_ref=toggle_ref label="Toggle Switch">
                         <div class="flex flex-col gap-4">
                             <ToggleSwitch
@@ -689,7 +689,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Date Picker ──────────────────────────────
+                    // Date Picker
                     <Section section_ref=datepick_ref label="Date Picker">
                         <div class="w-full max-w-xs">
                             <DatePicker
@@ -700,7 +700,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Panel / Collapse ─────────────────────────
+                    // Panel / Collapse
                     <Section section_ref=panel_ref label="Panel / Collapse">
                         <div class="flex flex-col gap-4 w-full max-w-lg">
                             <p class="text-xs text-gray-500">"Standalone panel"</p>
@@ -715,7 +715,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Tabs ─────────────────────────────────────
+                    // Tabs
                     <Section section_ref=tabs_ref label="Tabs">
                         <div class="w-full">
                             <Tabs tab_labels=tab_labels>
@@ -742,7 +742,7 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Stepper ──────────────────────────────────
+                    // Stepper
                     <Section section_ref=stepper_ref label="Stepper">
                         <div class="w-full border border-gray-100 rounded-lg">
                             <Stepper
@@ -799,14 +799,14 @@ pub fn App() -> impl IntoView {
                         </div>
                     </Section>
 
-                    // ── Breadcrumbs ──────────────────────────────
+                    // Breadcrumbs
                     <Section section_ref=breadcrumb_ref label="Breadcrumbs">
                         <Breadcrumbs
                             custom_route_names=["Home", "Components", "Breadcrumbs"]
                         />
                     </Section>
 
-                    // ── Rich Text Editor ─────────────────────────────────────
+                    // Rich Text Editor
                     <Section section_ref=richtext_ref label="Rich Text Editor">
                         <div class="w-full flex flex-col gap-8">
 
@@ -852,7 +852,7 @@ pub fn App() -> impl IntoView {
     }
 }
 
-// ── Nav button ───────────────────────────────────────────────────
+// Nav button
 #[component]
 fn NavButton(children: Children) -> impl IntoView {
     view! {
@@ -864,7 +864,7 @@ fn NavButton(children: Children) -> impl IntoView {
     }
 }
 
-// ── Section wrapper ──────────────────────────────────────────────
+// Section wrapper
 #[component]
 fn Section(section_ref: NodeRef<Div>, label: &'static str, children: Children) -> impl IntoView {
     view! {

@@ -10,14 +10,6 @@ pub enum ProgressComponentSize {
 
 /// A horizontal progress bar supporting determinate and indeterminate states.
 ///
-/// # Props
-///
-/// - `progress` – `RwSignal<f64>` where `0.0` is 0% and `100.0` is 100%. Clamped automatically. Defaults to `0.0`.
-/// - `color` – Tailwind background class for the fill. Defaults to `"bg-primary"`.
-/// - `size` – `ProgressComponentSize::Sm`, `Md`, or `Lg` controlling bar height. Defaults to `Md`.
-/// - `show_percentage` – When `true`, renders a percentage label below the bar. Ignored when `indeterminate=true`. Defaults to `false`.
-/// - `indeterminate` – When `true`, renders an animated sliding bar and ignores `progress`. Defaults to `false`.
-///
 /// # Example
 ///
 /// ```
@@ -35,11 +27,26 @@ pub enum ProgressComponentSize {
 /// ```
 #[component]
 pub fn ProgressBar(
-    #[prop(into, default = RwSignal::new(0.0))] progress: RwSignal<f64>,
-    #[prop(into, optional, default = "bg-primary".to_string())] color: String,
-    #[prop(into, optional, default = ProgressComponentSize::Md)] size: ProgressComponentSize,
-    #[prop(default = false)] show_percentage: bool,
-    #[prop(default = false)] indeterminate: bool,
+    /// `RwSignal<f64>` where `0.0` is 0% and `100.0` is 100%. Clamped automatically. Defaults to `0.0`.
+    #[prop(into, default = RwSignal::new(0.0))]
+    progress: RwSignal<f64>,
+
+    /// Tailwind background class for the fill. Defaults to `"bg-primary"`.
+    #[prop(into, optional, default = "bg-primary".to_string())]
+    color: String,
+
+    /// `ProgressComponentSize::Sm`, `Md`, or `Lg` controlling bar height. Defaults to `Md`.
+    #[prop(into, optional, default = ProgressComponentSize::Md)]
+    size: ProgressComponentSize,
+
+    /// When `true`, renders a percentage label below the bar. Ignored when
+    /// `indeterminate=true`. Defaults to `false`.
+    #[prop(default = false)]
+    show_percentage: bool,
+
+    /// When `true`, renders an animated sliding bar and ignores `progress`. Defaults to `false`.
+    #[prop(default = false)]
+    indeterminate: bool,
 ) -> impl IntoView {
     // Determine height based on size prop
     let container_class = move || {
@@ -109,12 +116,6 @@ pub fn ProgressBar(
 
 /// A circular progress ring with optional percentage label in the center.
 ///
-/// # Props
-///
-/// - `progress_percentage` – `RwSignal<f64>` from `0.0` to `100.0`. Clamped automatically. Defaults to `0.0`.
-/// - `size` – `ProgressComponentSize::Sm`, `Md`, or `Lg` controlling the SVG dimensions and stroke width. Defaults to `Md`.
-/// - `show_percentage` – When `true`, renders the percentage value in the center of the ring. Defaults to `true`.
-///
 /// # Example
 ///
 /// ```
@@ -131,12 +132,22 @@ pub fn ProgressBar(
 /// ```
 #[component]
 pub fn CircularProgress(
-    #[prop(into, default = RwSignal::new(0.0))] progress_percentage: RwSignal<f64>,
-    #[prop(into, optional, default = ProgressComponentSize::Md)] size: ProgressComponentSize,
-    #[prop(default = true)] show_percentage: bool,
+    /// `RwSignal<f64>` from `0.0` to `100.0`. Clamped automatically. Defaults to `0.0`.
+    #[prop(into, default = RwSignal::new(0.0))]
+    progress_percentage: RwSignal<f64>,
+
+    /// `ProgressComponentSize::Sm`, `Md`, or `Lg` controlling the SVG dimensions and stroke width. Defaults to `Md`.
+    #[prop(into, optional, default = ProgressComponentSize::Md)]
+    size: ProgressComponentSize,
+
+    /// When `true`, renders the percentage value in the center of the ring. Defaults to `true`.
+    #[prop(default = true)]
+    show_percentage: bool,
+
     /// Tailwind color class for the progress arc. Defaults to `"text-primary"`.
     #[prop(into, optional, default = "text-primary".to_string())]
     color: String,
+
     /// Tailwind color class for the track (background arc). Defaults to `"text-light-gray"`.
     #[prop(into, optional, default = "text-light-gray".to_string())]
     track_color: String,

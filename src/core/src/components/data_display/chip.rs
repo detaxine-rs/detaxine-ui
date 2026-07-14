@@ -1,18 +1,11 @@
 use icondata::CgCloseO;
 use leptos::prelude::*;
 use leptos_icons::Icon;
+use tailwind_fuse::tw_merge;
 
 use crate::components::schemas::props::ColorTemperature;
 
 /// A chip component representing a tag or filter item, with optional removal.
-///
-/// # Props
-///
-/// - `label` – Text displayed inside the chip.
-/// - `color` – Chip color via `ColorTemperature`. Defaults to `ColorTemperature::Primary`.
-///   Supported values: `Primary`, `Success`, `Warning`, `Info`, `Danger`, `Gray`.
-/// - `removable` – When `true`, renders a close button. Defaults to `true`.
-/// - `on_remove` – Callback fired when the close button is clicked. Defaults to a no-op.
 ///
 /// # Example
 ///
@@ -33,10 +26,30 @@ use crate::components::schemas::props::ColorTemperature;
 /// ```
 #[component]
 pub fn Chip(
-    #[prop(into)] label: String,
-    #[prop(default = ColorTemperature::Primary)] color: ColorTemperature,
-    #[prop(default = true)] removable: bool,
-    #[prop(optional, default = Callback::new(|_| {}))] on_remove: Callback<()>,
+    /// Text displayed inside the chip.
+    #[prop(into)]
+    label: String,
+
+    /// Chip color via `ColorTemperature`. Defaults to `ColorTemperature::Primary`.
+    /// Supported values: `Primary`, `Success`, `Warning`, `Info`, `Danger`, `Gray`.
+    #[prop(default = ColorTemperature::Primary)]
+    color: ColorTemperature,
+
+    /// When `true`, renders a close button. Defaults to `true`.
+    #[prop(default = true)]
+    removable: bool,
+
+    /// Callback fired when the close button is clicked. Defaults to a no-op.
+    #[prop(optional, default = Callback::new(|_| {}))]
+    on_remove: Callback<()>,
+
+    /// Extra Tailwind classes for the chip container.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the remove button.
+    #[prop(into, optional)]
+    remove_button_class: MaybeProp<String>,
 ) -> impl IntoView {
     // Generate color classes based on the selected temperature
     let color_classes = move || match color {
@@ -48,20 +61,35 @@ pub fn Chip(
         _ => "text-primary border-2 border-primary bg-primary/20",
     };
 
-    // Handle close button click (only if removable and callback is provided)
     let on_click = move |_| {
         on_remove.run(());
     };
 
+    let root_class = move || {
+        tw_merge!(
+            format!(
+                "inline-flex items-center px-3 text-center rounded text-sm gap-2 {}",
+                color_classes()
+            ),
+            class.get().unwrap_or_default()
+        )
+    };
+
+    let remove_button_class_val = move || {
+        tw_merge!(
+            "cursor-pointer hover:opacity-75 flex items-center p-1",
+            remove_button_class.get().unwrap_or_default()
+        )
+    };
+
     view! {
-        <div class=format!("inline-flex items-center px-3 text-center rounded text-sm gap-2 {}", color_classes())>
+        <div class=root_class>
             <span>{label}</span>
-            // Conditionally render the close button only if removable is true and on_remove is provided
             {if removable {
                 Some(
                     view! {
                         <button
-                            class="cursor-pointer hover:opacity-75 flex items-center p-1"
+                            class=remove_button_class_val
                             on:click=on_click
                             aria-label="Remove chip"
                         >
@@ -73,7 +101,8 @@ pub fn Chip(
                 None
             }}
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[cfg(test)]

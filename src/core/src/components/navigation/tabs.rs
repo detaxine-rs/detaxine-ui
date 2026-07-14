@@ -1,5 +1,6 @@
 use icondata::{BiChevronLeftRegular, BiChevronRightRegular};
 use leptos::prelude::*;
+use tailwind_fuse::tw_merge;
 use web_sys::HtmlDivElement;
 
 use crate::components::actions::button::BasicButton;
@@ -25,11 +26,6 @@ pub struct Tab {
 /// Tab content is rendered eagerly but toggled visible/hidden via CSS. Tab labels are
 /// provided separately from tab content, allowing rich label rendering via `ViewFn`.
 ///
-/// # Props
-///
-/// - `tab_labels` – `RwSignal<Vec<TabLabel>>` holding the label `ViewFn` for each tab header.
-/// - `tab` – One or more `<Tab slot>` components providing the content for each tab.
-///   The order must match `tab_labels`.
 ///
 /// # Example
 ///
@@ -53,8 +49,31 @@ pub struct Tab {
 /// ```
 #[component]
 pub fn Tabs(
-    #[prop(default = vec![])] tab: Vec<Tab>,
-    #[prop(into)] tab_labels: RwSignal<Vec<TabLabel>>,
+    /// One or more `<Tab slot>` components providing the content for each tab. This is a typed children.
+    #[prop(default = vec![])]
+    tab: Vec<Tab>,
+    /// Holds the label `ViewFn` for each tab header.
+    #[prop(into)]
+    tab_labels: RwSignal<Vec<TabLabel>>,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+    /// Extra Tailwind classes for the tab bar row (carets + scrollable labels).
+    #[prop(into, optional)]
+    tab_bar_class: MaybeProp<String>,
+    /// Extra Tailwind classes for the scrollable tab-label container.
+    #[prop(into, optional)]
+    tab_list_class: MaybeProp<String>,
+    /// Extra Tailwind classes for each tab label `<span>`.
+    #[prop(into, optional)]
+    tab_label_class: MaybeProp<String>,
+    /// Extra Tailwind classes for the left/right scroll caret buttons.
+    #[prop(into, optional)]
+    caret_class: MaybeProp<String>,
+    /// Extra Tailwind classes for the tab panel wrapper.
+    #[prop(into, optional)]
+    panel_class: MaybeProp<String>,
 ) -> impl IntoView {
     let (current_tab, set_current_tab) = signal(0usize);
 
@@ -74,7 +93,6 @@ pub fn Tabs(
 
     let scroll_left_click = move || {
         if let Some(el) = tab_nav_ref.get() as Option<HtmlDivElement> {
-            // negative x scrolls left
             el.scroll_by_with_x_and_y(-scroll_amount, 0.0);
         }
         update_caret();
@@ -82,27 +100,48 @@ pub fn Tabs(
 
     let scroll_right_click = move || {
         if let Some(el) = tab_nav_ref.get() as Option<HtmlDivElement> {
-            // positive x scrolls right
             el.scroll_by_with_x_and_y(scroll_amount, 0.0);
         }
         update_caret();
     };
 
+    let root_class = move || tw_merge!("w-full", class.get().unwrap_or_default());
+    let tab_bar_class_val = move || {
+        tw_merge!(
+            "relative w-full flex flex-row items-center border-b border-mid-gray",
+            tab_bar_class.get().unwrap_or_default()
+        )
+    };
+    let tab_list_class_val = move || {
+        tw_merge!(
+            "flex flex-row gap-6 overflow-x-auto scrollbar-hidden scroll-smooth flex-1",
+            tab_list_class.get().unwrap_or_default()
+        )
+    };
+    let caret_class_val = move || caret_class.get().unwrap_or_default();
+    let panel_class_val = move || {
+        tw_merge!(
+            "relative min-h-[150px] mt-4",
+            panel_class.get().unwrap_or_default()
+        )
+    };
+
     view! {
-        <div class="w-full">
-            <div class="relative w-full flex flex-row items-center border-b border-mid-gray">
+        <div class=root_class>
+            <div class=tab_bar_class_val>
 
                 // Left caret
                 <BasicButton
                     icon=Some(BiChevronLeftRegular)
                     disabled=MaybeProp::derive(move || Some(!can_scroll_left.get()))
                     onclick=Callback::new(move |_| scroll_left_click())
+                    class=Signal::derive(caret_class_val)
                 />
 
                 // Scrollable tab labels
                 <div
                     node_ref=tab_nav_ref
-                    class="flex flex-row gap-6 overflow-x-auto scrollbar-hidden scroll-smooth flex-1"
+                    class=tab_list_class_val
                     on:scroll=move |_| update_caret()
                 >
                     {move || {
@@ -120,9 +159,12 @@ pub fn Tabs(
 
                             view! {
                                 <span
-                                    class=move || format!(
-                                        "border-b-4 transition-all duration-200 ease-in-out pb-2 cursor-pointer shrink-0 {}",
-                                        dynamic_class()
+                                    class=move || tw_merge!(
+                                        format!(
+                                            "border-b-4 transition-all duration-200 ease-in-out pb-2 cursor-pointer shrink-0 {}",
+                                            dynamic_class()
+                                        ),
+                                        tab_label_class.get().unwrap_or_default()
                                     )
                                     on:click=move |_| set_current_tab.set(index)
                                 >
@@ -138,11 +180,12 @@ pub fn Tabs(
                     icon=Some(BiChevronRightRegular)
                     disabled=MaybeProp::derive(move || Some(!can_scroll_right.get()))
                     onclick=Callback::new(move |_| scroll_right_click())
+                    class=Signal::derive(caret_class_val)
                 />
 
             </div>
 
-            <div class="relative min-h-[150px] mt-4">
+            <div class=panel_class_val>
                 {move || {
                     let _current = current_tab.get();
                     tab.iter().enumerate().map(|(i, child)| {

@@ -9,7 +9,7 @@ pub fn write(project: &str) -> Result<()> {
 target = "index.html"
 
 [tools]
-tailwindcss = "4.1.13"
+tailwindcss = "4.3.2"
 "#
     );
     std::fs::write(format!("{}/Trunk.toml", project), contents)?;

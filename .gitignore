@@ -1,4 +1,5 @@
 /target
 src/core/styles/output.css
 tailwindcss
+src/core/tailwindcss
 src/core/dist

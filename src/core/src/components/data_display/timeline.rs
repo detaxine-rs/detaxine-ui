@@ -1,6 +1,7 @@
 use icondata::Icon as IconId;
 use leptos::prelude::*;
 use leptos_icons::Icon;
+use tailwind_fuse::tw_merge;
 
 #[derive(Clone, Debug, Default)]
 #[allow(dead_code)]
@@ -124,10 +125,6 @@ impl TimelineItem {
 /// Each step's header can be rendered as an icon, an image, or a default colored circle,
 /// with an optional ping animation to indicate activity.
 ///
-/// # Props
-///
-/// - `steps` – `RwSignal<Vec<TimelineItem>>` holding the ordered list of timeline entries.
-///
 /// # Example
 ///
 /// ```
@@ -150,9 +147,52 @@ impl TimelineItem {
 /// }
 /// ```
 #[component]
-pub fn Timeline(#[prop(into)] steps: MaybeProp<Vec<TimelineItem>>) -> impl IntoView {
+pub fn Timeline(
+    /// `MaybeProp<Vec<TimelineItem>>` holding the ordered list of timeline entries.
+    #[prop(into)]
+    steps: MaybeProp<Vec<TimelineItem>>,
+
+    /// Root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Each timeline row (icon/dot + connector + content).
+    #[prop(into, optional)]
+    item_class: MaybeProp<String>,
+
+    /// The dot/icon/image head — applies to whichever variant renders.
+    #[prop(into, optional)]
+    dot_class: MaybeProp<String>,
+
+    /// The vertical connector line between items.
+    #[prop(into, optional)]
+    connector_class: MaybeProp<String>,
+
+    /// The content block (time, title, more-info, body).
+    #[prop(into, optional)]
+    content_class: MaybeProp<String>,
+
+    /// The title `<h4>`.
+    #[prop(into, optional)]
+    title_class: MaybeProp<String>,
+
+    /// The time-info `<p>`.
+    #[prop(into, optional)]
+    time_class: MaybeProp<String>,
+) -> impl IntoView {
+    let root_class = tw_merge!("relative", class.get().unwrap_or_default());
+    let item_class_val = item_class.get().unwrap_or_default();
+    let dot_class_val = dot_class.get().unwrap_or_default();
+    let connector_class_val = tw_merge!(
+        "border-[1px] border-primary",
+        connector_class.get().unwrap_or_default()
+    );
+    let content_class_val = tw_merge!("ml-4 mb-4", content_class.get().unwrap_or_default());
+    let title_class_val = tw_merge!("text-primary", title_class.get().unwrap_or_default());
+    let time_class_val = tw_merge!("text-sm", time_class.get().unwrap_or_default());
+
     view! {
-        <div class="relative">
+        <div class=root_class>
             <For
                 each=move || steps.get().unwrap_or_default().into_iter().enumerate()
                 key=|(i, _)| *i
@@ -166,14 +206,15 @@ pub fn Timeline(#[prop(into)] steps: MaybeProp<Vec<TimelineItem>>) -> impl IntoV
                         TimelineStatus::Danger => "bg-danger/50 text-danger",
                         TimelineStatus::Neutral => "bg-primary/50 text-primary",
                     };
+                    let dot_class_val = dot_class_val.clone();
 
                     view! {
-                        <div class="relative flex">
+                        <div class=tw_merge!("relative flex", item_class_val.clone())>
                             <div class="flex flex-col">
                                 {
                                     if let Some(icon_head) = &item.icon_head {
                                         Some(view!{
-                                            <span class="relative flex size-6 cursor-pointer">
+                                            <span class=tw_merge!("relative flex size-6 cursor-pointer", dot_class_val.clone())>
                                                 <span class=format!("absolute inline-flex h-full w-full rounded-full {} {}", if item.display_ping { "animate-ping" } else { "" }, bg_status_classes)></span>
                                                 <span class=format!("relative inline-flex items-center justify-center size-6 rounded-full {}", bg_status_classes)>
                                                     <Icon width="50%" height="50%" icon=icon_head.to_owned() />
@@ -187,7 +228,7 @@ pub fn Timeline(#[prop(into)] steps: MaybeProp<Vec<TimelineItem>>) -> impl IntoV
                                 {
                                     if let Some(image_head) = &item.image_head {
                                         Some(view!{
-                                            <span class="relative flex size-6 cursor-pointer">
+                                            <span class=tw_merge!("relative flex size-6 cursor-pointer", dot_class_val.clone())>
                                                 <span class=format!("absolute inline-flex h-full w-full rounded-full {} {}", if item.display_ping { "animate-ping" } else { "" }, bg_status_classes)></span>
                                                 <span class=format!("relative inline-flex items-center justify-center size-6 rounded-full {}", bg_status_classes)>
                                                     <img alt="timeline-head" src=image_head.to_owned() class="w-full h-full rounded-full object-contain saturate-200" />
@@ -201,7 +242,7 @@ pub fn Timeline(#[prop(into)] steps: MaybeProp<Vec<TimelineItem>>) -> impl IntoV
                                 {
                                     if item.image_head.is_none() && item.icon_head.is_none() {
                                         Some(view!{
-                                            <span class="relative flex size-6 cursor-pointer">
+                                            <span class=tw_merge!("relative flex size-6 cursor-pointer", dot_class_val.clone())>
                                                 <span class=format!("absolute inline-flex h-full w-full rounded-full {} {}", if item.display_ping { "animate-ping" } else { "" }, bg_status_classes)></span>
                                                 <span class=format!("relative inline-flex size-6 rounded-full {}", bg_status_classes)></span>
                                             </span>
@@ -211,13 +252,13 @@ pub fn Timeline(#[prop(into)] steps: MaybeProp<Vec<TimelineItem>>) -> impl IntoV
                                     }
                                 }
                                 <div class="flex justify-center flex-1">
-                                    <div class="border-[1px] border-primary"></div>
+                                    <div class=connector_class_val.clone()></div>
                                 </div>
                             </div>
-                            <div class="ml-4 mb-4">
-                                <p class="text-sm">{item.time_info}</p>
+                            <div class=content_class_val.clone()>
+                                <p class=time_class_val.clone()>{item.time_info}</p>
                                 <div class="text-wrap">
-                                    <h4 class="text-primary">{item.title}<span class="text-sm text-secondary">{
+                                    <h4 class=title_class_val.clone()>{item.title}<span class="text-sm text-secondary">{
                                         item.more_info.as_ref().map(|info| format!(" - {}", info))
                                     }</span></h4>
                                 </div>

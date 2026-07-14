@@ -10,12 +10,6 @@ pub enum SpinnerSize {
 
 /// A loading spinner using an animated SVG circle, with an optional full-screen backdrop.
 ///
-/// # Props
-///
-/// - `size` – `SpinnerSize::Sm`, `Md`, or `Lg` controlling the SVG dimensions and stroke width. Defaults to `Md`.
-/// - `color` – Tailwind text color class applied to the SVG (uses `currentColor`). Defaults to `"text-primary"`.
-/// - `with_backdrop` – When `true`, renders the spinner centered over a fixed full-screen overlay. Defaults to `true`.
-///
 /// # Example
 ///
 /// ```
@@ -31,9 +25,17 @@ pub enum SpinnerSize {
 /// ```
 #[component]
 pub fn Spinner(
-    #[prop(into, optional, default = SpinnerSize::Md)] size: SpinnerSize,
-    #[prop(into, optional, default = "text-primary".to_string())] color: String,
-    #[prop(default = true)] with_backdrop: bool,
+    /// `SpinnerSize::Sm`, `Md`, or `Lg` controlling the SVG dimensions and stroke width. Defaults to `Md`.
+    #[prop(into, optional, default = SpinnerSize::Md)]
+    size: SpinnerSize,
+
+    /// Tailwind text color class applied to the SVG (uses `currentColor`). Defaults to `"text-primary"`.
+    #[prop(into, optional, default = "text-primary".to_string())]
+    color: String,
+
+    /// When `true`, renders the spinner centered over a fixed full-screen overlay. Defaults to `true`.
+    #[prop(default = true)]
+    with_backdrop: bool,
 ) -> impl IntoView {
     let (svg_size, stroke_width) = match size {
         SpinnerSize::Sm => (24, 4),

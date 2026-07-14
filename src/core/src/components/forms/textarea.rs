@@ -1,19 +1,8 @@
 use leptos::html::*;
 use leptos::prelude::*;
+use tailwind_fuse::tw_merge;
 
 /// A textarea input field with an optional label and required indicator.
-///
-/// # Props
-///
-/// - `initial_value` – `Signal<String>` bound to the textarea's content.
-/// - `label` – Text displayed above the textarea. Hidden if empty.
-/// - `name` – `name` attribute for form submission.
-/// - `id_attr` – `id` attribute linking the textarea to its label.
-/// - `required` – Shows a `*` beside the label and sets `required`. Defaults to `false`.
-/// - `readonly` – Sets the `readonly` attribute. Defaults to `false`.
-/// - `placeholder` – Placeholder text shown when the textarea is empty.
-/// - `ext_input_styles` – Additional Tailwind classes applied to the `<textarea>`.
-/// - `input_node_ref` – `NodeRef<Textarea>` for direct DOM access.
 ///
 /// # Example
 ///
@@ -38,20 +27,71 @@ use leptos::prelude::*;
 /// ```
 #[component]
 pub fn Textarea(
-    #[prop(into, optional)] initial_value: Signal<String>,
-    #[prop(into, optional)] label: String,
-    #[prop(into, optional)] name: String,
-    #[prop(optional)] input_node_ref: NodeRef<Textarea>,
-    #[prop(default = false, optional)] readonly: bool,
-    #[prop(default = false, optional)] required: bool,
-    #[prop(into, optional)] placeholder: String,
-    #[prop(into, optional)] ext_input_styles: String,
-    #[prop(into, optional)] id_attr: String,
+    /// `Signal<String>` bound to the textarea's content.
+    #[prop(into, optional)]
+    initial_value: Signal<String>,
+
+    /// Text displayed above the textarea. Hidden if empty.
+    #[prop(into, optional)]
+    label: String,
+
+    /// `name` attribute for form submission.
+    #[prop(into, optional)]
+    name: String,
+
+    /// `NodeRef<Textarea>` for direct DOM access.
+    #[prop(optional)]
+    input_node_ref: NodeRef<Textarea>,
+
+    /// Sets the `readonly` attribute. Defaults to `false`.
+    #[prop(default = false, optional)]
+    readonly: bool,
+
+    /// Shows a `*` beside the label and sets `required`. Defaults to `false`.
+    #[prop(default = false, optional)]
+    required: bool,
+
+    /// Placeholder text shown when the textarea is empty.
+    #[prop(into, optional)]
+    placeholder: String,
+
+    /// **Deprecated**: use `textarea_class` instead.
+    #[prop(into, optional)]
+    ext_input_styles: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the `<textarea>` element itself.
+    #[prop(into, optional)]
+    textarea_class: MaybeProp<String>,
+
+    /// `id` attribute linking the textarea to its label.
+    #[prop(into, optional)]
+    id_attr: String,
+
+    /// Extra Tailwind classes for the root wrapper `<div>`.
+    #[prop(into, optional)]
+    class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the `<label>`.
+    #[prop(into, optional)]
+    label_class: MaybeProp<String>,
 ) -> impl IntoView {
-    // Create reactive state for display_error
+    let wrapper_class_val = move || tw_merge!("box-border", class.get().unwrap_or_default());
+    let label_class_val = move || {
+        tw_merge!(
+            "block text-sm font-bold",
+            label_class.get().unwrap_or_default()
+        )
+    };
+    let textarea_class_val = move || {
+        tw_merge!(
+            "form-input ring-0 shadow-sm appearance-none border border-mid-gray rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow bg-transparent",
+            ext_input_styles.get().unwrap_or_default(),
+            textarea_class.get().unwrap_or_default(),
+        )
+    };
 
     view! {
-        <div class="box-border">
+        <div class=wrapper_class_val>
             {
                 if label.is_empty() {
                     None
@@ -59,7 +99,7 @@ pub fn Textarea(
                     Some(
                         view! {
                             <label
-                                class={format!("block text-sm font-bold")}
+                                class=label_class_val
                                 for=id_attr.clone()
                             >
                                 {label}
@@ -72,10 +112,7 @@ pub fn Textarea(
                 }
             }
             <textarea
-                class=move || format!(
-                    "form-input ring-0 shadow-sm appearance-none border border-mid-gray rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent flex-grow bg-transparent {}",
-                    ext_input_styles
-                )
+                class=textarea_class_val
                 name=name
                 node_ref=input_node_ref
                 readonly=readonly
@@ -86,7 +123,8 @@ pub fn Textarea(
                 {move || initial_value.get()}
             </textarea>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[cfg(test)]
