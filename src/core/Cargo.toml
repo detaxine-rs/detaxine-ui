@@ -37,6 +37,8 @@ hydrate = ["leptos/hydrate"]
 
 [dev-dependencies]
 wasm-bindgen-test = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 leptos_axum = "0.8.10"
 axum = "0.8.9"
 tokio = { version = "1.52.3", features = ["rt-multi-thread", "net", "macros"] }
