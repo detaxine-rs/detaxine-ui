@@ -93,9 +93,9 @@ pub fn Stepper(
     #[prop(into, optional)]
     form_area_class: MaybeProp<String>,
 
-    /// `Signal<bool>` that disables the final button. Defaults to `false`.
-    #[prop(into, optional, default = Signal::derive(|| false))]
-    final_button_is_disabled: Signal<bool>,
+    /// `MaybeProp<bool>` that disables the final button. Defaults to `false`.
+    #[prop(into, optional)]
+    final_button_is_disabled: MaybeProp<bool>,
 
     /// Callback fired when the component is cleaned up.
     #[prop(optional, default = Callback::new(|_| {}))]

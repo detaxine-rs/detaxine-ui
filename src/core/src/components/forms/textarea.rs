@@ -27,9 +27,9 @@ use tailwind_fuse::tw_merge;
 /// ```
 #[component]
 pub fn Textarea(
-    /// `Signal<String>` bound to the textarea's content.
+    /// `MaybeProp<String>` bound to the textarea's content.
     #[prop(into, optional)]
-    initial_value: Signal<String>,
+    initial_value: MaybeProp<String>,
 
     /// Text displayed above the textarea. Hidden if empty.
     #[prop(into, optional)]

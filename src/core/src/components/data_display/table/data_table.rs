@@ -619,14 +619,14 @@ pub fn DataTable(
                                                             Some(TableCellData::Float64(f)) => format!("{:.2}", f).into_any().into_view(),
                                                             Some(TableCellData::Bool(b)) => b.to_string().into_any().into_view(),
                                                             Some(TableCellData::DateTime(dt)) => {
-                                                                match DateTime::parse_from_rfc3339(dt) {
+                                                                match DateTime::parse_from_rfc3339(&dt) {
                                                                     Ok(dt) => dt.format("%d %b %Y").to_string().into_any().into_view(),
                                                                     Err(_) => "Invalid Date".into_any().into_view(),
                                                                 }
                                                             },
                                                             Some(TableCellData::Duration(dt)) => {
                                                                 let utc: DateTime<Utc> = Utc::now();
-                                                                get_elapsed_time(dt, &utc).into_any().into_view()
+                                                                get_elapsed_time(&dt, &utc).into_any().into_view()
                                                             },
                                                             None => "N/A".into_any().into_view(),
                                                         }}

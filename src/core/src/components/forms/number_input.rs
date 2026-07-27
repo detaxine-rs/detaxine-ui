@@ -85,18 +85,18 @@ fn can_step_up(current: i64, max: i64, disabled: bool) -> bool {
 #[component]
 pub fn CustomNumberInput(
     #[prop(into)] name: String,
-    #[prop(optional, default = 0)] initial_value: i64,
+    #[prop(into, optional)] initial_value: MaybeProp<i64>,
     #[prop(optional, default = 0)] min: i64,
     #[prop(optional, default = i64::MAX)] max: i64,
     #[prop(optional, default = 1)] step: i64,
-    #[prop(optional)] on_change: Option<Callback<i64>>,
+    #[prop(optional, default = Callback::new(move |_| {}))] on_change: Callback<i64>,
     #[prop(into, optional)] class: String,
     #[prop(into, optional)] button_class: String,
     #[prop(into, optional)] input_class: String,
-    #[prop(into, optional)] disabled: Signal<bool>,
+    #[prop(into, optional)] disabled: MaybeProp<bool>,
     #[prop(into, optional, default = false)] required: bool,
 ) -> impl IntoView {
-    let clamped_initial = clamp_value(initial_value, min, max);
+    let clamped_initial = clamp_value(initial_value.get().unwrap_or_default(), min, max);
     let opts = NumberInputOptions {
         class: tw_merge!(NumberInputOptions::default().class, class),
         button_class: tw_merge!(NumberInputOptions::default().button_class, button_class),
@@ -113,9 +113,7 @@ pub fn CustomNumberInput(
     // Notify the parent whenever the committed value changes.
     Effect::new(move |_| {
         let val = count.get();
-        if let Some(cb) = on_change {
-            cb.run(val);
-        }
+        on_change.run(val);
     });
 
     let commit = move |raw: i64| {
@@ -124,18 +122,20 @@ pub fn CustomNumberInput(
         set_text.set(clamped.to_string());
     };
 
-    let can_decrement = Memo::new(move |_| can_step_down(count.get(), min, disabled.get()));
-    let can_increment = Memo::new(move |_| can_step_up(count.get(), max, disabled.get()));
+    let can_decrement =
+        Memo::new(move |_| can_step_down(count.get(), min, disabled.get().unwrap_or_default()));
+    let can_increment =
+        Memo::new(move |_| can_step_up(count.get(), max, disabled.get().unwrap_or_default()));
 
     let decrement = move |_| {
-        if disabled.get_untracked() {
+        if disabled.get_untracked().unwrap_or_default() {
             return;
         }
         commit(count.get_untracked().saturating_sub(step));
     };
 
     let increment = move |_| {
-        if disabled.get_untracked() {
+        if disabled.get_untracked().unwrap_or_default() {
             return;
         }
         commit(count.get_untracked().saturating_add(step));
@@ -158,7 +158,7 @@ pub fn CustomNumberInput(
     };
 
     let handle_keydown = move |ev: web_sys::KeyboardEvent| {
-        if disabled.get_untracked() {
+        if disabled.get_untracked().unwrap_or_default() {
             return;
         }
         match ev.key().as_str() {
