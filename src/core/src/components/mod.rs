@@ -2,6 +2,8 @@ pub mod forms {
     pub mod checkbox;
     pub mod datepicker;
     pub mod input;
+    pub mod number_input;
+    pub mod pin_input;
     pub mod radio_input;
     pub mod reactive_form;
     pub mod select;
