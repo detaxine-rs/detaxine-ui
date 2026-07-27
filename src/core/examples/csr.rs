@@ -829,7 +829,7 @@ pub fn App() -> impl IntoView {
                             length=6
                             class="w-full"                       // tw_merge! keeps flex/gap, overrides width
                             digit_class="w-10 h-12 border-red"   // merges with default sizing, replaces color
-                            focused_class="ring-blue-500"        // overrides the default secondary ring
+                            // focused_class="ring-blue-500"        // overrides the default secondary ring
                         />
                     </Section>
 

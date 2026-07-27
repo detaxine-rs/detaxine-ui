@@ -8,7 +8,7 @@ name = "{name}"
 version = "0.1.0"
 edition = "2024"
 [dependencies]
-detaxine-ui = "0.8.43"
+detaxine-ui = "0.8.44"
 leptos = {{ version = "0.8.20", features = ["csr"] }}
 leptos_meta = "0.8.6"
 "#
@@ -34,7 +34,7 @@ edition = "2024"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-detaxine-ui = {{ version = "0.8.43", default-features = false }}
+detaxine-ui = {{ version = "0.8.44", default-features = false }}
 leptos = "0.8.20"
 leptos_router = "0.8.14"
 leptos_meta = "0.8.6"
