@@ -17,6 +17,8 @@ use detaxine_ui::components::feedback::spinner::SpinnerSize;
 use detaxine_ui::components::forms::checkbox::{CheckboxGroup, CheckboxInputField, CheckboxOption};
 use detaxine_ui::components::forms::datepicker::DatePicker;
 use detaxine_ui::components::forms::input::{CustomFileInput, InputField, InputFieldType};
+use detaxine_ui::components::forms::number_input::CustomNumberInput;
+use detaxine_ui::components::forms::pin_input::PinInput;
 use detaxine_ui::components::forms::radio_input::{RadioInputField, RadioInputGroup, RadioOption};
 use detaxine_ui::components::forms::select::{CustomSelectInput, SelectInput, SelectOption};
 use detaxine_ui::components::forms::textarea::Textarea;
@@ -59,6 +61,8 @@ pub fn App() -> impl IntoView {
     let stepper_ref: NodeRef<Div> = NodeRef::new();
     let breadcrumb_ref: NodeRef<Div> = NodeRef::new();
     let richtext_ref: NodeRef<Div> = NodeRef::new();
+    let number_input_ref: NodeRef<Div> = NodeRef::new();
+    let pin_input_ref: NodeRef<Div> = NodeRef::new();
 
     let drawer_open = RwSignal::new(false);
 
@@ -213,6 +217,8 @@ pub fn App() -> impl IntoView {
         ("Stepper", stepper_ref),
         ("Breadcrumbs", breadcrumb_ref),
         ("Rich Text", richtext_ref),
+        ("Custom Number Input", number_input_ref),
+        ("Pin Input", pin_input_ref),
     ];
 
     view! {
@@ -803,6 +809,27 @@ pub fn App() -> impl IntoView {
                     <Section section_ref=breadcrumb_ref label="Breadcrumbs">
                         <Breadcrumbs
                             custom_route_names=["Home", "Components", "Breadcrumbs"]
+                        />
+                    </Section>
+
+                    // Custom Number Input
+                    <Section section_ref=number_input_ref label="Custom Number Input">
+                        <CustomNumberInput
+                            name="quantity"
+                            initial_value=1
+                            min=1
+                            max=99
+                            class="h-[35px] w-[150px]"
+                        />
+                    </Section>
+
+                    <Section section_ref=pin_input_ref label="Pin Input">
+                        <PinInput
+                            name="otp"
+                            length=6
+                            class="w-full"                       // tw_merge! keeps flex/gap, overrides width
+                            digit_class="w-10 h-12 border-red"   // merges with default sizing, replaces color
+                            focused_class="ring-blue-500"        // overrides the default secondary ring
                         />
                     </Section>
 

@@ -10,7 +10,7 @@ js-sys = "0.3.103"
 leptos = { version = "0.8.20", default-features = false }
 leptos_icons = "0.7.1"
 leptos_meta = "0.8.6"
-leptos_router = "0.8.14"
+leptos_router = "0.8.15"
 web-sys = { version = "0.3.103", features = [
     "Storage",
     "File",
@@ -34,17 +34,20 @@ web-sys = { version = "0.3.103", features = [
     "TouchEvent",
     "TouchList",
     "Touch",
+    "ClipboardItem",
+    "ClipboardEvent",
+    "DataTransfer",
 ] }
 wasm-bindgen-futures = "0.4.76"
 gloo = "0.12.0"
 markdown = "1.0.0"
 gloo-file = { version = "0.4.0", features = ["futures"] }
-serde = "1.0.228"
-serde_json = "1.0.150"
-clap = { version = "4.6.1", features = ["derive"] }
+serde = "1.0.229"
+serde_json = "1.0.151"
+clap = { version = "4.6.4", features = ["derive"] }
 inquire = "0.9.4"
 reqwest = { version = "0.13.4", features = ["blocking"] }
-indicatif = "0.18.5"
+indicatif = "0.18.6"
 colored = "3.1.1"
-anyhow = "1.0.103"
+anyhow = "1.0.104"
 wasm-bindgen-test = "0.3.76"

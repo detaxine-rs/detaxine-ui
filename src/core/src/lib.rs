@@ -70,16 +70,8 @@
 //! | [`DatePicker`] | Calendar date picker with min/max and disabled date support |
 //! | [`RichTextEditor`] | Contenteditable rich text editor with formatting toolbar |
 //! | [`ReactiveForm`] | Form wrapper that auto-submits on valid input/change |
-//!
-//! ### Navigation
-//!
-//! | Component | Description |
-//! |---|---|
-//! | [`Breadcrumbs`] | Route-derived breadcrumb trail |
-//! | [`Panel`] | Collapsible panel with clickable title |
-//! | [`Collapse`] | Accordion group of panels |
-//! | [`Tabs`] | Scrollable tabbed view with slot-based content |
-//! | [`Stepper`] | Multi-step form wizard with per-step validation |
+//! | [`CustomNumberInput`] | Quantity stepper with +/- buttons and editable numeric field |
+//! | [`PinInput`] | Multi-digit PIN entry with keyboard navigation and paste support |
 //!
 //! ## Quick Start
 //!
@@ -222,6 +214,57 @@
 //!             <Tab slot><p>"First tab content"</p></Tab>
 //!             <Tab slot><p>"Second tab content"</p></Tab>
 //!         </Tabs>
+//!     }
+//! }
+//! ```
+//!
+//! ### [`CustomNumberInput`]
+//!
+//! ```rust
+//! use leptos::prelude::*;
+//! use detaxine_ui::components::forms::number_input::CustomNumberInput;
+//!
+//! #[component]
+//! fn Example() -> impl IntoView {
+//!     let (value, set_value) = signal(5i64);
+//!
+//!     view! {
+//!         <CustomNumberInput
+//!             name="quantity"
+//!             initial_value=5
+//!             min=0
+//!             max=99
+//!             step=1
+//!             on_change=Callback::new(move |v| set_value.set(v))
+//!             class="w-32"
+//!         />
+//!         <p>"Current value: " {move || value.get()}</p>
+//!     }
+//! }
+//! ```
+//!
+//! ### [`PinInput`]
+//!
+//! ```rust
+//! use leptos::prelude::*;
+//! use detaxine_ui::components::forms::pin_input::PinInput;
+//!
+//! #[component]
+//! fn Example() -> impl IntoView {
+//!     let (pin, set_pin) = signal(String::new());
+//!
+//!     view! {
+//!         <PinInput
+//!             name="otp"
+//!             length=6
+//!             on_complete=Callback::new(move |code| {
+//!                 leptos::logging::log!("PIN complete: {}", code);
+//!                 set_pin.set(code);
+//!             })
+//!             on_change=Callback::new(move |val| set_pin.set(val))
+//!             required=true
+//!         />
+//!         <p>"Entered: " {move || pin.get()}</p>
 //!     }
 //! }
 //! ```
