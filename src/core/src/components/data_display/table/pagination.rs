@@ -27,9 +27,9 @@ use tailwind_fuse::tw_merge;
 /// ```
 #[component]
 pub fn Pagination(
-    /// `Signal<(usize, usize)>` where the tuple is `(current_page, total_pages)`.
+    /// `MaybeProp<(usize, usize)>` where the tuple is `(current_page, total_pages)`.
     #[prop(into)]
-    pagination_state: Signal<(usize, usize)>,
+    pagination_state: MaybeProp<(usize, usize)>,
 
     /// Callback fired with the new page number when a navigation button is
     /// clicked. Defaults to a no-op.
@@ -48,8 +48,8 @@ pub fn Pagination(
     #[prop(into, optional)]
     button_group_class: MaybeProp<String>,
 ) -> impl IntoView {
-    let current_page = Memo::new(move |_| pagination_state.get().0);
-    let total_pages = Memo::new(move |_| pagination_state.get().1);
+    let current_page = Memo::new(move |_| pagination_state.get().unwrap_or_default().0);
+    let total_pages = Memo::new(move |_| pagination_state.get().unwrap_or_default().1);
 
     let next_page = Memo::new(move |_| {
         if current_page.get() < total_pages.get() {
@@ -97,11 +97,11 @@ pub fn Pagination(
                 {
                     let page_info_class_val = page_info_class_val.clone();
                     move || {
-                        if pagination_state.get().1 > 0 {
+                        if pagination_state.get().unwrap_or_default().1 > 0 {
                             Some(
                                 view!{
                                     <span class=page_info_class_val.clone()>
-                                        {move || format!("Page {} of {}", current_page.get(), pagination_state.get().1)}
+                                        {move || format!("Page {} of {}", current_page.get(), pagination_state.get().unwrap_or_default().1)}
                                     </span>
                                 }
                             )

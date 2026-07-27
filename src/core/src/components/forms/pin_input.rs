@@ -72,7 +72,7 @@ pub fn PinInput(
     #[prop(into, optional)] filled_class: String,
     #[prop(optional)] on_complete: Option<Callback<String>>,
     #[prop(optional)] on_change: Option<Callback<String>>,
-    #[prop(into, optional)] disabled: Signal<bool>,
+    #[prop(into, optional)] disabled: MaybeProp<bool>,
     #[prop(into, optional, default = false)] required: bool,
 ) -> impl IntoView {
     let length = length.max(1).min(12);

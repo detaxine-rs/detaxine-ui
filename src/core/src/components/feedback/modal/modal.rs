@@ -83,9 +83,9 @@ pub fn BasicModal(
     #[prop(default = false, optional)]
     disable_primary_close: bool,
 
-    /// `Signal<bool>` that disables the primary button. Defaults to `false`.
-    #[prop(into, default = Signal::derive(move || false), optional)]
-    primary_is_disabled: Signal<bool>,
+    /// `MaybeProp<bool>` that disables the primary button. Defaults to `false`.
+    #[prop(into, optional)]
+    primary_is_disabled: MaybeProp<bool>,
 
     /// Z-index offset for stacking multiple modals. Defaults to `0`.
     #[prop(into, default = 0, optional)]
