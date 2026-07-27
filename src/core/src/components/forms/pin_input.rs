@@ -63,22 +63,22 @@ impl Default for PinInputOptions {
 
 #[component]
 pub fn PinInput(
-    #[prop(into)] name: String,
+    #[prop(into, optional)] name: String,
     #[prop(optional)] length: usize,
-    #[prop(optional)] placeholder: Option<String>,
+    #[prop(into, optional, default = "*".to_string())] placeholder: String,
     #[prop(into, optional)] class: String,
     #[prop(into, optional)] digit_class: String,
     #[prop(into, optional)] focused_class: String,
     #[prop(into, optional)] filled_class: String,
-    #[prop(optional)] on_complete: Option<Callback<String>>,
-    #[prop(optional)] on_change: Option<Callback<String>>,
+    #[prop(optional, default = Callback::new(move |_| {}))] on_complete: Callback<String>,
+    #[prop(optional, default = Callback::new(move |_| {}))] on_change: Callback<String>,
     #[prop(into, optional)] disabled: MaybeProp<bool>,
     #[prop(into, optional, default = false)] required: bool,
 ) -> impl IntoView {
     let length = length.max(1).min(12);
     let opts = PinInputOptions {
         length,
-        placeholder: placeholder.unwrap_or_else(|| "*".to_string()),
+        placeholder,
         class: tw_merge!(PinInputOptions::default().class, class),
         digit_class: tw_merge!(PinInputOptions::default().digit_class, digit_class),
         focused_class: tw_merge!(PinInputOptions::default().focused_class, focused_class),
@@ -103,13 +103,9 @@ pub fn PinInput(
     // Notify parent on change
     Effect::new(move |_| {
         let val = pin_value.get();
-        if let Some(cb) = on_change {
-            cb.run(val.clone());
-        }
+        on_change.run(val.clone());
         if is_pin_complete(&val.chars().collect::<Vec<_>>(), length) {
-            if let Some(cb) = on_complete {
-                cb.run(val);
-            }
+            on_complete.run(val);
         }
     });
 

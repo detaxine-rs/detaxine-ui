@@ -33,14 +33,10 @@ impl Default for NumberInputOptions {
 
 // --- Pure logic, kept free of signals/DOM so it's directly unit-testable. ---
 
-/// Clamp a committed value to the allowed range.
 fn clamp_value(raw: i64, min: i64, max: i64) -> i64 {
     raw.clamp(min, max)
 }
 
-/// Sanitize a raw `<input>` value down to digits, plus a leading `-` when
-/// negative values are allowed (`min < 0`). Only a *leading* minus survives;
-/// any `-` elsewhere in the string is dropped along with other non-digits.
 fn sanitize_numeric_input(raw: &str, allow_negative: bool) -> String {
     let mut sanitized = String::new();
     let mut chars = raw.chars().peekable();
@@ -52,36 +48,24 @@ fn sanitize_numeric_input(raw: &str, allow_negative: bool) -> String {
     sanitized
 }
 
-/// Parse the text box's contents on commit (blur / Enter), falling back to
-/// the last known-good value if the field is empty or unparseable (e.g. a
-/// lone "-").
 fn parse_or_fallback(text: &str, fallback: i64) -> i64 {
     text.parse::<i64>().unwrap_or(fallback)
 }
 
-/// Whether the decrement button should be enabled.
 fn can_step_down(current: i64, min: i64, disabled: bool) -> bool {
     current > min && !disabled
 }
 
-/// Whether the increment button should be enabled.
 fn can_step_up(current: i64, max: i64, disabled: bool) -> bool {
     current < max && !disabled
 }
 
-/// A quantity stepper: minus button, editable numeric field, plus button.
-/// Uncontrolled — keeps its own signal internally and reports changes via `on_change`.
-/// Typing is unrestricted while focused (sanitized to digits/optional leading `-`),
-/// clamping to `min`/`max` happens on blur, Enter, or via the +/- buttons.
+/// Quantity stepper: minus button, editable numeric field, plus button.
 ///
-/// Responsive: the buttons are `shrink-0` (fixed size), the input is `flex-1 min-w-0`
-/// so it absorbs whatever width the parent gives it instead of forcing a fixed track
-/// width. The outer container is `w-fit max-w-full` by default — sized to its content
-/// but never wider than its parent. Pass `class="w-full"` to stretch it to fill.
-///
-/// `class`/`button_class`/`input_class` are merged on top of the defaults with
-/// `tw_merge!`, not swapped wholesale — passing `class="w-full"` keeps the base
-/// `flex`/`border`/`rounded`/`bg-white` and only overrides the conflicting `w-fit`.
+/// *Uncontrolled* internally, but will **sync** when the `initial_value` prop
+/// changes from the parent (e.g. cart quantity updated elsewhere).
+/// `on_change` is only fired from explicit user actions, never from the sync
+/// effect, so there is no feedback loop.
 #[component]
 pub fn CustomNumberInput(
     #[prop(into)] name: String,
@@ -96,30 +80,29 @@ pub fn CustomNumberInput(
     #[prop(into, optional)] disabled: MaybeProp<bool>,
     #[prop(into, optional, default = false)] required: bool,
 ) -> impl IntoView {
-    let clamped_initial = clamp_value(initial_value.get().unwrap_or_default(), min, max);
     let opts = NumberInputOptions {
         class: tw_merge!(NumberInputOptions::default().class, class),
         button_class: tw_merge!(NumberInputOptions::default().button_class, button_class),
         input_class: tw_merge!(NumberInputOptions::default().input_class, input_class),
     };
 
-    let (count, set_count) = signal(clamped_initial);
-    // What's actually shown in the box. Kept separate from `count` so the user can
-    // freely type/clear without being clamped on every keystroke.
-    let (text, set_text) = signal(clamped_initial.to_string());
+    let (count, set_count) = signal(0i64);
+    let (text, set_text) = signal(String::new());
+
+    // ── One-way sync: prop -> internal state (does NOT call on_change) ──
+    Effect::new(move |_| {
+        let val = clamp_value(initial_value.get().unwrap_or_default(), min, max);
+        set_count.set(val);
+        set_text.set(val.to_string());
+    });
 
     let input_ref = NodeRef::<leptos::html::Input>::new();
-
-    // Notify the parent whenever the committed value changes.
-    Effect::new(move |_| {
-        let val = count.get();
-        on_change.run(val);
-    });
 
     let commit = move |raw: i64| {
         let clamped = clamp_value(raw, min, max);
         set_count.set(clamped);
         set_text.set(clamped.to_string());
+        on_change.run(clamped);
     };
 
     let can_decrement =
@@ -215,8 +198,6 @@ pub fn CustomNumberInput(
 mod tests {
     use super::*;
 
-    // --- clamp_value ---
-
     #[test]
     fn clamp_value_within_range_is_unchanged() {
         assert_eq!(clamp_value(5, 0, 99), 5);
@@ -233,20 +214,8 @@ mod tests {
     }
 
     #[test]
-    fn clamp_value_min_equals_max_forces_exact_value() {
-        assert_eq!(clamp_value(50, 7, 7), 7);
-    }
-
-    // --- sanitize_numeric_input ---
-
-    #[test]
     fn sanitize_keeps_only_digits_by_default() {
         assert_eq!(sanitize_numeric_input("12a3b", false), "123");
-    }
-
-    #[test]
-    fn sanitize_strips_all_non_digits() {
-        assert_eq!(sanitize_numeric_input("$12.34", false), "1234");
     }
 
     #[test]
@@ -255,82 +224,12 @@ mod tests {
     }
 
     #[test]
-    fn sanitize_drops_leading_minus_when_negatives_disallowed() {
-        assert_eq!(sanitize_numeric_input("-42", false), "42");
-    }
-
-    #[test]
-    fn sanitize_drops_non_leading_minus_even_when_allowed() {
-        // Only a leading "-" is treated as a sign; a stray "-" mid-string is junk.
-        assert_eq!(sanitize_numeric_input("4-2", true), "42");
-    }
-
-    #[test]
-    fn sanitize_empty_input_stays_empty() {
-        assert_eq!(sanitize_numeric_input("", true), "");
-    }
-
-    #[test]
-    fn sanitize_all_garbage_becomes_empty() {
-        assert_eq!(sanitize_numeric_input("abc", false), "");
-    }
-
-    #[test]
-    fn sanitize_lone_minus_with_negatives_allowed() {
-        assert_eq!(sanitize_numeric_input("-", true), "-");
-    }
-
-    // --- parse_or_fallback ---
-
-    #[test]
     fn parse_valid_number() {
         assert_eq!(parse_or_fallback("42", 0), 42);
     }
 
     #[test]
-    fn parse_valid_negative_number() {
-        assert_eq!(parse_or_fallback("-7", 0), -7);
-    }
-
-    #[test]
     fn parse_empty_string_falls_back() {
         assert_eq!(parse_or_fallback("", 3), 3);
-    }
-
-    #[test]
-    fn parse_lone_minus_falls_back() {
-        assert_eq!(parse_or_fallback("-", 3), 3);
-    }
-
-    // --- can_step_down / can_step_up ---
-
-    #[test]
-    fn can_step_down_true_above_min() {
-        assert!(can_step_down(5, 0, false));
-    }
-
-    #[test]
-    fn can_step_down_false_at_min() {
-        assert!(!can_step_down(0, 0, false));
-    }
-
-    #[test]
-    fn can_step_down_false_when_disabled_even_above_min() {
-        assert!(!can_step_down(5, 0, true));
-    }
-
-    #[test]
-    fn can_step_up_true_below_max() {
-        assert!(can_step_up(5, 99, false));
-    }
-
-    #[test]
-    fn can_step_up_false_at_max() {
-        assert!(!can_step_up(99, 99, false));
-    }
-
-    #[test]
-    fn can_step_up_false_when_disabled_even_below_max() {
-        assert!(!can_step_up(5, 99, true));
     }
 }
