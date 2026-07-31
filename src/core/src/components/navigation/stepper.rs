@@ -201,13 +201,13 @@ pub fn Stepper(
 
     let root_class = move || {
         tw_merge!(
-            "flex flex-col items-center gap-[40px] w-full h-full p-4",
+            "flex flex-col items-center gap-[40px] w-full h-full p-4 overflow-hidden",
             class.get().unwrap_or_default()
         )
     };
     let rail_class_val = move || {
         tw_merge!(
-            "relative flex items-center justify-between w-full",
+            "relative flex items-center justify-between w-full overflow-x-auto shrink-0",
             rail_class.get().unwrap_or_default()
         )
     };
@@ -227,14 +227,14 @@ pub fn Stepper(
     };
     let form_area_class_val = move || {
         tw_merge!(
-            "flex-1 w-full",
+            "flex-1 w-full min-h-0 overflow-y-auto",
             ext_wrapper_styles.get().unwrap_or_default(),
             form_area_class.get().unwrap_or_default()
         )
     };
     let actions_class_val = move || {
         tw_merge!(
-            "mt-auto flex w-full justify-start gap-4",
+            "flex w-full justify-start gap-4 shrink-0",
             actions_class.get().unwrap_or_default()
         )
     };
@@ -255,72 +255,70 @@ pub fn Stepper(
 
     view! {
         <div class=root_class>
-            <div class="relative flex items-center w-full overflow-x-auto">
-                <div class=rail_class_val>
-                    <For
-                        each=move || step_labels.get().into_iter().enumerate()
-                        key=|(index, _)| *index
-                        let:((index, step_label))
-                    >
-                        {
-                            let is_current = move || index == current_step.get();
-                            let step_count_inner = step_count;
-                            let step_class_val = step_class_val.clone();
-                            let step_circle_class_val = step_circle_class_val;
-                            let step_label_class_val = step_label_class_val;
+            <div class=rail_class_val>
+                <For
+                    each=move || step_labels.get().into_iter().enumerate()
+                    key=|(index, _)| *index
+                    let:((index, step_label))
+                >
+                    {
+                        let is_current = move || index == current_step.get();
+                        let step_count_inner = step_count;
+                        let step_class_val = step_class_val.clone();
+                        let step_circle_class_val = step_circle_class_val;
+                        let step_label_class_val = step_label_class_val;
 
-                            view! {
-                                <div
-                                    on:click=move |_| {
-                                        if next_is_disabled.get() {
-                                            return;
-                                        }
-                                        set_current_step.update(|step| *step = index);
-                                        let form_refs = form_refs.get();
-                                        send_all_form_refs.run(form_refs);
+                        view! {
+                            <div
+                                on:click=move |_| {
+                                    if next_is_disabled.get() {
+                                        return;
                                     }
-                                    class=step_class_val
-                                >
-                                    <div class=move || tw_merge!(
-                                        format!(
-                                            "w-8 h-8 flex items-center justify-center rounded-full text-sm {}",
-                                            if is_current() { "bg-primary text-contrast-white" } else { "bg-light-gray" }
-                                        ),
-                                        step_circle_class_val.get().unwrap_or_default()
-                                    )>
-                                        {if step_label.icon.is_none() {
-                                            Some(index + 1)
-                                        } else {
-                                            None
-                                        }}
-                                        {if let Some(icon) = step_label.icon {
-                                            Some(view! { <Icon icon=icon /> })
-                                        } else {
-                                            None
-                                        }}
-                                    </div>
-                                    <div class=move || tw_merge!(
-                                        format!(
-                                            "text-sm {}",
-                                            if is_current() { "font-bold text-primary" } else { "hidden md:flex" }
-                                        ),
-                                        step_label_class_val.get().unwrap_or_default()
-                                    )>
-                                        {step_label.label.clone()}
-                                    </div>
+                                    set_current_step.update(|step| *step = index);
+                                    let form_refs = form_refs.get();
+                                    send_all_form_refs.run(form_refs);
+                                }
+                                class=step_class_val
+                            >
+                                <div class=move || tw_merge!(
+                                    format!(
+                                        "w-8 h-8 flex items-center justify-center rounded-full text-sm {}",
+                                        if is_current() { "bg-primary text-contrast-white" } else { "bg-light-gray" }
+                                    ),
+                                    step_circle_class_val.get().unwrap_or_default()
+                                )>
+                                    {if step_label.icon.is_none() {
+                                        Some(index + 1)
+                                    } else {
+                                        None
+                                    }}
+                                    {if let Some(icon) = step_label.icon {
+                                        Some(view! { <Icon icon=icon /> })
+                                    } else {
+                                        None
+                                    }}
                                 </div>
+                                <div class=move || tw_merge!(
+                                    format!(
+                                        "text-sm {}",
+                                        if is_current() { "font-bold text-primary" } else { "hidden md:flex" }
+                                    ),
+                                    step_label_class_val.get().unwrap_or_default()
+                                )>
+                                    {step_label.label.clone()}
+                                </div>
+                            </div>
 
-                                {if index < step_count_inner - 1 {
-                                    Some(view! {
-                                        <div class=connector_class_val.clone() />
-                                    })
-                                } else {
-                                    None
-                                }}
-                            }
+                            {if index < step_count_inner - 1 {
+                                Some(view! {
+                                    <div class=connector_class_val.clone() />
+                                })
+                            } else {
+                                None
+                            }}
                         }
-                    </For>
-                </div>
+                    }
+                </For>
             </div>
             <div on:submit=handle_step_form_submit class=form_area_class_val>
             {
