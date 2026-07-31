@@ -2,8 +2,6 @@ use leptos::{prelude::*, wasm_bindgen::JsCast};
 use tailwind_fuse::tw_merge;
 use web_sys::HtmlInputElement;
 
-// --- Pure logic, kept free of signals/DOM so it's directly unit-testable. ---
-
 /// Extract only ASCII digits from a string.
 fn extract_digits(raw: &str) -> String {
     raw.chars().filter(|c| c.is_ascii_digit()).collect()
