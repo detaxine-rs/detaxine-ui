@@ -14,6 +14,7 @@ use detaxine_ui::components::feedback::progress::{
 };
 use detaxine_ui::components::feedback::spinner::Spinner;
 use detaxine_ui::components::feedback::spinner::SpinnerSize;
+use detaxine_ui::components::feedback::tooltip::Tooltip;
 use detaxine_ui::components::forms::checkbox::{CheckboxGroup, CheckboxInputField, CheckboxOption};
 use detaxine_ui::components::forms::datepicker::DatePicker;
 use detaxine_ui::components::forms::input::{CustomFileInput, InputField, InputFieldType};
@@ -63,6 +64,7 @@ pub fn App() -> impl IntoView {
     let richtext_ref: NodeRef<Div> = NodeRef::new();
     let number_input_ref: NodeRef<Div> = NodeRef::new();
     let pin_input_ref: NodeRef<Div> = NodeRef::new();
+    let tooltip_ref: NodeRef<Div> = NodeRef::new();
 
     let drawer_open = RwSignal::new(false);
 
@@ -219,6 +221,7 @@ pub fn App() -> impl IntoView {
         ("Rich Text", richtext_ref),
         ("Custom Number Input", number_input_ref),
         ("Pin Input", pin_input_ref),
+        ("Tooltip", tooltip_ref),
     ];
 
     view! {
@@ -831,6 +834,13 @@ pub fn App() -> impl IntoView {
                             digit_class="w-10 h-12 border-red"   // merges with default sizing, replaces color
                             // focused_class="ring-blue-500"        // overrides the default secondary ring
                         />
+                    </Section>
+
+                    <Section section_ref=tooltip_ref label="Tooltip">
+                        <Tooltip display_item=|| view! { <BasicButton button_text="Hover me"
+                            class="bg-primary text-white hover:bg-secondary" /> }>
+                            "Helpful context goes here. Can you see it?"
+                        </Tooltip>
                     </Section>
 
                     // Rich Text Editor

@@ -30,6 +30,7 @@ pub mod feedback {
     pub mod popover;
     pub mod progress;
     pub mod spinner;
+    pub mod tooltip;
 }
 
 pub mod content {
