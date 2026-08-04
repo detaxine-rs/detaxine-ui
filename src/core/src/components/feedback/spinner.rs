@@ -1,6 +1,10 @@
-use leptos::prelude::*;
+use crate::stacks::{
+    helper::overlay_root,
+    z_stack::{ZONE_CRITICAL, expect_z_stack},
+};
+use leptos::{portal::Portal, prelude::*};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)] // added Copy — same reasoning as Position
 #[allow(dead_code)]
 pub enum SpinnerSize {
     Sm,
@@ -42,56 +46,53 @@ pub fn Spinner(
         SpinnerSize::Md => (48, 6),
         SpinnerSize::Lg => (72, 8),
     };
-
     let center = svg_size / 2;
     let radius = (svg_size / 2 - stroke_width / 2) as f64;
     let circumference = 2.0 * std::f64::consts::PI * radius;
 
-    let spinner = view! {
-        <svg
-            class=format!("{} animate-spin", color)
-            width=svg_size
-            height=svg_size
-            viewBox=format!("0 0 {} {}", svg_size, svg_size)
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-        >
-            <circle
-                cx=center
-                cy=center
-                r=radius
-                stroke="currentColor"
-                stroke-width=stroke_width
-                stroke-linecap="round"
-                stroke-dasharray=circumference
-                stroke-dashoffset={circumference * 0.75}
-                class="opacity-25"
-            />
-            <circle
-                cx=center
-                cy=center
-                r=radius
-                stroke="currentColor"
-                stroke-width=stroke_width
-                stroke-linecap="round"
-                stroke-dasharray=circumference
-                stroke-dashoffset={circumference * 0.25}
-                class="opacity-75"
-            />
-        </svg>
-    }
-    .into_any();
+    // build_spinner is Fn (Copy, even) — everything it captures is a
+    // plain stack value (i32/f64/String-by-ref-clone), so it can be
+    // called repeatedly instead of constructing the AnyView once
+    let build_spinner = StoredValue::new(move || {
+        view! {
+            <svg
+                class=format!("{} animate-spin", color)
+                width=svg_size
+                height=svg_size
+                viewBox=format!("0 0 {} {}", svg_size, svg_size)
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <circle cx=center cy=center r=radius stroke="currentColor" stroke-width=stroke_width
+                    stroke-linecap="round" stroke-dasharray=circumference
+                    stroke-dashoffset={circumference * 0.75} class="opacity-25" />
+                <circle cx=center cy=center r=radius stroke="currentColor" stroke-width=stroke_width
+                    stroke-linecap="round" stroke-dasharray=circumference
+                    stroke-dashoffset={circumference * 0.25} class="opacity-75" />
+            </svg>
+        }
+    });
 
     if with_backdrop {
+        let z_stack = expect_z_stack();
+        let (_, z) = z_stack.acquire_pair(ZONE_CRITICAL);
+
         view! {
-            <div class="fixed inset-0 bg-light-gray opacity-50 flex items-center justify-center z-50">
-                {spinner}
-            </div>
-        }.into_any()
+                {move || overlay_root().map(|root| view! {
+                    <Portal mount=root>
+                        <div
+                            class="fixed inset-0 bg-light-gray opacity-50 flex items-center justify-center"
+                            style=format!("z-index: {}", z)
+                        >
+                            {build_spinner.get_value()()}
+                        </div>
+                    </Portal>
+                })}
+            }.into_any()
     } else {
         view! {
             <div class="flex items-center justify-center">
-                {spinner}
+                {build_spinner.get_value()()}
             </div>
         }
         .into_any()
