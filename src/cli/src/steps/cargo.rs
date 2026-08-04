@@ -8,7 +8,7 @@ name = "{name}"
 version = "0.1.0"
 edition = "2024"
 [dependencies]
-detaxine-ui = "0.8.48"
+detaxine-ui = "0.8.49"
 leptos = {{ version = "0.8.20", features = ["csr"] }}
 leptos_meta = "0.8.6"
 "#
@@ -34,7 +34,7 @@ edition = "2024"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-detaxine-ui = {{ version = "0.8.48", default-features = false }}
+detaxine-ui = {{ version = "0.8.49", default-features = false }}
 leptos = "0.8.20"
 leptos_router = "0.8.14"
 leptos_meta = "0.8.6"
@@ -91,7 +91,7 @@ lib-profile-release = "wasm-release"
 
 pub fn write_main(name: &str) -> Result<()> {
     let contents = r#"use leptos::prelude::*;
-use leptos_meta::Stylesheet;
+use leptos_meta::{MetaTags, Stylesheet, Title, provide_meta_context};
 use detaxine_ui::{
     components::{
         actions::button::{BasicButton, ButtonGroup},
@@ -99,8 +99,13 @@ use detaxine_ui::{
     },
     icondata::{AiCheckCircleOutlined, BsXCircle},
 };
+use detaxine_ui::stacks::z_stack::provide_z_stack;
+
 #[component]
 fn App() -> impl IntoView {
+    provide_z_stack();
+    provide_meta_context();
+
     view! {
         <Stylesheet id="leptos" href="/style/output.css"/>
         <h1>"Hello from detaxine-ui!"</h1>
@@ -211,6 +216,7 @@ use detaxine_ui::{{
     }},
     icondata::{{AiCheckCircleOutlined, BsXCircle}},
 }};
+use detaxine_ui::stacks::z_stack::provide_z_stack;
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {{
     view! {{
@@ -233,6 +239,8 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {{
 #[component]
 pub fn App() -> impl IntoView {{
     provide_meta_context();
+    provide_z_stack();
+
     view! {{
         <Stylesheet id="leptos" href="/pkg/{crate_ident}.css"/>
         <Title text="detaxine-ui"/>
