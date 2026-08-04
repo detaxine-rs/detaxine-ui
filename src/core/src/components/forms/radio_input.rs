@@ -1,13 +1,12 @@
-use leptos::ev;
 use leptos::prelude::*;
 use tailwind_fuse::tw_merge;
 
 /// Represents a single radio option with a value and display text.
-/// You can also provide custom children for complex rendering (e.g., with icons).
 #[derive(Clone)]
 pub struct RadioOption {
     pub value: String,
     pub label: String,
+    /// **Deprecated**: this will be removed in a future version. For now, it will be ignored.
     pub children: Option<ViewFn>,
 }
 
@@ -32,7 +31,7 @@ impl RadioOption {
     }
 }
 
-/// A single radio input with an associated label and optional custom children content.
+/// A single radio input with an associated label, rendered identically across browsers.
 ///
 /// # Example
 ///
@@ -65,11 +64,11 @@ pub fn RadioInputField(
     #[prop(default = false, optional)]
     required: bool,
 
-    /// Pre-selects this option. Defaults to `false`.
-    #[prop(optional, default = false)]
-    is_selected: bool,
+    /// Accepts a `bool`, `Signal<bool>`, or `RwSignal<bool>`. Defaults to `false`.
+    #[prop(into, default = MaybeProp::derive(move || Some(false)), optional)]
+    is_selected: MaybeProp<bool>,
 
-    /// Optional `ViewFn` rendered below the label (e.g. an icon or description).
+    /// **Deprecated**: this will be removed in a future version. For now, it will be ignored.
     #[prop(optional)]
     children: Option<ViewFn>,
 
@@ -88,17 +87,27 @@ pub fn RadioInputField(
     /// Extra Tailwind classes for the label text `<span>`.
     #[prop(into, optional)]
     label_text_class: MaybeProp<String>,
+
+    /// Extra Tailwind classes for the visible circle (the custom radio "box").
+    #[prop(into, optional)]
+    box_class: MaybeProp<String>,
 ) -> impl IntoView {
+    // deprecated & ignored, kept only so existing callers still compile
+    let _ = children;
+
     let label_class_val = move || {
         tw_merge!(
             "inline-flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded",
             class.get().unwrap_or_default()
         )
     };
-    let input_class_val = move || {
+    // the real input: visually hidden, still focusable/tabbable/submittable
+    let input_class_val = move || tw_merge!("peer sr-only", input_class.get().unwrap_or_default());
+    // the fake circle painted entirely by us — identical in every browser
+    let box_class_val = move || {
         tw_merge!(
-            "leading-tight size-5 rounded-full border-2 border-mid-gray text-secondary shadow-sm focus:outline-none focus:ring-0 focus:border-secondary checked:bg-secondary checked:border-secondary accent-secondary",
-            input_class.get().unwrap_or_default()
+            "relative flex items-center justify-center size-5 shrink-0 rounded-full border-2 border-mid-gray bg-transparent transition-colors peer-checked:border-secondary peer-checked:[&>span]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-secondary peer-focus-visible:ring-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed",
+            box_class.get().unwrap_or_default()
         )
     };
     let label_text_class_val = move || tw_merge!("", label_text_class.get().unwrap_or_default());
@@ -114,9 +123,11 @@ pub fn RadioInputField(
                 id=id_attr.clone()
                 required=required
             />
+            <span class=box_class_val aria-hidden="true">
+                <span class="w-2/3 h-2/3 rounded-full bg-secondary opacity-0 transition-opacity"></span>
+            </span>
             <div class="flex flex-col">
                 <span class=label_text_class_val>{label}</span>
-                {children.map(|children| children.run())}
             </div>
         </label>
     }
@@ -170,10 +181,6 @@ pub fn RadioInputGroup(
     #[prop(default = false, optional)]
     required: bool,
 
-    /// Callback fired when the selected value changes.
-    #[prop(optional, default = Callback::new(|_| {}))]
-    oninput: Callback<ev::Event>,
-
     /// When `true`, renders options in a row. Defaults to `false`.
     #[prop(default = false, optional)]
     horizontal: bool,
@@ -194,7 +201,7 @@ pub fn RadioInputGroup(
     #[prop(into, optional)]
     option_label_class: MaybeProp<String>,
 
-    /// Additional Tailwind classes for each `<input type="radio">`
+    /// Additional Tailwind classes for each option's visible circle
     #[prop(into, optional)]
     input_class: MaybeProp<String>,
 
@@ -260,24 +267,17 @@ pub fn RadioInputGroup(
                         let option_text_class_val = option_text_class_val.clone();
 
                         view! {
-                            <label class=option_label_class_val>
-                                <input
-                                    class=input_class_val
-                                    type="radio"
-                                    name=name.clone()
-                                    value=option_value.clone()
-                                    id=option_value.clone()
-                                    checked=is_selected
-                                    required=required
-                                    on:input=move |ev| {
-                                        oninput.run(ev);
-                                    }
-                                />
-                                <div class="flex flex-col">
-                                    <span class=option_text_class_val>{option.label}</span>
-                                    {option.children.map(|children| children.run())}
-                                </div>
-                            </label>
+                            <RadioInputField
+                                initial_value=option_value.clone()
+                                name=name.clone()
+                                label=option.label.clone()
+                                required=required
+                                is_selected=Signal::derive(is_selected)
+                                id_attr=option_value.clone()
+                                class=Signal::derive(option_label_class_val)
+                                box_class=Signal::derive(input_class_val)
+                                label_text_class=Signal::derive(option_text_class_val)
+                            />
                         }
                     })
                     .collect_view()}
