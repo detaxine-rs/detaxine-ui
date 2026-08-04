@@ -91,7 +91,7 @@ lib-profile-release = "wasm-release"
 
 pub fn write_main(name: &str) -> Result<()> {
     let contents = r#"use leptos::prelude::*;
-use leptos_meta::Stylesheet;
+use leptos_meta::{MetaTags, Stylesheet, Title, provide_meta_context};
 use detaxine_ui::{
     components::{
         actions::button::{BasicButton, ButtonGroup},
@@ -99,8 +99,13 @@ use detaxine_ui::{
     },
     icondata::{AiCheckCircleOutlined, BsXCircle},
 };
+use detaxine_ui::stacks::z_stack::provide_z_stack;
+
 #[component]
 fn App() -> impl IntoView {
+    provide_z_stack();
+    provide_meta_context();
+
     view! {
         <Stylesheet id="leptos" href="/style/output.css"/>
         <h1>"Hello from detaxine-ui!"</h1>
@@ -211,6 +216,7 @@ use detaxine_ui::{{
     }},
     icondata::{{AiCheckCircleOutlined, BsXCircle}},
 }};
+use detaxine_ui::stacks::z_stack::provide_z_stack;
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {{
     view! {{
@@ -233,6 +239,8 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {{
 #[component]
 pub fn App() -> impl IntoView {{
     provide_meta_context();
+    provide_z_stack();
+
     view! {{
         <Stylesheet id="leptos" href="/pkg/{crate_ident}.css"/>
         <Title text="detaxine-ui"/>

@@ -34,6 +34,7 @@ use detaxine_ui::components::navigation::breadcrumbs::Breadcrumbs;
 use detaxine_ui::components::navigation::stepper::{Step, StepInfo, Stepper};
 use detaxine_ui::components::navigation::tabs::{Tab, TabLabel, Tabs};
 use detaxine_ui::components::schemas::props::ColorTemperature;
+use detaxine_ui::stacks::z_stack::provide_z_stack;
 use icondata::{AiCheckCircleOutlined, BsXCircle};
 use std::collections::{HashMap, HashSet};
 
@@ -58,6 +59,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
+    provide_z_stack();
     view! {
         <Stylesheet id="leptos" href="/pkg/ssr_check.css"/>
         <Title text="detaxine-ui SSR check"/>
