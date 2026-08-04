@@ -44,7 +44,7 @@ markdown = "1.0.0"
 gloo-file = { version = "0.4.0", features = ["futures"] }
 serde = "1.0.229"
 serde_json = "1.0.151"
-clap = { version = "4.6.4", features = ["derive"] }
+clap = { version = "4.6.5", features = ["derive"] }
 inquire = "0.9.4"
 reqwest = { version = "0.13.4", features = ["blocking"] }
 indicatif = "0.18.6"

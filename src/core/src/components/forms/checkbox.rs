@@ -10,6 +10,7 @@ use tailwind_fuse::tw_merge;
 pub struct CheckboxOption {
     pub value: String,
     pub label: String,
+    /// **Deprecated**: this will be removed in a future version. For now, it will be ignored.
     pub children: Option<ViewFn>,
 }
 
@@ -119,6 +120,9 @@ pub fn CheckboxInputField(
     /// `autocomplete` attribute. Defaults to `"off"`.
     #[prop(into, optional, default = "off".to_string())]
     autocomplete: String,
+    /// Extra Tailwind classes for the custom checkbox "box" (the visible square).
+    #[prop(into, optional)]
+    box_class: MaybeProp<String>,
 ) -> impl IntoView {
     let root_class = move || {
         tw_merge!(
@@ -127,16 +131,24 @@ pub fn CheckboxInputField(
             class.get().unwrap_or_default()
         )
     };
+    // the real input: visually hidden, still focusable/tabbable/submittable
     let input_class_val = move || {
         tw_merge!(
-            "leading-tight size-5 shrink-0 rounded-[5px] border-2 border-mid-gray text-secondary shadow-sm focus:outline-none focus:ring-0 bg-transparent focus:border-secondary checked:bg-secondary checked:border-secondary accent-secondary",
+            "peer sr-only",
             ext_input_styles.get().unwrap_or_default(),
             input_class.get().unwrap_or_default()
         )
     };
+    // the fake box painted entirely by us — identical in every browser
+    let box_class_val = move || {
+        tw_merge!(
+            "relative flex items-center justify-center size-7 shrink-0 rounded-[5px] border-2 border-mid-gray bg-transparent transition-colors peer-checked:bg-secondary peer-checked:border-secondary peer-checked:[&>svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-secondary peer-focus-visible:ring-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed",
+            box_class.get().unwrap_or_default()
+        )
+    };
     let label_wrapper_class_val = move || {
         tw_merge!(
-            "inline-flex items-start gap-2",
+            "inline-flex items-center gap-2 cursor-pointer",
             label_wrapper_class.get().unwrap_or_default()
         )
     };
@@ -144,10 +156,7 @@ pub fn CheckboxInputField(
 
     view! {
         <div class=root_class>
-            <label
-                class=label_wrapper_class_val
-                for=id_attr.clone()
-            >
+            <label class=label_wrapper_class_val for=id_attr.clone()>
                 <input
                     class=input_class_val
                     type="checkbox"
@@ -161,6 +170,22 @@ pub fn CheckboxInputField(
                     required=required
                     checked=checked
                 />
+                <span class=box_class_val aria-hidden="true">
+                    <svg
+                        class="w-3/5 h-3/5 opacity-0 transition-opacity text-white"
+                        viewBox="0 0 12 10"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <path
+                            d="M1 5L4.5 8.5L11 1.5"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </span>
                 <div class="flex flex-col">
                     <span class=label_class_val>{label}</span>
                 </div>
@@ -255,7 +280,7 @@ pub fn CheckboxGroup(
     #[prop(into, optional)]
     option_label_class: MaybeProp<String>,
 
-    /// Extra Tailwind classes for each option's text `<span>`.
+    /// **Deprecated**: this will be removed in a future version. For now, it will be ignored.
     #[prop(into, optional)]
     option_text_class: MaybeProp<String>,
 ) -> impl IntoView {
@@ -283,14 +308,14 @@ pub fn CheckboxGroup(
     };
     let option_label_class_val = move || {
         tw_merge!(
-            "flex gap-2 text-sm cursor-pointer",
+            "inline-flex gap-2 items-center text-sm cursor-pointer",
             option_label_class.get().unwrap_or_default()
         )
     };
     let option_text_class_val = move || tw_merge!("", option_text_class.get().unwrap_or_default());
     let input_class_val = move || {
         tw_merge!(
-            "leading-tight shrink-0 size-5 rounded-[5px] border-2 border-mid-gray text-secondary shadow-sm focus:outline-none focus:ring-0 focus:border-secondary bg-transparent checked:bg-secondary checked:border-secondary accent-secondary mt-0.5",
+            "leading-tight shrink-0 size-7 rounded-[5px] border-2 border-mid-gray text-secondary shadow-sm focus:outline-none focus:ring-0 focus:border-secondary bg-transparent checked:bg-secondary checked:border-secondary accent-secondary mt-0.5",
             ext_input_styles.get().unwrap_or_default(),
             input_class.get().unwrap_or_default()
         )
@@ -305,46 +330,38 @@ pub fn CheckboxGroup(
                 })}
             </legend>
             <div class=container_class_val>
-                {move || options.get()
-                    .into_iter()
-                    .map(|option| {
-                        let option_value = option.value.clone();
-                        let option_value_checked = option.value.clone();
-                        let is_checked = move || selected_values.get().contains(&option_value_checked);
-                        let option_id = format!("{}-{}", name, option_value);
-                        let option_label_class_val = option_label_class_val.clone();
-                        let option_text_class_val = option_text_class_val.clone();
-                        let input_class_val = input_class_val.clone();
+            {move || options.get()
+                .into_iter()
+                .map(|option| {
+                    let option_value = option.value.clone();
+                    let option_value_checked = option.value.clone();
+                    let is_checked = move || selected_values.get().contains(&option_value_checked);
+                    let option_id = format!("{}-{}", name, option_value);
+                    let option_label_class_val = option_label_class_val.clone();
+                    let option_text_class_val = option_text_class_val.clone();
+                    let input_class_val = input_class_val.clone();
 
-                        view! {
-                            <div>
-                                <label
-                                    class=option_label_class_val
-                                    for=option_id.clone()
-                                >
-                                    <input
-                                        class=input_class_val
-                                        type="checkbox"
-                                        value=option_value.clone()
-                                        name=name.clone()
-                                        checked=is_checked
-                                        readonly=readonly
-                                        autocomplete=autocomplete.clone()
-                                        id=option_id.clone()
-                                        required=required
-                                    />
-                                    <div class="flex flex-col">
-                                        <span class=option_text_class_val>{option.label}</span>
-                                        {option.children.map(|child| child.run())}
-                                    </div>
-                                </label>
-                            </div>
-                        }
-                    })
-                    .collect_view()}
+                    view! {
+                        <CheckboxInputField
+                            initial_value=option_value.clone()
+                            name=name.clone()
+                            checked=Signal::derive(is_checked)
+                            readonly=readonly
+                            autocomplete=autocomplete.clone()
+                            id_attr=option_id.clone()
+                            required=required
+                            box_class=Signal::derive(input_class_val)
+                            label=option.label.clone()
+                            label_wrapper_class=Signal::derive(option_label_class_val)
+                            label_class=Signal::derive(option_text_class_val)
+                        />
+                    }
+                })
+                .collect_view()}
             </div>
         </fieldset>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[cfg(test)]
