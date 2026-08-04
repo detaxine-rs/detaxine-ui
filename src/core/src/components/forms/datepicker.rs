@@ -1,5 +1,7 @@
 use crate::components::actions::button::BasicButton;
 use crate::components::forms::input::{InputField, InputFieldType};
+use crate::stacks::helper::overlay_root;
+use crate::stacks::z_stack::{ZONE_NESTED_FLOATING, expect_z_stack};
 use crate::utils::forms::fire_bubbled_and_cancelable_event;
 use chrono::Local;
 use chrono::{DateTime, Datelike, Duration, NaiveDate, TimeZone, Weekday};
@@ -7,9 +9,19 @@ use icondata::BsCalendar2Date;
 use icondata::{BiChevronLeftRegular, BiChevronRightRegular};
 use leptos::ev;
 use leptos::html::*;
-use leptos::prelude::*;
+use leptos::{portal::Portal, prelude::*};
 use tailwind_fuse::tw_merge;
 use web_sys::HtmlInputElement;
+
+const GAP: f64 = 4.0;
+const PANEL_WIDTH: f64 = 300.0;
+
+#[derive(Clone, Copy, Default)]
+struct PanelPos {
+    top: f64,
+    left: f64,
+    visible: bool,
+}
 
 /// A date picker with a calendar popup, supporting min/max constraints and explicitly disabled dates.
 ///
@@ -87,6 +99,13 @@ pub fn DatePicker(
 ) -> impl IntoView {
     let (show_calendar, set_show_calendar) = signal(false);
     let (selected_date, set_selected_date) = signal(None);
+    let disabled_dates = StoredValue::new(disabled_dates);
+
+    let trigger_ref = NodeRef::<Div>::new();
+    let panel_ref = NodeRef::<Div>::new();
+    let panel_pos = RwSignal::new(PanelPos::default());
+    let z_stack = expect_z_stack();
+    let z_index = RwSignal::new(ZONE_NESTED_FLOATING);
 
     let selected_date_value = Memo::new(move |_| {
         selected_date
@@ -109,16 +128,67 @@ pub fn DatePicker(
         set_selected_date.set(provided_initial_date);
     });
 
+    // Pass 2: panel is mounted (offscreen/hidden), measure its real
+    // height and decide whether it fits below the trigger or must flip up.
+    let measure_and_place = StoredValue::new(move || {
+        let (Some(trigger), Some(panel)) = (trigger_ref.get_untracked(), panel_ref.get_untracked())
+        else {
+            return;
+        };
+        let Some(win) = web_sys::window() else { return };
+
+        let t = trigger.get_bounding_client_rect();
+        let p = panel.get_bounding_client_rect();
+        let vh = win
+            .inner_height()
+            .unwrap_or_default()
+            .as_f64()
+            .unwrap_or(667.0);
+        let vw = win
+            .inner_width()
+            .unwrap_or_default()
+            .as_f64()
+            .unwrap_or(375.0);
+
+        let fits_below = t.bottom() + GAP + p.height() <= vh;
+        let top = if fits_below {
+            t.bottom() + GAP
+        } else {
+            (t.top() - GAP - p.height()).max(GAP)
+        };
+
+        let left = (t.left()).min(vw - PANEL_WIDTH - GAP).max(GAP);
+
+        panel_pos.set(PanelPos {
+            top,
+            left,
+            visible: true,
+        });
+    });
+
     let toggle_calendar = Callback::new(move |_| {
         set_show_calendar.update(|val| *val = !*val);
+        if show_calendar.get_untracked() {
+            z_stack.lock_scroll();
+            let (_, z) = z_stack.acquire_pair(ZONE_NESTED_FLOATING);
+            z_index.set(z);
+            panel_pos.set(PanelPos {
+                top: 0.0,
+                left: 0.0,
+                visible: false,
+            });
+            request_animation_frame(move || measure_and_place.get_value()());
+        } else {
+            z_stack.unlock_scroll();
+        }
     });
 
     let select_date = Callback::new(move |date: DateTime<Local>| {
         set_selected_date.set(Some(date));
         set_show_calendar.set(false);
+        z_stack.unlock_scroll();
 
         let date_str = date.to_rfc3339();
-
         if let Some(el) = input_node_ref.get() as Option<HtmlInputElement> {
             el.set_value(&date_str);
             fire_bubbled_and_cancelable_event("input", true, true, &el);
@@ -127,12 +197,30 @@ pub fn DatePicker(
     });
 
     let root_class = move || tw_merge!("relative", class.get().unwrap_or_default());
+
     let calendar_panel_class_val = move || {
         tw_merge!(
-            "absolute bg-slate-50 rounded shadow-lg z-10 w-[300px] max-h-[400px] overflow-auto",
+            "fixed bg-slate-50 rounded shadow-lg w-[300px] max-h-[400px] overflow-auto",
             calendar_panel_class.get().unwrap_or_default()
         )
     };
+
+    let calendar_panel_style = move || {
+        let pos = panel_pos.get();
+        format!(
+            "top: {}px; left: {}px; z-index: {}; visibility: {};",
+            pos.top,
+            pos.left,
+            z_index.get(),
+            if pos.visible { "visible" } else { "hidden" }
+        )
+    };
+
+    on_cleanup(move || {
+        if show_calendar.get_untracked() {
+            z_stack.unlock_scroll();
+        }
+    });
 
     view! {
         <div class=root_class>
@@ -145,33 +233,44 @@ pub fn DatePicker(
                 id_attr=id_attr.clone()
                 input_node_ref=input_node_ref
             />
-            <InputField
-                readonly=true
-                required=required
-                label=label
-                on:click=move |ev: ev::MouseEvent| toggle_calendar.run(ev)
-                initial_value=selected_date_display_value
-                field_type=InputFieldType::Text
-                id_attr=format!("{id_attr}-display")
-                onblur=Callback::new(move |_| set_show_calendar.set(false))
-                icon=BsCalendar2Date
-                icon_is_leading=false
-            />
-            {move || show_calendar.get().then(|| view! {
-                <div
-                    on:mousedown=|e: ev::MouseEvent| e.prevent_default()
-                    class=calendar_panel_class_val.clone()
-                >
-                    <Calendar
-                        select_date=select_date
-                        initial_selected=selected_date.get()
-                        min=min
-                        max=max
-                        disabled_dates=disabled_dates.clone()
-                        button_class=calendar_class
-                    />
-                </div>
-            })}
+            <div node_ref=trigger_ref>
+                <InputField
+                    readonly=true
+                    required=required
+                    label=label
+                    on:click=move |ev: ev::MouseEvent| toggle_calendar.run(ev)
+                    initial_value=selected_date_display_value
+                    field_type=InputFieldType::Text
+                    id_attr=format!("{id_attr}-display")
+                    onblur=Callback::new(move |_| {
+                        set_show_calendar.set(false);
+                        z_stack.unlock_scroll();
+                    })
+                    icon=BsCalendar2Date
+                    icon_is_leading=false
+                />
+            </div>
+            <Show when=move || show_calendar.get() fallback=|| ()>
+                {move || overlay_root().map(|root| view! {
+                    <Portal mount=root>
+                        <div
+                            node_ref=panel_ref
+                            on:mousedown=|e: ev::MouseEvent| e.prevent_default()
+                            class=calendar_panel_class_val
+                            style=calendar_panel_style
+                        >
+                            <Calendar
+                                select_date=select_date
+                                initial_selected=selected_date.get_untracked()
+                                min=min
+                                max=max
+                                disabled_dates=disabled_dates.get_value()
+                                button_class=calendar_class
+                            />
+                        </div>
+                    </Portal>
+                })}
+            </Show>
         </div>
     }
     .into_any()

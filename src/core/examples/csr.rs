@@ -28,6 +28,7 @@ use detaxine_ui::components::navigation::breadcrumbs::Breadcrumbs;
 use detaxine_ui::components::navigation::stepper::{Step, StepInfo, Stepper};
 use detaxine_ui::components::navigation::tabs::{Tab, TabLabel, Tabs};
 use detaxine_ui::components::schemas::props::ColorTemperature;
+use detaxine_ui::stacks::z_stack::provide_z_stack;
 use icondata::{AiCheckCircleOutlined, BsXCircle};
 use leptos::html::*;
 use leptos::prelude::*;
@@ -922,6 +923,7 @@ fn Section(section_ref: NodeRef<Div>, label: &'static str, children: Children) -
 
 fn main() {
     mount_to_body(|| {
+        provide_z_stack();
         view! {
             <Stylesheet id="leptos" href="/style/output.css"/>
             <Router>

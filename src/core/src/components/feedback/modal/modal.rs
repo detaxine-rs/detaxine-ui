@@ -5,7 +5,13 @@ use leptos::{control_flow::Show, ev, portal::Portal, prelude::*};
 use leptos_icons::Icon;
 use tailwind_fuse::tw_merge;
 
-use crate::components::actions::button::BasicButton;
+use crate::{
+    components::actions::button::BasicButton,
+    stacks::{
+        helper::overlay_root,
+        z_stack::{ZONE_MODAL, expect_z_stack},
+    },
+};
 
 #[derive(Clone, PartialEq, Copy, Debug, Default, Eq)]
 #[allow(dead_code)]
@@ -87,6 +93,7 @@ pub fn BasicModal(
     #[prop(into, optional)]
     primary_is_disabled: MaybeProp<bool>,
 
+    /// **Deprecated**: stacking is now automatic via ZStack — remove this prop
     /// Z-index offset for stacking multiple modals. Defaults to `0`.
     #[prop(into, default = 0, optional)]
     stack_number: u8,
@@ -188,115 +195,107 @@ pub fn BasicModal(
         )
     };
 
+    // inside the component body, before the view!:
+    let z_stack = expect_z_stack();
+    let z_indices = RwSignal::new((ZONE_MODAL, ZONE_MODAL + 1));
+
+    Effect::new(move |_| {
+        if is_open.get() {
+            z_indices.set(z_stack.acquire_pair(ZONE_MODAL));
+        }
+    });
+
     view! {
         <>
         <Show when=move || is_open.get() fallback=|| ()>
-            {
-                // SSR-safe: `document()` calls a JS global that doesn't exist
-                // on a native server target. On wasm32 we look up the real
-                // `#modal-root` element; on any other target we skip the
-                // lookup entirely and render nothing for this Show branch.
-                // The modal becomes visible once hydration runs client-side.
-                #[cfg(target_arch = "wasm32")]
-                let modal_root = document().get_element_by_id("modal-root");
+            {move || overlay_root().map(|root| view! {
+                <Portal mount=root>
+                    // Backdrop
+                    <div
+                        class=backdrop_class_val
+                        style=move || format!("z-index: {}", z_indices.get().0)
+                    />
 
-                #[cfg(not(target_arch = "wasm32"))]
-                let modal_root: Option<web_sys::Element> = None;
+                    // Centering layer
+                    <div
+                        on:click=handle_backdrop_click
+                        class="fixed inset-0 flex items-center justify-center bg-transparent"
+                        style=move || format!("z-index: {}", z_indices.get().1)
+                    >
+                        // Modal panel
+                        <div
+                            on:click=move |e| e.stop_propagation()
+                            class=panel_class
+                        >
+                            // Header
+                            <div class=header_class_val>
+                                {
+                                    move || match use_case {
+                                        UseCase::Error => Some(view! {
+                                            <span class="text-danger mr-2">
+                                                <Icon width="2rem" height="2rem" icon=BiErrorSolid />
+                                            </span>
+                                        }),
+                                        UseCase::Success => Some(view! {
+                                            <span class="text-success mr-2">
+                                                <Icon width="2rem" height="2rem" icon=BiCheckCircleRegular />
+                                            </span>
+                                        }),
+                                        UseCase::Info => Some(view! {
+                                            <span class="text-info mr-2">
+                                                <Icon width="2rem" height="2rem" icon=AiInfoCircleOutlined />
+                                            </span>
+                                        }),
+                                        UseCase::Confirmation => Some(view! {
+                                            <span class="text-warning mr-2">
+                                                <Icon width="2rem" height="2rem" icon=AiQuestionCircleOutlined />
+                                            </span>
+                                        }),
+                                        UseCase::General => None,
+                                    }
+                                }
+                                <h2 class=title_class_val>{move || title.get()}</h2>
+                            </div>
 
-                match modal_root {
-                    Some(root) => Some(
-                        view! {
-                            <Portal mount=root>
-                                // Backdrop
-                                <div
-                                    class=backdrop_class_val
-                                    style=format!("z-index: {}", 10 + stack_number)
-                                />
+                            // Body
+                            <div class=body_class_val>
+                                {move || children.get().map(|c| c())}
+                            </div>
 
-                                // Centering layer
-                                <div
-                                    on:click=handle_backdrop_click
-                                    class="fixed inset-0 flex items-center justify-center bg-transparent"
-                                    style=format!("z-index: {}", 10 + (stack_number + 1))
-                                >
-                                    // Modal panel
-                                    <div
-                                        on:click=move |e| e.stop_propagation()
-                                        class=panel_class
-                                    >
-                                        // Header
-                                        <div class=header_class_val>
-                                            {
-                                                move || match use_case {
-                                                    UseCase::Error => Some(view! {
-                                                        <span class="text-danger mr-2">
-                                                            <Icon width="2rem" height="2rem" icon=BiErrorSolid />
-                                                        </span>
-                                                    }),
-                                                    UseCase::Success => Some(view! {
-                                                        <span class="text-success mr-2">
-                                                            <Icon width="2rem" height="2rem" icon=BiCheckCircleRegular />
-                                                        </span>
-                                                    }),
-                                                    UseCase::Info => Some(view! {
-                                                        <span class="text-info mr-2">
-                                                            <Icon width="2rem" height="2rem" icon=AiInfoCircleOutlined />
-                                                        </span>
-                                                    }),
-                                                    UseCase::Confirmation => Some(view! {
-                                                        <span class="text-warning mr-2">
-                                                            <Icon width="2rem" height="2rem" icon=AiQuestionCircleOutlined />
-                                                        </span>
-                                                    }),
-                                                    UseCase::General => None,
-                                                }
-                                            }
-                                            <h2 class=title_class_val>{move || title.get()}</h2>
-                                        </div>
-
-                                        // Body
-                                        <div class=body_class_val>
-                                            {move || children.get().map(|c| c())}
-                                        </div>
-
-                                        // Footer
-                                        {
-                                            if show_footer {
-                                                Some(
-                                                    view! {
-                                                        <div class=footer_class_val>
-                                                            {move || {
-                                                                if use_case == UseCase::Confirmation {
-                                                                    Some(view! {
-                                                                        <BasicButton
-                                                                            button_text="Cancel".to_string()
-                                                                            style_ext="bg-mid-gray text-contrast-white".to_string()
-                                                                            onclick=oncancel_handler(false)
-                                                                        />
-                                                                    })
-                                                                } else {
-                                                                    None
-                                                                }
-                                                            }}
+                            // Footer
+                            {
+                                if show_footer {
+                                    Some(
+                                        view! {
+                                            <div class=footer_class_val>
+                                                {move || {
+                                                    if use_case == UseCase::Confirmation {
+                                                        Some(view! {
                                                             <BasicButton
-                                                                button_text=primary_button_text.get()
-                                                                style_ext="bg-primary text-contrast-white".to_string()
-                                                                onclick=onclick_primary_handler()
-                                                                disabled=primary_is_disabled
+                                                                button_text="Cancel".to_string()
+                                                                style_ext="bg-mid-gray text-contrast-white".to_string()
+                                                                onclick=oncancel_handler(false)
                                                             />
-                                                        </div>
+                                                        })
+                                                    } else {
+                                                        None
                                                     }
-                                                )
-                                            } else { None }
+                                                }}
+                                                <BasicButton
+                                                    button_text=primary_button_text.get()
+                                                    style_ext="bg-primary text-contrast-white".to_string()
+                                                    onclick=onclick_primary_handler()
+                                                    disabled=primary_is_disabled
+                                                />
+                                            </div>
                                         }
-                                    </div>
-                                </div>
-                            </Portal>
-                        }
-                    ),
-                    None => None,
-                }
-            }
+                                    )
+                                } else { None }
+                            }
+                        </div>
+                    </div>
+                </Portal>
+            })}
         </Show>
         </>
     }.into_any()

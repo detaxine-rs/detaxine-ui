@@ -1,7 +1,11 @@
-use leptos::{ev, html::*, prelude::*};
+use leptos::{ev, html::*, portal::Portal, prelude::*};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use tailwind_fuse::tw_merge;
+use web_sys::window;
+
+use crate::stacks::helper::overlay_root;
+use crate::stacks::z_stack::{ZONE_TOOLTIP, expect_z_stack};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[allow(dead_code)]
@@ -13,10 +17,18 @@ pub enum Position {
 }
 
 static TOOLTIP_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
-
 fn next_tooltip_id() -> String {
     let id = TOOLTIP_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
     format!("tooltip-{id}")
+}
+
+const GAP: f64 = 8.0;
+
+#[derive(Clone, Copy, Default)]
+struct PanelPos {
+    top: f64,
+    left: f64,
+    visible: bool, // false during the offscreen measure pass
 }
 
 /// A hover/focus-triggered tooltip that aligns itself to avoid the horizontal
@@ -47,7 +59,6 @@ fn next_tooltip_id() -> String {
 /// ```
 #[component]
 pub fn Tooltip(
-    /// Content rendered inside the tooltip bubble.
     children: ChildrenFn,
 
     /// `ViewFn` rendered as the hoverable/focusable trigger.
@@ -79,22 +90,19 @@ pub fn Tooltip(
     class: MaybeProp<String>,
 ) -> impl IntoView {
     let trigger_ref = NodeRef::<Div>::new();
+    let panel_ref = NodeRef::<Div>::new();
     let showing = RwSignal::new(false);
-    let align = RwSignal::new((
-        "left-1/2 -translate-x-1/2".to_string(),
-        "left-1/2 -translate-x-1/2".to_string(),
-    ));
+    let panel_pos = RwSignal::new(PanelPos::default());
+    let arrow_offset = RwSignal::new("left-1/2 -translate-x-1/2".to_string());
     let tooltip_id = StoredValue::new(next_tooltip_id());
+    let z_stack = expect_z_stack();
+    let z_index = RwSignal::new(ZONE_TOOLTIP);
+    let (children, _set_children) = signal(children);
 
     let open_timer = StoredValue::<Option<TimeoutHandle>>::new(None);
     let close_timer = StoredValue::<Option<TimeoutHandle>>::new(None);
 
-    let position_class = StoredValue::new(match position {
-        Position::Top => "bottom-full mb-2",
-        Position::Bottom => "top-full mt-2",
-        Position::Left => "right-full mr-2 top-1/2 -translate-y-1/2",
-        Position::Right => "left-full ml-2 top-1/2 -translate-y-1/2",
-    });
+    let position_class = StoredValue::new(position); // Position is Copy, fine to store directly
 
     let arrow_class = StoredValue::new(match position {
         Position::Top => "-bottom-2",
@@ -105,46 +113,91 @@ pub fn Tooltip(
 
     let is_horizontal = matches!(position, Position::Top | Position::Bottom);
 
-    let recalculate = StoredValue::new(move || {
-        if !is_horizontal {
+    // Pass 2: trigger + panel are both mounted now, measure panel and
+    // compute final fixed-viewport coordinates.
+    let measure_and_place = StoredValue::new(move || {
+        let (Some(trigger), Some(panel)) = (trigger_ref.get_untracked(), panel_ref.get_untracked())
+        else {
             return;
-        }
-        if let Some(trigger) = trigger_ref.get_untracked() {
-            let rect = trigger.get_bounding_client_rect();
-            if let Some(window) = web_sys::window() {
-                let vw = window
-                    .inner_width()
-                    .unwrap_or_default()
-                    .as_f64()
-                    .unwrap_or(375.0);
+        };
+        let Some(win) = window() else { return };
 
-                let (panel_align, arrow_align) = if rect.left() < vw / 3.0 {
-                    ("left-0".to_string(), "left-4 translate-x-0".to_string())
-                } else if rect.right() > (vw * 2.0 / 3.0) {
-                    ("right-0".to_string(), "right-4 translate-x-0".to_string())
-                } else {
-                    (
-                        "left-1/2 -translate-x-1/2".to_string(),
-                        "left-1/2 -translate-x-1/2".to_string(),
-                    )
-                };
+        let t = trigger.get_bounding_client_rect();
+        let p = panel.get_bounding_client_rect();
+        let vw = win
+            .inner_width()
+            .unwrap_or_default()
+            .as_f64()
+            .unwrap_or(375.0);
 
-                align.set((panel_align, arrow_align));
-            }
+        let (top, left) = match position_class.get_value() {
+            Position::Top => (
+                t.top() - GAP - p.height(),
+                clamp_horizontal(&t, p.width(), vw),
+            ),
+            Position::Bottom => (t.bottom() + GAP, clamp_horizontal(&t, p.width(), vw)),
+            Position::Left => (
+                t.top() + t.height() / 2.0 - p.height() / 2.0,
+                t.left() - GAP - p.width(),
+            ),
+            Position::Right => (
+                t.top() + t.height() / 2.0 - p.height() / 2.0,
+                t.right() + GAP,
+            ),
+        };
+
+        if is_horizontal {
+            arrow_offset.set(if t.left() < vw / 3.0 {
+                "left-4 translate-x-0".to_string()
+            } else if t.right() > vw * 2.0 / 3.0 {
+                "right-4 translate-x-0".to_string()
+            } else {
+                "left-1/2 -translate-x-1/2".to_string()
+            });
         }
+
+        panel_pos.set(PanelPos {
+            top,
+            left,
+            visible: true,
+        });
     });
+
+    fn clamp_horizontal(t: &web_sys::DomRect, panel_w: f64, vw: f64) -> f64 {
+        if t.left() < vw / 3.0 {
+            t.left()
+        } else if t.right() > vw * 2.0 / 3.0 {
+            (t.right() - panel_w).max(4.0)
+        } else {
+            t.left() + t.width() / 2.0 - panel_w / 2.0
+        }
+    }
 
     let clear_timers = move || {
         open_timer.update_value(|h| {
-            if let Some(handle) = h.take() {
-                handle.clear();
+            if let Some(h) = h.take() {
+                h.clear()
             }
         });
         close_timer.update_value(|h| {
-            if let Some(handle) = h.take() {
-                handle.clear();
+            if let Some(h) = h.take() {
+                h.clear()
             }
         });
+    };
+
+    let open_tooltip = move || {
+        // Pass 1: mount at (0,0) invisible so panel_ref has a real
+        // bounding rect to measure on the next frame.
+        let (_, z) = z_stack.acquire_pair(ZONE_TOOLTIP);
+        z_index.set(z);
+        panel_pos.set(PanelPos {
+            top: 0.0,
+            left: 0.0,
+            visible: false,
+        });
+        showing.set(true);
+        request_animation_frame(move || measure_and_place.get_value()());
     };
 
     let handle_enter = move |_| {
@@ -152,15 +205,8 @@ pub fn Tooltip(
             return;
         }
         clear_timers();
-        let handle = set_timeout_with_handle(
-            move || {
-                showing.set(true);
-                recalculate.get_value()();
-            },
-            Duration::from_millis(open_delay_ms),
-        )
-        .ok();
-        open_timer.set_value(handle);
+        let h = set_timeout_with_handle(open_tooltip, Duration::from_millis(open_delay_ms)).ok();
+        open_timer.set_value(h);
     };
 
     let handle_focusin = move |_| {
@@ -168,39 +214,27 @@ pub fn Tooltip(
             return;
         }
         clear_timers();
-        let handle = set_timeout_with_handle(
-            move || {
-                showing.set(true);
-                recalculate.get_value()();
-            },
-            Duration::from_millis(open_delay_ms),
-        )
-        .ok();
-        open_timer.set_value(handle);
+        let h = set_timeout_with_handle(open_tooltip, Duration::from_millis(open_delay_ms)).ok();
+        open_timer.set_value(h);
     };
 
     let handle_leave = move |_| {
         clear_timers();
-        let handle = set_timeout_with_handle(
-            move || {
-                showing.set(false);
-            },
+        let h = set_timeout_with_handle(
+            move || showing.set(false),
             Duration::from_millis(close_delay_ms),
         )
         .ok();
-        close_timer.set_value(handle);
+        close_timer.set_value(h);
     };
-
     let handle_focusout = move |_| {
         clear_timers();
-        let handle = set_timeout_with_handle(
-            move || {
-                showing.set(false);
-            },
+        let h = set_timeout_with_handle(
+            move || showing.set(false),
             Duration::from_millis(close_delay_ms),
         )
         .ok();
-        close_timer.set_value(handle);
+        close_timer.set_value(h);
     };
 
     let handle_keydown = move |ev: ev::KeyboardEvent| {
@@ -210,28 +244,32 @@ pub fn Tooltip(
         }
     };
 
-    Effect::new(move |_| {
-        if !showing.get() {
-            align.set((
-                "left-1/2 -translate-x-1/2".to_string(),
-                "left-1/2 -translate-x-1/2".to_string(),
-            ));
-        }
-    });
-
     let window_resize_listener = window_event_listener(ev::resize, move |_| {
         if showing.get_untracked() {
-            recalculate.get_value()();
+            measure_and_place.get_value()();
         }
     });
-
     on_cleanup(move || {
+        if showing.get_untracked() {
+            z_stack.unlock_scroll();
+        }
         clear_timers();
         window_resize_listener.remove();
     });
 
     let trigger_class_val =
         move || tw_merge!("inline-block", trigger_class.get().unwrap_or_default());
+
+    let panel_style = move || {
+        let pos = panel_pos.get();
+        format!(
+            "position: fixed; top: {}px; left: {}px; z-index: {}; visibility: {};",
+            pos.top,
+            pos.left,
+            z_index.get(),
+            if pos.visible { "visible" } else { "hidden" }
+        )
+    };
 
     view! {
         <div class="relative inline-block">
@@ -248,39 +286,32 @@ pub fn Tooltip(
                 {display_item.run()}
             </div>
             <Show when=move || showing.get() fallback=|| ()>
-                <div
-                    id=tooltip_id.get_value()
-                    role="tooltip"
-                    class=move || tw_merge!(
-                        format!(
-                            "absolute {} {} z-30 w-max max-w-[240px] pointer-events-none bg-gray text-white text-xs px-2 py-1 rounded-[5px] shadow-lg",
-                            position_class.get_value(),
-                            if is_horizontal { align.get().0 } else { String::new() }
-                        ),
-                        class.get().unwrap_or_default()
-                    )
-                >
-                    // <div
-                    //     class=move || format!(
-                    //         "absolute -z-10 bg-inherit {} {}",
-                    //         if is_horizontal { align.get().1 } else { String::new() },
-                    //         arrow_class.get_value()
-                    //     )
-                    // >
-                    //     <div class="w-[8px] h-[8px] bg-inherit rotate-45"></div>
-                    // </div>
-                    <div
-                        class=move || format!(
-                            "absolute w-3 h-2 bg-inherit {} {}",
-                            if is_horizontal { align.get().1 } else { String::new() },
-                            arrow_class.get_value()
-                        )
-                        style="clip-path: polygon(50% 100%, 0 0, 100% 0);"
-                    ></div>
-                    <div class="relative z-10">
-                        {children()}
-                    </div>
-                </div>
+                {move || overlay_root().map(|root| view! {
+                    <Portal mount=root>
+                        <div
+                            node_ref=panel_ref
+                            id=tooltip_id.get_value()
+                            role="tooltip"
+                            style=panel_style
+                            class=move || tw_merge!(
+                                "w-max max-w-[240px] pointer-events-none bg-gray text-white text-xs px-2 py-1 rounded-[5px] shadow-lg",
+                                class.get().unwrap_or_default()
+                            )
+                        >
+                            <div
+                                class=move || format!(
+                                    "absolute w-3 h-2 bg-inherit {} {}",
+                                    if is_horizontal { arrow_offset.get() } else { String::new() },
+                                    arrow_class.get_value()
+                                )
+                                style="clip-path: polygon(50% 100%, 0 0, 100% 0);"
+                            ></div>
+                            <div class="relative z-10">
+                                {move || children.get()()}
+                            </div>
+                        </div>
+                    </Portal>
+                })}
             </Show>
         </div>
     }
