@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "./source.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -107,3 +106,5 @@ select:-webkit-autofill {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+@import "./source.css";

@@ -25,7 +25,7 @@ pub fn run_update(path: &str) -> Result<()> {
     }
     if added_import {
         println!(
-            "{} styles/input.css (added @import \"source.css\";)",
+            "{} styles/input.css (added @import \"./source.css\";)",
             "✔".green()
         );
     }
