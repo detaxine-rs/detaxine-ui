@@ -63,10 +63,12 @@ pub fn run_init(name: &str) -> Result<()> {
         }
     }
 
-    // 3. Clone lib and copy its input.css as the project's style base.
+    // 3. Clone lib and copy its input.css + source.css as the project's style base.
     //    Same for both modes.
     css::download_input_css(name)?;
     println!("{} styles/input.css", "✔".green());
+    css::sync_source_css(name)?;
+    println!("{} styles/source.css", "✔".green());
 
     // 4 & 5. Mode-specific scaffolding
     match mode {
