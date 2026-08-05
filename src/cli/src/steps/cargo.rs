@@ -1,5 +1,24 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::fs;
+use toml_edit::DocumentMut;
+
+pub fn bump_detaxine_ui_version(project: &str, version: &str) -> Result<()> {
+    let manifest_path = format!("{}/Cargo.toml", project);
+    let contents = fs::read_to_string(&manifest_path).context("could not read Cargo.toml")?;
+    let mut doc = contents
+        .parse::<DocumentMut>()
+        .context("could not parse Cargo.toml")?;
+
+    let dep = doc["dependencies"]["detaxine-ui"]
+        .as_table_like_mut()
+        .ok_or_else(|| {
+            anyhow::anyhow!("detaxine-ui dependency not found or not a table in Cargo.toml")
+        })?;
+    dep.insert("version", toml_edit::value(version));
+
+    fs::write(&manifest_path, doc.to_string()).context("could not write Cargo.toml")?;
+    Ok(())
+}
 
 pub fn write_manifest(name: &str) -> Result<()> {
     let contents = format!(
