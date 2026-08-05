@@ -56,14 +56,14 @@ pub fn migrate_input_css(project: &str) -> Result<(bool, bool)> {
 
     let (contents, removed_old) = strip_inline_safelist(&contents);
 
-    let already_imports =
-        contents.contains("@import \"source.css\"") || contents.contains("@import 'source.css'");
+    let already_imports = contents.contains("@import \"./source.css\"")
+        || contents.contains("@import './source.css'");
 
     let (final_contents, added_import) = if already_imports {
         (contents, false)
     } else {
         (
-            format!("{}\n@import \"source.css\";\n", contents.trim_end()),
+            format!("{}\n@import \"./source.css\";\n", contents.trim_end()),
             true,
         )
     };
