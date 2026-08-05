@@ -35,7 +35,13 @@ as a dependency, `input.css` configured, and a Tailwind binary in place.
 
 ### Existing Project
 
-`Coming soon`
+Already scaffolded a project with `dtx init`? Pull the latest Tailwind safelist whenever you upgrade the `detaxine-ui` version, so new components' utility classes aren't purged from your build:
+
+```bash
+dtx update
+```
+
+Run this from your project's root directory. It refreshes `styles/source.css` only — your own theme overrides and `@apply` rules in `styles/input.css` are left untouched except for the safelist.
 
 ---
 
