@@ -273,13 +273,32 @@ fn Example() -> impl IntoView {
 
 ---
 
-## Modal Setup
+## Overlay Setup
 
-`BasicModal` portals its content into a `#modal-root` element. Add this to your `index.html` before the closing `</body>` tag or to your root component:
+`BasicModal`, `Popover`, `Tooltip`, and `DatePicker` all portal their content into a `#modal-root` element and share a common z-index/scroll-lock context. Both pieces are required — add the mount point to your HTML and provide the context in your root component.
+
+**1. Add the portal mount point** — in `index.html`, before the closing `</body>` tag, or wherever your app's shell markup lives:
 
 ```html
 <div id="modal-root"></div>
 ```
+
+**2. Provide the stacking context** — call `provide_z_stack()` once in your root component, before any of these components render:
+
+```rust
+use detaxine_ui::stacking::provide_z_stack;
+
+#[component]
+fn App() -> impl IntoView {
+    provide_z_stack();
+
+    view! {
+        // ... your app
+    }
+}
+```
+
+Without this, overlay components will panic on render — they call `expect_context::<ZStack>()` internally and have no silent fallback. Without the `#modal-root` div, they fail soft instead: the overlay simply never appears, with no panic and no console error, which can be a confusing thing to debug if this step is missed.
 
 ---
 
