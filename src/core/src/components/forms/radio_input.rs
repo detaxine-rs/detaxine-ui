@@ -1,4 +1,4 @@
-use leptos::prelude::*;
+use leptos::{html::*, prelude::*};
 use tailwind_fuse::tw_merge;
 
 /// Represents a single radio option with a value and display text.
@@ -91,6 +91,10 @@ pub fn RadioInputField(
     /// Extra Tailwind classes for the visible circle (the custom radio "box").
     #[prop(into, optional)]
     box_class: MaybeProp<String>,
+
+    /// Optional `NodeRef<Input>` for direct DOM access.
+    #[prop(optional)]
+    input_node_ref: NodeRef<Input>,
 ) -> impl IntoView {
     // deprecated & ignored, kept only so existing callers still compile
     let _ = children;
@@ -122,6 +126,7 @@ pub fn RadioInputField(
                 checked=is_selected
                 id=id_attr.clone()
                 required=required
+                node_ref=input_node_ref
             />
             <span class=box_class_val aria-hidden="true">
                 <span class="w-2/3 h-2/3 rounded-full bg-secondary opacity-0 transition-opacity"></span>

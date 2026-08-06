@@ -1,5 +1,5 @@
 use icondata::{BsDashLg, BsPlusLg};
-use leptos::{prelude::*, wasm_bindgen::JsCast};
+use leptos::{html::*, prelude::*, wasm_bindgen::JsCast};
 use tailwind_fuse::tw_merge;
 use web_sys::HtmlInputElement;
 
@@ -79,6 +79,7 @@ pub fn CustomNumberInput(
     #[prop(into, optional)] input_class: String,
     #[prop(into, optional)] disabled: MaybeProp<bool>,
     #[prop(into, optional, default = false)] required: bool,
+    #[prop(optional)] input_node_ref: NodeRef<Input>,
 ) -> impl IntoView {
     let opts = NumberInputOptions {
         class: tw_merge!(NumberInputOptions::default().class, class),
