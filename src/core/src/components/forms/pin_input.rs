@@ -252,7 +252,7 @@ pub fn PinInput(
                 inputmode="numeric"
                 name=name
                 prop:value=move || pin_value.get()
-                pattern=r"\d{6}"
+                pattern=format!(r"\d{{{}}}", opts.length)
                 minlength=opts.length
                 maxlength=opts.length
                 required=required
@@ -277,6 +277,7 @@ pub fn PinInput(
                     view! {
                         <input
                             node_ref=refs[i]
+                            id=format!("pin-input-field-{}", i)
                             type="text"
                             inputmode="numeric"
                             maxlength="1"
