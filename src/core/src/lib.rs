@@ -235,7 +235,7 @@
 //!             min=0
 //!             max=99
 //!             step=1
-//!             on:change=move |ev| set_value.set(event_target_value(&ev))
+//!             on:change=move |ev| set_value.set(event_target_value::<i64>(&ev))
 //!             class="w-32"
 //!         />
 //!         <p>"Current value: " {move || value.get()}</p>
