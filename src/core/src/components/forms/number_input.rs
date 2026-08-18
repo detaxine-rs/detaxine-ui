@@ -1,8 +1,11 @@
 use icondata::{BsDashLg, BsPlusLg};
 use leptos::{html::*, prelude::*};
 use tailwind_fuse::tw_merge;
+use web_sys::HtmlInputElement;
 
-use crate::components::actions::button::BasicButton;
+use crate::{
+    components::actions::button::BasicButton, utils::forms::fire_bubbled_and_cancelable_event,
+};
 
 // ── Options struct (unchanged) ──────────────────────────────────────
 #[derive(Clone, Debug)]
@@ -52,6 +55,7 @@ pub fn CustomNumberInput(
     #[prop(optional, default = 0)] min: i64,
     #[prop(optional, default = i64::MAX)] max: i64,
     #[prop(optional, default = 1)] step: i64,
+    // #[prop(optional, default = Callback::new(move |_| {}))] on_change: Callback<i64>,
     #[prop(into, optional)] class: String,
     #[prop(into, optional)] button_class: String,
     #[prop(into, optional)] input_class: String,
@@ -74,25 +78,45 @@ pub fn CustomNumberInput(
     let commit = move |raw: i64| {
         let clamped = clamp_value(raw, min, max);
         count.set(clamped);
+        // on_change.run(clamped);
+        if let Some(el) = input_node_ref.get() as Option<HtmlInputElement> {
+            el.set_value(&clamped.to_string());
+            fire_bubbled_and_cancelable_event("input", true, true, &el);
+            fire_bubbled_and_cancelable_event("change", true, true, &el);
+        }
     };
 
-    let can_decrement =
-        Memo::new(move |_| can_step_down(count.get(), min, disabled.get().unwrap_or_default()));
-    let can_increment =
-        Memo::new(move |_| can_step_up(count.get(), max, disabled.get().unwrap_or_default()));
+    let can_decrement = Memo::new(move |_| {
+        count
+            .try_get()
+            .map(|c| can_step_down(c, min, disabled.get().unwrap_or_default()))
+            .unwrap_or(false)
+    });
+    let can_increment = Memo::new(move |_| {
+        count
+            .try_get()
+            .map(|c| can_step_up(c, max, disabled.get().unwrap_or_default()))
+            .unwrap_or(false)
+    });
 
     let decrement = move |_| {
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
-        commit(count.get_untracked().saturating_sub(step));
+        let Some(current) = count.try_get_untracked() else {
+            return; // scope already disposed, nothing to do
+        };
+        commit(current.saturating_sub(step));
     };
 
     let increment = move |_| {
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
-        commit(count.get_untracked().saturating_add(step));
+        let Some(current) = count.try_get_untracked() else {
+            return;
+        };
+        commit(current.saturating_add(step));
     };
 
     let handle_keydown = move |ev: web_sys::KeyboardEvent| {
