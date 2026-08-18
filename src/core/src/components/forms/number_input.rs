@@ -5,6 +5,7 @@ use web_sys::HtmlInputElement;
 
 use crate::components::actions::button::BasicButton;
 
+// ── Options struct (unchanged) ──────────────────────────────────────
 #[derive(Clone, Debug)]
 struct NumberInputOptions {
     pub class: String,
@@ -31,8 +32,7 @@ impl Default for NumberInputOptions {
     }
 }
 
-// --- Pure logic, kept free of signals/DOM so it's directly unit-testable. ---
-
+// ── Pure logic (unchanged) ──────────────────────────────────────────
 fn clamp_value(raw: i64, min: i64, max: i64) -> i64 {
     raw.clamp(min, max)
 }
@@ -60,12 +60,7 @@ fn can_step_up(current: i64, max: i64, disabled: bool) -> bool {
     current < max && !disabled
 }
 
-/// Quantity stepper: minus button, editable numeric field, plus button.
-///
-/// *Uncontrolled* internally, but will **sync** when the `initial_value` prop
-/// changes from the parent (e.g. cart quantity updated elsewhere).
-/// `on_change` is only fired from explicit user actions, never from the sync
-/// effect, so there is no feedback loop.
+// ── Component ──────────────────────────────────────────────────────
 #[component]
 pub fn CustomNumberInput(
     #[prop(into)] name: String,
@@ -79,7 +74,7 @@ pub fn CustomNumberInput(
     #[prop(into, optional)] input_class: String,
     #[prop(into, optional)] disabled: MaybeProp<bool>,
     #[prop(into, optional, default = false)] required: bool,
-    #[prop(optional)] input_node_ref: NodeRef<Input>,
+    #[prop(optional, default = NodeRef::<Input>::new())] input_node_ref: NodeRef<Input>,
 ) -> impl IntoView {
     let opts = NumberInputOptions {
         class: tw_merge!(NumberInputOptions::default().class, class),
@@ -87,19 +82,31 @@ pub fn CustomNumberInput(
         input_class: tw_merge!(NumberInputOptions::default().input_class, input_class),
     };
 
+    // ── Liveness flag ──
+    let alive = StoredValue::new(true);
+
+    // On cleanup, mark as dead – this will stop all stale callbacks.
+    on_cleanup(move || {
+        alive.set_value(false);
+    });
+
     let (count, set_count) = signal(0i64);
     let (text, set_text) = signal(String::new());
 
-    // ── One-way sync: prop -> internal state (does NOT call on_change) ──
+    // One‑way sync: prop -> internal state (does NOT call on_change)
     Effect::new(move |_| {
+        if !alive.get_value() {
+            return;
+        }
         let val = clamp_value(initial_value.get().unwrap_or_default(), min, max);
         set_count.set(val);
         set_text.set(val.to_string());
     });
 
-    let input_ref = NodeRef::<leptos::html::Input>::new();
-
     let commit = move |raw: i64| {
+        if !alive.get_value() {
+            return;
+        }
         let clamped = clamp_value(raw, min, max);
         set_count.set(clamped);
         set_text.set(clamped.to_string());
@@ -112,6 +119,9 @@ pub fn CustomNumberInput(
         Memo::new(move |_| can_step_up(count.get(), max, disabled.get().unwrap_or_default()));
 
     let decrement = move |_| {
+        if !alive.get_value() {
+            return;
+        }
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
@@ -119,6 +129,9 @@ pub fn CustomNumberInput(
     };
 
     let increment = move |_| {
+        if !alive.get_value() {
+            return; // ← line 125 is now safe
+        }
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
@@ -126,6 +139,9 @@ pub fn CustomNumberInput(
     };
 
     let handle_input = move |ev: web_sys::Event| {
+        if !alive.get_value() {
+            return;
+        }
         let Some(input) = ev
             .target()
             .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
@@ -136,12 +152,18 @@ pub fn CustomNumberInput(
     };
 
     let handle_blur = move |_| {
+        if !alive.get_value() {
+            return;
+        }
         let raw = text.get_untracked();
         let parsed = parse_or_fallback(&raw, count.get_untracked());
         commit(parsed);
     };
 
     let handle_keydown = move |ev: web_sys::KeyboardEvent| {
+        if !alive.get_value() {
+            return;
+        }
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
@@ -155,7 +177,7 @@ pub fn CustomNumberInput(
                 commit(count.get_untracked().saturating_sub(step));
             }
             "Enter" => {
-                if let Some(el) = input_ref.get_untracked() {
+                if let Some(el) = input_node_ref.get_untracked() {
                     let _ = el.blur();
                 }
             }
@@ -172,7 +194,7 @@ pub fn CustomNumberInput(
                 icon=Some(BsDashLg)
             />
             <input
-                node_ref=input_ref
+                node_ref=input_node_ref
                 type="text"
                 inputmode="numeric"
                 pattern="-?[0-9]*"
@@ -195,6 +217,7 @@ pub fn CustomNumberInput(
     }
 }
 
+// ── Tests (unchanged) ──────────────────────────────────────────────
 #[cfg(test)]
 mod tests {
     use super::*;
