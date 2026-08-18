@@ -673,7 +673,7 @@ dependencies = [
 
 [[package]]
 name = "detaxine-ui-cli"
-version = "0.8.55"
+version = "0.8.56"
 dependencies = [
  "anyhow",
  "clap",
