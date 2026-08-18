@@ -1,7 +1,6 @@
 use icondata::{BsDashLg, BsPlusLg};
-use leptos::{html::*, prelude::*, wasm_bindgen::JsCast};
+use leptos::{html::*, prelude::*};
 use tailwind_fuse::tw_merge;
-use web_sys::HtmlInputElement;
 
 use crate::components::actions::button::BasicButton;
 
@@ -37,21 +36,6 @@ fn clamp_value(raw: i64, min: i64, max: i64) -> i64 {
     raw.clamp(min, max)
 }
 
-fn sanitize_numeric_input(raw: &str, allow_negative: bool) -> String {
-    let mut sanitized = String::new();
-    let mut chars = raw.chars().peekable();
-    if allow_negative && chars.peek() == Some(&'-') {
-        sanitized.push('-');
-        chars.next();
-    }
-    sanitized.extend(chars.filter(|c| c.is_ascii_digit()));
-    sanitized
-}
-
-fn parse_or_fallback(text: &str, fallback: i64) -> i64 {
-    text.parse::<i64>().unwrap_or(fallback)
-}
-
 fn can_step_down(current: i64, min: i64, disabled: bool) -> bool {
     current > min && !disabled
 }
@@ -68,7 +52,6 @@ pub fn CustomNumberInput(
     #[prop(optional, default = 0)] min: i64,
     #[prop(optional, default = i64::MAX)] max: i64,
     #[prop(optional, default = 1)] step: i64,
-    #[prop(optional, default = Callback::new(move |_| {}))] on_change: Callback<i64>,
     #[prop(into, optional)] class: String,
     #[prop(into, optional)] button_class: String,
     #[prop(into, optional)] input_class: String,
@@ -82,35 +65,15 @@ pub fn CustomNumberInput(
         input_class: tw_merge!(NumberInputOptions::default().input_class, input_class),
     };
 
-    // ── Liveness flag ──
-    let alive = StoredValue::new(true);
-
-    // On cleanup, mark as dead – this will stop all stale callbacks.
-    on_cleanup(move || {
-        alive.set_value(false);
-    });
-
-    let (count, set_count) = signal(0i64);
-    let (text, set_text) = signal(String::new());
-
-    // One‑way sync: prop -> internal state (does NOT call on_change)
-    Effect::new(move |_| {
-        if !alive.get_value() {
-            return;
-        }
-        let val = clamp_value(initial_value.get().unwrap_or_default(), min, max);
-        set_count.set(val);
-        set_text.set(val.to_string());
-    });
+    let count = RwSignal::new(clamp_value(
+        initial_value.get().unwrap_or_default(),
+        min,
+        max,
+    ));
 
     let commit = move |raw: i64| {
-        if !alive.get_value() {
-            return;
-        }
         let clamped = clamp_value(raw, min, max);
-        set_count.set(clamped);
-        set_text.set(clamped.to_string());
-        on_change.run(clamped);
+        count.set(clamped);
     };
 
     let can_decrement =
@@ -119,9 +82,6 @@ pub fn CustomNumberInput(
         Memo::new(move |_| can_step_up(count.get(), max, disabled.get().unwrap_or_default()));
 
     let decrement = move |_| {
-        if !alive.get_value() {
-            return;
-        }
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
@@ -129,41 +89,13 @@ pub fn CustomNumberInput(
     };
 
     let increment = move |_| {
-        if !alive.get_value() {
-            return; // ← line 125 is now safe
-        }
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
         commit(count.get_untracked().saturating_add(step));
     };
 
-    let handle_input = move |ev: web_sys::Event| {
-        if !alive.get_value() {
-            return;
-        }
-        let Some(input) = ev
-            .target()
-            .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
-        else {
-            return;
-        };
-        set_text.set(sanitize_numeric_input(&input.value(), min < 0));
-    };
-
-    let handle_blur = move |_| {
-        if !alive.get_value() {
-            return;
-        }
-        let raw = text.get_untracked();
-        let parsed = parse_or_fallback(&raw, count.get_untracked());
-        commit(parsed);
-    };
-
     let handle_keydown = move |ev: web_sys::KeyboardEvent| {
-        if !alive.get_value() {
-            return;
-        }
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
@@ -200,11 +132,9 @@ pub fn CustomNumberInput(
                 pattern="-?[0-9]*"
                 name=name
                 class=opts.input_class
-                prop:value=move || text.get()
+                prop:value=move || count.get()
                 disabled=move || disabled.get()
                 required=required
-                on:input=handle_input
-                on:blur=handle_blur
                 on:keydown=handle_keydown
             />
             <BasicButton
@@ -235,25 +165,5 @@ mod tests {
     #[test]
     fn clamp_value_above_max_clamps_down() {
         assert_eq!(clamp_value(1000, 1, 99), 99);
-    }
-
-    #[test]
-    fn sanitize_keeps_only_digits_by_default() {
-        assert_eq!(sanitize_numeric_input("12a3b", false), "123");
-    }
-
-    #[test]
-    fn sanitize_keeps_leading_minus_when_negatives_allowed() {
-        assert_eq!(sanitize_numeric_input("-42", true), "-42");
-    }
-
-    #[test]
-    fn parse_valid_number() {
-        assert_eq!(parse_or_fallback("42", 0), 42);
-    }
-
-    #[test]
-    fn parse_empty_string_falls_back() {
-        assert_eq!(parse_or_fallback("", 3), 3);
     }
 }

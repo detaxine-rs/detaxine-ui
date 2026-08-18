@@ -1,6 +1,10 @@
+use crate::stacks::helper::overlay_root;
+use crate::stacks::z_stack::{ZONE_NESTED_FLOATING, expect_z_stack};
 use icondata::BsSearch;
 use leptos::ev;
+use leptos::html::Div;
 use leptos::html::Select;
+use leptos::portal::Portal;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use tailwind_fuse::tw_merge;
@@ -29,6 +33,16 @@ impl SelectOption {
             label: label.into(),
         }
     }
+}
+
+const GAP: f64 = 4.0;
+
+#[derive(Clone, Copy, Default)]
+struct PanelPos {
+    top: f64,
+    left: f64,
+    width: f64,
+    visible: bool,
 }
 
 /// A native `<select>` dropdown with optional label, placeholder, and required indicator.
@@ -271,6 +285,13 @@ pub fn CustomSelectInput(
     let (open, set_open) = signal(false);
     let (query, set_query) = signal(String::new());
 
+    let trigger_ref = NodeRef::<Div>::new();
+    let panel_ref = NodeRef::<Div>::new();
+    let panel_pos = RwSignal::new(PanelPos::default());
+    let z_stack = expect_z_stack();
+    let overlay_z_index = RwSignal::new(ZONE_NESTED_FLOATING);
+    let panel_z_index = RwSignal::new(ZONE_NESTED_FLOATING);
+
     let filtered_options = Signal::derive(move || {
         let q = query.get().to_lowercase();
         options
@@ -279,6 +300,70 @@ pub fn CustomSelectInput(
             .into_iter()
             .filter(|o| o.label.to_lowercase().contains(&q))
             .collect::<Vec<_>>()
+    });
+
+    // Pass 2: panel is mounted (offscreen/hidden), measure its real
+    // height and decide whether it fits below the trigger or must flip up.
+    let measure_and_place = StoredValue::new(move || {
+        let (Some(trigger), Some(panel)) = (trigger_ref.get_untracked(), panel_ref.get_untracked())
+        else {
+            return;
+        };
+        let Some(win) = web_sys::window() else { return };
+
+        let t = trigger.get_bounding_client_rect();
+        let p = panel.get_bounding_client_rect();
+        let vh = win
+            .inner_height()
+            .unwrap_or_default()
+            .as_f64()
+            .unwrap_or(667.0);
+        let vw = win
+            .inner_width()
+            .unwrap_or_default()
+            .as_f64()
+            .unwrap_or(375.0);
+
+        let fits_below = t.bottom() + GAP + p.height() <= vh;
+        let top = if fits_below {
+            t.bottom() + GAP
+        } else {
+            (t.top() - GAP - p.height()).max(GAP)
+        };
+
+        let width = t.width();
+        let left = t.left().min(vw - width - GAP).max(GAP);
+
+        panel_pos.set(PanelPos {
+            top,
+            left,
+            width,
+            visible: true,
+        });
+    });
+
+    let open_dropdown = Callback::new(move |_| {
+        if open.get_untracked() {
+            return;
+        }
+        set_open.set(true);
+        z_stack.lock_scroll();
+        let (oz, pz) = z_stack.acquire_pair(ZONE_NESTED_FLOATING);
+        overlay_z_index.set(oz);
+        panel_z_index.set(pz);
+        panel_pos.set(PanelPos {
+            top: 0.0,
+            left: 0.0,
+            width: 0.0,
+            visible: false,
+        });
+        request_animation_frame(move || measure_and_place.get_value()());
+    });
+
+    let close_dropdown = Callback::new(move |_| {
+        set_open.set(false);
+        set_query.set(String::new());
+        z_stack.unlock_scroll();
     });
 
     let select_value = move |val: String| {
@@ -296,8 +381,7 @@ pub fn CustomSelectInput(
         });
 
         if !multiple {
-            set_open.set(false);
-            set_query.set(String::new());
+            close_dropdown.run(());
         }
     };
 
@@ -306,6 +390,12 @@ pub fn CustomSelectInput(
             current.retain(|v| v != &val);
         });
     };
+
+    on_cleanup(move || {
+        if open.get_untracked() {
+            z_stack.unlock_scroll();
+        }
+    });
 
     let wrapper_class_val = move || tw_merge!("relative w-full", class.get().unwrap_or_default());
     let label_class_val = move || {
@@ -322,8 +412,19 @@ pub fn CustomSelectInput(
     };
     let dropdown_class_val = move || {
         tw_merge!(
-            "absolute z-30 mt-1 w-full bg-contrast-white rounded-[5px] shadow-sm",
+            "fixed bg-contrast-white rounded-[5px] shadow-sm overflow-auto",
             dropdown_class.get().unwrap_or_default()
+        )
+    };
+    let dropdown_style_val = move || {
+        let pos = panel_pos.get();
+        format!(
+            "top: {}px; left: {}px; width: {}px; z-index: {}; visibility: {};",
+            pos.top,
+            pos.left,
+            pos.width,
+            panel_z_index.get(),
+            if pos.visible { "visible" } else { "hidden" }
         )
     };
     let options_list_class_val = move || {
@@ -339,6 +440,7 @@ pub fn CustomSelectInput(
         )
     };
     let option_text_class_val = move || option_text_class.get().unwrap_or_default();
+    let id_attr = StoredValue::new(id_attr);
 
     view! {
         <div class=wrapper_class_val>
@@ -351,8 +453,9 @@ pub fn CustomSelectInput(
 
             // Control with chips
             <div
+                node_ref=trigger_ref
                 class=control_class_val
-                on:click=move |_| set_open.set(true)
+                on:click=move |_| open_dropdown.run(())
             >
                 {move || {
                     let selected = value.get();
@@ -395,47 +498,40 @@ pub fn CustomSelectInput(
                 }}
             </div>
 
-            // Overlay (click outside closes dropdown)
-            {move || open.get().then_some(view! {
-                <div
-                    class="fixed inset-0 z-10"
-                    on:click=move |_| {
-                        set_open.set(false);
-                        set_query.set(String::new());
-                    }
-                />
-            })}
-
-            // Dropdown
-            {
-                let dropdown_class_val = dropdown_class_val.clone();
-                let options_list_class_val = options_list_class_val.clone();
-                let option_class_val = option_class_val.clone();
-                let option_text_class_val = option_text_class_val.clone();
-
-                move || {
-                    let id_attr_clone = id_attr.clone();
-                    let dropdown_class_val = dropdown_class_val.clone();
-                    let options_list_class_val = options_list_class_val.clone();
-                    let option_class_val = option_class_val.clone();
-                    let option_text_class_val = option_text_class_val.clone();
-
-                    open.get().then_some(view! {
-                        <div class=dropdown_class_val.clone()>
-                            <InputField placeholder="Search…" field_type=InputFieldType::Text icon=BsSearch id_attr="search" on:input=move |ev: ev::Event| {
-                                set_query.set(event_target_value(&ev));
-                            } />
+            <Show when=move || open.get() fallback=|| ()>
+            {move || overlay_root().map(|root| {
+                view! {
+                    <Portal mount=root>
+                        <div
+                            class="fixed inset-0"
+                            style=move || format!("z-index: {};", overlay_z_index.get())
+                            on:click=move |_| close_dropdown.run(())
+                        />
+                        <div
+                            node_ref=panel_ref
+                            on:mousedown=|e: ev::MouseEvent| e.prevent_default()
+                            class=dropdown_class_val.clone()
+                            style=dropdown_style_val
+                        >
+                            <InputField
+                                placeholder="Search…"
+                                field_type=InputFieldType::Text
+                                icon=BsSearch
+                                id_attr="search"
+                                on:input=move |ev: ev::Event| {
+                                    set_query.set(event_target_value(&ev));
+                                }
+                            />
 
                             <ul class=options_list_class_val.clone()>
                                 {move || {
                                     let option_class_val = option_class_val.clone();
                                     let option_text_class_val = option_text_class_val.clone();
-                                    let id_attr_clone = id_attr_clone.clone();
 
                                     filtered_options.get().into_iter().map(move |opt| {
                                         let selected = value.get().contains(&opt.value);
                                         let val = opt.value.clone();
-                                        let current_id_attr = format!("{}_{}", id_attr_clone, opt.value);
+                                        let current_id_attr = format!("{}_{}", id_attr.get_value(), opt.value);
                                         let option_class_val = option_class_val.clone();
                                         let option_text_class_val = option_text_class_val.clone();
 
@@ -472,9 +568,10 @@ pub fn CustomSelectInput(
                                 }}
                             </ul>
                         </div>
-                    })
+                    </Portal>
                 }
-            }
+            })}
+            </Show>
         </div>
     }.into_any()
 }
