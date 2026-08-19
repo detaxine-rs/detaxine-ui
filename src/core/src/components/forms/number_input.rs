@@ -1,8 +1,11 @@
 use icondata::{BsDashLg, BsPlusLg};
 use leptos::{html::*, prelude::*};
 use tailwind_fuse::tw_merge;
+use web_sys::HtmlInputElement;
 
-use crate::components::actions::button::BasicButton;
+use crate::{
+    components::actions::button::BasicButton, utils::forms::fire_bubbled_and_cancelable_event,
+};
 
 // ── Options struct (unchanged) ──────────────────────────────────────
 #[derive(Clone, Debug)]
@@ -48,14 +51,14 @@ fn can_step_up(current: i64, max: i64, disabled: bool) -> bool {
 #[component]
 pub fn CustomNumberInput(
     #[prop(into)] name: String,
-    #[prop(into, optional)] initial_value: MaybeProp<i64>,
+    #[prop(optional, default = 0)] initial_value: i64, // plain, not MaybeProp
     #[prop(optional, default = 0)] min: i64,
     #[prop(optional, default = i64::MAX)] max: i64,
     #[prop(optional, default = 1)] step: i64,
     #[prop(into, optional)] class: String,
     #[prop(into, optional)] button_class: String,
     #[prop(into, optional)] input_class: String,
-    #[prop(into, optional)] disabled: MaybeProp<bool>,
+    #[prop(into, optional)] disabled: MaybeProp<bool>, // stays reactive — genuinely meant to live-update
     #[prop(into, optional, default = false)] required: bool,
     #[prop(optional, default = NodeRef::<Input>::new())] input_node_ref: NodeRef<Input>,
 ) -> impl IntoView {
@@ -65,48 +68,69 @@ pub fn CustomNumberInput(
         input_class: tw_merge!(NumberInputOptions::default().input_class, input_class),
     };
 
-    let count = RwSignal::new(clamp_value(
-        initial_value.get().unwrap_or_default(),
-        min,
-        max,
-    ));
+    // Seeded once, exactly like Calendar's start_month/start_year. No Effect,
+    // no re-sync, no race with user interaction — there's nothing left to
+    // react to.
+    let count = RwSignal::new(clamp_value(initial_value, min, max));
 
     let commit = move |raw: i64| {
         let clamped = clamp_value(raw, min, max);
-        count.set(clamped);
+        count.try_set(clamped);
+        if let Some(el) = input_node_ref.get_untracked() as Option<HtmlInputElement> {
+            el.set_value(&clamped.to_string());
+            fire_bubbled_and_cancelable_event("input", true, true, &el);
+            fire_bubbled_and_cancelable_event("change", true, true, &el);
+        }
     };
 
-    let can_decrement =
-        Memo::new(move |_| can_step_down(count.get(), min, disabled.get().unwrap_or_default()));
-    let can_increment =
-        Memo::new(move |_| can_step_up(count.get(), max, disabled.get().unwrap_or_default()));
+    let can_decrement = Memo::new(move |_| {
+        count
+            .try_get()
+            .map(|c| can_step_down(c, min, disabled.get().unwrap_or_default()))
+            .unwrap_or(false)
+    });
+    let can_increment = Memo::new(move |_| {
+        count
+            .try_get()
+            .map(|c| can_step_up(c, max, disabled.get().unwrap_or_default()))
+            .unwrap_or(false)
+    });
 
     let decrement = move |_| {
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
-        commit(count.get_untracked().saturating_sub(step));
+        let Some(current) = count.try_get_untracked() else {
+            return;
+        };
+        commit(current.saturating_sub(step));
     };
 
     let increment = move |_| {
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
-        commit(count.get_untracked().saturating_add(step));
+        let Some(current) = count.try_get_untracked() else {
+            return;
+        };
+        commit(current.saturating_add(step));
     };
 
     let handle_keydown = move |ev: web_sys::KeyboardEvent| {
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
+        let Some(current) = count.try_get_untracked() else {
+            return;
+        };
         match ev.key().as_str() {
             "ArrowUp" => {
                 ev.prevent_default();
-                commit(count.get_untracked().saturating_add(step));
+                commit(current.saturating_add(step));
             }
             "ArrowDown" => {
                 ev.prevent_default();
-                commit(count.get_untracked().saturating_sub(step));
+                commit(current.saturating_sub(step));
             }
             "Enter" => {
                 if let Some(el) = input_node_ref.get_untracked() {
