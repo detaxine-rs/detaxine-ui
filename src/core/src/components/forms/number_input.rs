@@ -82,12 +82,16 @@ pub fn CustomNumberInput(
     };
 
     let decrement = move |_| {
-        let current = count.get();
+        let Some(current) = count.try_get_untracked() else {
+            return;
+        };
         commit(current.saturating_sub(step));
     };
 
     let increment = move |_| {
-        let current = count.get();
+        let Some(current) = count.try_get_untracked() else {
+            return;
+        };
         commit(current.saturating_add(step));
     };
 
