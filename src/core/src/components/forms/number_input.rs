@@ -51,15 +51,14 @@ fn can_step_up(current: i64, max: i64, disabled: bool) -> bool {
 #[component]
 pub fn CustomNumberInput(
     #[prop(into)] name: String,
-    #[prop(into, optional)] initial_value: MaybeProp<i64>,
+    #[prop(optional, default = 0)] initial_value: i64, // plain, not MaybeProp
     #[prop(optional, default = 0)] min: i64,
     #[prop(optional, default = i64::MAX)] max: i64,
     #[prop(optional, default = 1)] step: i64,
-    // #[prop(optional, default = Callback::new(move |_| {}))] on_change: Callback<i64>,
     #[prop(into, optional)] class: String,
     #[prop(into, optional)] button_class: String,
     #[prop(into, optional)] input_class: String,
-    #[prop(into, optional)] disabled: MaybeProp<bool>,
+    #[prop(into, optional)] disabled: MaybeProp<bool>, // stays reactive — genuinely meant to live-update
     #[prop(into, optional, default = false)] required: bool,
     #[prop(optional, default = NodeRef::<Input>::new())] input_node_ref: NodeRef<Input>,
 ) -> impl IntoView {
@@ -69,21 +68,15 @@ pub fn CustomNumberInput(
         input_class: tw_merge!(NumberInputOptions::default().input_class, input_class),
     };
 
-    let count = RwSignal::new(0i64);
-
-    Effect::new(move |_| {
-        count.set(clamp_value(
-            initial_value.get().unwrap_or_default(),
-            min,
-            max,
-        ));
-    });
+    // Seeded once, exactly like Calendar's start_month/start_year. No Effect,
+    // no re-sync, no race with user interaction — there's nothing left to
+    // react to.
+    let count = RwSignal::new(clamp_value(initial_value, min, max));
 
     let commit = move |raw: i64| {
         let clamped = clamp_value(raw, min, max);
-        count.set(clamped);
-        // on_change.run(clamped);
-        if let Some(el) = input_node_ref.get() as Option<HtmlInputElement> {
+        count.try_set(clamped);
+        if let Some(el) = input_node_ref.get_untracked() as Option<HtmlInputElement> {
             el.set_value(&clamped.to_string());
             fire_bubbled_and_cancelable_event("input", true, true, &el);
             fire_bubbled_and_cancelable_event("change", true, true, &el);
@@ -108,7 +101,7 @@ pub fn CustomNumberInput(
             return;
         }
         let Some(current) = count.try_get_untracked() else {
-            return; // scope already disposed, nothing to do
+            return;
         };
         commit(current.saturating_sub(step));
     };
@@ -127,14 +120,17 @@ pub fn CustomNumberInput(
         if disabled.get_untracked().unwrap_or_default() {
             return;
         }
+        let Some(current) = count.try_get_untracked() else {
+            return;
+        };
         match ev.key().as_str() {
             "ArrowUp" => {
                 ev.prevent_default();
-                commit(count.get_untracked().saturating_add(step));
+                commit(current.saturating_add(step));
             }
             "ArrowDown" => {
                 ev.prevent_default();
-                commit(count.get_untracked().saturating_sub(step));
+                commit(current.saturating_sub(step));
             }
             "Enter" => {
                 if let Some(el) = input_node_ref.get_untracked() {
