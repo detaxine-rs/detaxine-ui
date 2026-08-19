@@ -70,7 +70,7 @@ pub fn CustomNumberInput(
     };
 
     let count = RwSignal::new(clamp_value(
-        initial_value.get().unwrap_or_default(),
+        initial_value.get_untracked().unwrap_or_default(),
         min,
         max,
     ));
