@@ -69,11 +69,15 @@ pub fn CustomNumberInput(
         input_class: tw_merge!(NumberInputOptions::default().input_class, input_class),
     };
 
-    let count = RwSignal::new(clamp_value(
-        initial_value.get_untracked().unwrap_or_default(),
-        min,
-        max,
-    ));
+    let count = RwSignal::new(0i64);
+
+    Effect::new(move |_| {
+        count.set(clamp_value(
+            initial_value.get().unwrap_or_default(),
+            min,
+            max,
+        ));
+    });
 
     let commit = move |raw: i64| {
         let clamped = clamp_value(raw, min, max);
