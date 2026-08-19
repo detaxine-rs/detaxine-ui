@@ -34,17 +34,8 @@ impl Default for NumberInputOptions {
     }
 }
 
-// ── Pure logic (unchanged) ──────────────────────────────────────────
 fn clamp_value(raw: i64, min: i64, max: i64) -> i64 {
     raw.clamp(min, max)
-}
-
-fn can_step_down(current: i64, min: i64, disabled: bool) -> bool {
-    current > min && !disabled
-}
-
-fn can_step_up(current: i64, max: i64, disabled: bool) -> bool {
-    current < max && !disabled
 }
 
 // ── Component ──────────────────────────────────────────────────────
@@ -60,7 +51,7 @@ pub fn CustomNumberInput(
     #[prop(into, optional)] input_class: String,
     #[prop(into, optional)] disabled: MaybeProp<bool>, // stays reactive — genuinely meant to live-update
     #[prop(into, optional, default = false)] required: bool,
-    #[prop(optional, default = NodeRef::<Input>::new())] input_node_ref: NodeRef<Input>,
+    #[prop(optional)] input_node_ref: NodeRef<Input>,
 ) -> impl IntoView {
     let opts = NumberInputOptions {
         class: tw_merge!(NumberInputOptions::default().class, class),
@@ -68,14 +59,21 @@ pub fn CustomNumberInput(
         input_class: tw_merge!(NumberInputOptions::default().input_class, input_class),
     };
 
+    // ── Pure logic (unchanged) ──────────────────────────────────────────
+    // let clamp_value = move |raw: i64, min: i64, max: i64| -> i64 { raw.clamp(min, max) };
+
     // Seeded once, exactly like Calendar's start_month/start_year. No Effect,
     // no re-sync, no race with user interaction — there's nothing left to
     // react to.
     let count = RwSignal::new(clamp_value(initial_value, min, max));
 
+    let step_down_disabled = Memo::new(move |_| count.get() == min);
+
+    let step_up_disabled = Memo::new(move |_| count.get() == max);
+
     let commit = move |raw: i64| {
         let clamped = clamp_value(raw, min, max);
-        count.try_set(clamped);
+        count.set(clamped);
         if let Some(el) = input_node_ref.get_untracked() as Option<HtmlInputElement> {
             el.set_value(&clamped.to_string());
             fire_bubbled_and_cancelable_event("input", true, true, &el);
@@ -83,43 +81,17 @@ pub fn CustomNumberInput(
         }
     };
 
-    let can_decrement = Memo::new(move |_| {
-        count
-            .try_get()
-            .map(|c| can_step_down(c, min, disabled.get().unwrap_or_default()))
-            .unwrap_or(false)
-    });
-    let can_increment = Memo::new(move |_| {
-        count
-            .try_get()
-            .map(|c| can_step_up(c, max, disabled.get().unwrap_or_default()))
-            .unwrap_or(false)
-    });
-
     let decrement = move |_| {
-        if disabled.get_untracked().unwrap_or_default() {
-            return;
-        }
-        let Some(current) = count.try_get_untracked() else {
-            return;
-        };
+        let current = count.get();
         commit(current.saturating_sub(step));
     };
 
     let increment = move |_| {
-        if disabled.get_untracked().unwrap_or_default() {
-            return;
-        }
-        let Some(current) = count.try_get_untracked() else {
-            return;
-        };
+        let current = count.get();
         commit(current.saturating_add(step));
     };
 
     let handle_keydown = move |ev: web_sys::KeyboardEvent| {
-        if disabled.get_untracked().unwrap_or_default() {
-            return;
-        }
         let Some(current) = count.try_get_untracked() else {
             return;
         };
@@ -145,7 +117,7 @@ pub fn CustomNumberInput(
         <div class=opts.class>
             <BasicButton
                 class=tw_merge!("{} rounded-r-none", opts.button_class.clone())
-                disabled=Signal::derive(move || !can_decrement.get())
+                disabled=step_down_disabled
                 on:click=decrement
                 icon=Some(BsDashLg)
             />
@@ -163,7 +135,7 @@ pub fn CustomNumberInput(
             />
             <BasicButton
                 class=tw_merge!("{} rounded-l-none", opts.button_class.clone())
-                disabled=Signal::derive(move || !can_increment.get())
+                disabled=step_up_disabled
                 on:click=increment
                 icon=Some(BsPlusLg)
             />
