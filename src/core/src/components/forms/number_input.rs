@@ -65,48 +65,57 @@ pub fn CustomNumberInput(
     // Seeded once, exactly like Calendar's start_month/start_year. No Effect,
     // no re-sync, no race with user interaction — there's nothing left to
     // react to.
-    let count = RwSignal::new(clamp_value(initial_value, min, max));
+    let count = ArcRwSignal::new(clamp_value(initial_value, min, max));
+    let count_ref = &count;
+    let count_ref_step_down = count_ref.clone();
+    let count_ref_step_up = count_ref.clone();
+    let count_ref_commit = count_ref.clone();
+    let count_ref_decrement = count_ref.clone();
+    let count_ref_increment = count_ref.clone();
+    let count_ref_keydown = count_ref.clone();
 
-    let step_down_disabled = Memo::new(move |_| count.get() == min);
+    let step_down_disabled = Memo::new(move |_| count_ref_step_down.get() == min);
 
-    let step_up_disabled = Memo::new(move |_| count.get() == max);
+    let step_up_disabled = Memo::new(move |_| count_ref_step_up.get() == max);
 
-    let commit = move |raw: i64| {
+    let commit = StoredValue::new(move |raw: i64| {
         let clamped = clamp_value(raw, min, max);
-        count.set(clamped);
+        count_ref_commit.set(clamped);
         if let Some(el) = input_node_ref.get_untracked() as Option<HtmlInputElement> {
             el.set_value(&clamped.to_string());
             fire_bubbled_and_cancelable_event("input", true, true, &el);
             fire_bubbled_and_cancelable_event("change", true, true, &el);
         }
-    };
+    });
 
     let decrement = move |_| {
-        let Some(current) = count.try_get_untracked() else {
+        let Some(current) = count_ref_decrement.try_get_untracked() else {
+            leptos::logging::log!("decrement: count not available");
             return;
         };
-        commit(current.saturating_sub(step));
+        commit.with_value(|v| v(current.saturating_sub(step)));
     };
 
     let increment = move |_| {
-        let Some(current) = count.try_get_untracked() else {
+        let Some(current) = count_ref_increment.try_get_untracked() else {
+            leptos::logging::log!("increment: count not available");
             return;
         };
-        commit(current.saturating_add(step));
+        commit.with_value(|v| v(current.saturating_sub(step)));
     };
 
     let handle_keydown = move |ev: web_sys::KeyboardEvent| {
-        let Some(current) = count.try_get_untracked() else {
+        let Some(current) = count_ref_keydown.try_get_untracked() else {
             return;
         };
         match ev.key().as_str() {
             "ArrowUp" => {
                 ev.prevent_default();
-                commit(current.saturating_add(step));
+                commit.with_value(|v| v(current.saturating_sub(step)));
             }
             "ArrowDown" => {
                 ev.prevent_default();
-                commit(current.saturating_sub(step));
+                commit.with_value(|v| v(current.saturating_sub(step)));
             }
             "Enter" => {
                 if let Some(el) = input_node_ref.get_untracked() {
