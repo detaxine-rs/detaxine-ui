@@ -857,7 +857,7 @@ fn Showcase() -> impl IntoView {
                     <Section section_ref=number_input_ref label="Custom Number Input">
                         <CustomNumberInput
                             name="quantity"
-                            initial_value=1
+                            value=Signal::derive(move || 1)
                             min=1
                             max=99
                             class="h-[35px] w-[150px]"

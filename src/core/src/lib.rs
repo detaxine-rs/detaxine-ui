@@ -231,7 +231,7 @@
 //!     view! {
 //!         <CustomNumberInput
 //!             name="quantity"
-//!             initial_value=5
+//!             value=Signal::derive(move || 5)
 //!             min=0
 //!             max=99
 //!             step=1
