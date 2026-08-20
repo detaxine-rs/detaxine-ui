@@ -79,9 +79,11 @@ pub fn CustomNumberInput(
         );
         on_change.run(clamped);
         if let Some(el) = input_node_ref.get_untracked() as Option<HtmlInputElement> {
-            el.set_value(&clamped.to_string());
-            fire_bubbled_and_cancelable_event("input", true, true, &el);
-            fire_bubbled_and_cancelable_event("change", true, true, &el);
+            request_animation_frame(move || {
+                el.set_value(&clamped.to_string());
+                fire_bubbled_and_cancelable_event("input", true, true, &el);
+                fire_bubbled_and_cancelable_event("change", true, true, &el);
+            });
         }
     };
 
