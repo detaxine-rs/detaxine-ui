@@ -1,5 +1,5 @@
 use icondata::{BsDashLg, BsPlusLg};
-use leptos::{html::*, prelude::*};
+use leptos::{ev, html::*, prelude::*};
 use tailwind_fuse::tw_merge;
 use web_sys::HtmlInputElement;
 
@@ -7,7 +7,6 @@ use crate::{
     components::actions::button::BasicButton, utils::forms::fire_bubbled_and_cancelable_event,
 };
 
-// ── Options struct (unchanged) ──────────────────────────────────────
 #[derive(Clone, Debug)]
 struct NumberInputOptions {
     pub class: String,
@@ -38,18 +37,28 @@ fn clamp_value(raw: i64, min: i64, max: i64) -> i64 {
     raw.clamp(min, max)
 }
 
-// ── Component ──────────────────────────────────────────────────────
 #[component]
 pub fn CustomNumberInput(
     #[prop(into)] name: String,
-    #[prop(optional, default = 0)] initial_value: i64, // plain, not MaybeProp
-    #[prop(optional, default = 0)] min: i64,
-    #[prop(optional, default = i64::MAX)] max: i64,
+    /// Reactive, externally-owned value. This component never stores its
+    /// own copy — it always displays exactly what the parent gives it.
+    #[prop(into)]
+    value: Signal<i64>,
+    /// Called with the proposed new value on every button press, arrow
+    /// key, or typed change. The parent decides whether/how to apply it
+    /// (e.g. writing to cart) — the input's displayed value only changes
+    /// once that write flows back through `value`.
+    #[prop(into, optional, default = Callback::new(move |_| {}))]
+    on_change: Callback<i64>,
+    #[prop(optional, into, default = MaybeProp::derive(move || Some(0)))] min: MaybeProp<i64>,
+    #[prop(optional, into, default = MaybeProp::derive(move || Some(i64::MAX)))] max: MaybeProp<
+        i64,
+    >,
     #[prop(optional, default = 1)] step: i64,
     #[prop(into, optional)] class: String,
     #[prop(into, optional)] button_class: String,
     #[prop(into, optional)] input_class: String,
-    #[prop(into, optional)] disabled: MaybeProp<bool>, // stays reactive — genuinely meant to live-update
+    #[prop(into, optional)] disabled: MaybeProp<bool>,
     #[prop(into, optional, default = false)] required: bool,
     #[prop(optional)] input_node_ref: NodeRef<Input>,
 ) -> impl IntoView {
@@ -59,21 +68,16 @@ pub fn CustomNumberInput(
         input_class: tw_merge!(NumberInputOptions::default().input_class, input_class),
     };
 
-    // ── Pure logic (unchanged) ──────────────────────────────────────────
-    // let clamp_value = move |raw: i64, min: i64, max: i64| -> i64 { raw.clamp(min, max) };
-
-    // Seeded once, exactly like Calendar's start_month/start_year. No Effect,
-    // no re-sync, no race with user interaction — there's nothing left to
-    // react to.
-    let (count, set_count) = signal(clamp_value(initial_value, min, max));
-
-    let step_down_disabled = Memo::new(move |_| count.get() == min);
-
-    let step_up_disabled = Memo::new(move |_| count.get() == max);
+    let step_down_disabled = Memo::new(move |_| value.get() <= min.get().unwrap_or_default());
+    let step_up_disabled = Memo::new(move |_| value.get() >= max.get().unwrap_or_default());
 
     let commit = move |raw: i64| {
-        let clamped = clamp_value(raw, min, max);
-        set_count.set(clamped);
+        let clamped = clamp_value(
+            raw,
+            min.get().unwrap_or_default(),
+            max.get().unwrap_or_default(),
+        );
+        on_change.run(clamped);
         if let Some(el) = input_node_ref.get_untracked() as Option<HtmlInputElement> {
             el.set_value(&clamped.to_string());
             fire_bubbled_and_cancelable_event("input", true, true, &el);
@@ -81,41 +85,29 @@ pub fn CustomNumberInput(
         }
     };
 
-    let decrement = move |_| {
-        let Some(current) = count.try_get_untracked() else {
-            leptos::logging::log!("decrement: count not available");
-            return;
-        };
-        commit(current.saturating_sub(step));
+    let decrement = move |_| commit(value.get_untracked().saturating_sub(step));
+    let increment = move |_| commit(value.get_untracked().saturating_add(step));
+
+    let handle_keydown = move |ev: ev::KeyboardEvent| match ev.key().as_str() {
+        "ArrowUp" => {
+            ev.prevent_default();
+            commit(value.get_untracked().saturating_add(step));
+        }
+        "ArrowDown" => {
+            ev.prevent_default();
+            commit(value.get_untracked().saturating_sub(step));
+        }
+        "Enter" => {
+            if let Some(el) = input_node_ref.get_untracked() {
+                let _ = el.blur();
+            }
+        }
+        _ => {}
     };
 
-    let increment = move |_| {
-        let Some(current) = count.try_get_untracked() else {
-            leptos::logging::log!("increment: count not available");
-            return;
-        };
-        commit(current.saturating_add(step));
-    };
-
-    let handle_keydown = move |ev: web_sys::KeyboardEvent| {
-        let Some(current) = count.try_get_untracked() else {
-            return;
-        };
-        match ev.key().as_str() {
-            "ArrowUp" => {
-                ev.prevent_default();
-                commit(current.saturating_add(step));
-            }
-            "ArrowDown" => {
-                ev.prevent_default();
-                commit(current.saturating_sub(step));
-            }
-            "Enter" => {
-                if let Some(el) = input_node_ref.get_untracked() {
-                    let _ = el.blur();
-                }
-            }
-            _ => {}
+    let handle_input_change = move |ev: ev::Event| {
+        if let Ok(raw) = event_target_value(&ev).parse::<i64>() {
+            commit(raw);
         }
     };
 
@@ -134,10 +126,11 @@ pub fn CustomNumberInput(
                 pattern="-?[0-9]*"
                 name=name
                 class=opts.input_class
-                prop:value=move || count.get()
+                prop:value=move || value.get()
                 disabled=move || disabled.get()
                 required=required
                 on:keydown=handle_keydown
+                on:change=handle_input_change
             />
             <BasicButton
                 class=tw_merge!("{} rounded-l-none", opts.button_class.clone())
@@ -149,7 +142,6 @@ pub fn CustomNumberInput(
     }
 }
 
-// ── Tests (unchanged) ──────────────────────────────────────────────
 #[cfg(test)]
 mod tests {
     use super::*;
