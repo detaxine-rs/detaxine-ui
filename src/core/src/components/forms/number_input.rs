@@ -78,13 +78,11 @@ pub fn CustomNumberInput(
             max.get().unwrap_or_default(),
         );
         on_change.run(clamped);
-        if let Some(el) = input_node_ref.get_untracked() as Option<HtmlInputElement> {
-            request_animation_frame(move || {
-                el.set_value(&clamped.to_string());
-                fire_bubbled_and_cancelable_event("input", true, true, &el);
-                fire_bubbled_and_cancelable_event("change", true, true, &el);
-            });
-        }
+        // if let Some(el) = input_node_ref.get_untracked() as Option<HtmlInputElement> {
+        //     el.set_value(&clamped.to_string());
+        //     fire_bubbled_and_cancelable_event("input", true, true, &el);
+        //     fire_bubbled_and_cancelable_event("change", true, true, &el);
+        // }
     };
 
     let decrement = move |_| commit(value.get_untracked().saturating_sub(step));
@@ -110,6 +108,11 @@ pub fn CustomNumberInput(
     let handle_input_change = move |ev: ev::Event| {
         if let Ok(raw) = event_target_value(&ev).parse::<i64>() {
             commit(raw);
+            if let Some(el) = input_node_ref.get_untracked() as Option<HtmlInputElement> {
+                el.set_value(&raw.to_string());
+                fire_bubbled_and_cancelable_event("input", true, true, &el);
+                fire_bubbled_and_cancelable_event("change", true, true, &el);
+            }
         }
     };
 
