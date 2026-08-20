@@ -1,11 +1,8 @@
 use icondata::{BsDashLg, BsPlusLg};
 use leptos::{ev, html::*, prelude::*};
 use tailwind_fuse::tw_merge;
-use web_sys::HtmlInputElement;
 
-use crate::{
-    components::actions::button::BasicButton, utils::forms::fire_bubbled_and_cancelable_event,
-};
+use crate::components::actions::button::BasicButton;
 
 #[derive(Clone, Debug)]
 struct NumberInputOptions {

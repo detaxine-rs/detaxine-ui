@@ -156,10 +156,12 @@ pub fn Stepper(
             set_current_step.update(|step| *step += 1);
         }
 
-        if current_step.get() == step_count - 1 {
-            let form_refs = form_refs.get();
-            send_all_form_refs.run(form_refs);
-        }
+        // if current_step.get() == step_count - 1 {
+        //     let form_refs = form_refs.get();
+        //     send_all_form_refs.run(form_refs);
+        // }
+        let form_refs = form_refs.get();
+        send_all_form_refs.run(form_refs);
     });
 
     let onclick_prev = Callback::new(move |_| {
