@@ -89,7 +89,7 @@ pub fn SelectInput(
 
     /// `RwSignal<Vec<SelectOption>>` holding the available choices.
     #[prop(into)]
-    options: RwSignal<Vec<SelectOption>>,
+    options: MaybeProp<Vec<SelectOption>>,
 
     /// Shows a `*` beside the label and sets `required`. Defaults to `false`.
     #[prop(default = false, optional)]
@@ -178,15 +178,16 @@ pub fn SelectInput(
                         Some(view!{ <option value="">{placeholder}</option> })
                     }
                 }
-                {move || options.get().into_iter()
-                    .map(|option| {
-                        view! {
-                            <option value={option.value.clone()}>
-                                {option.label.clone()}
-                            </option>
-                        }
-                    })
-                    .collect::<Vec<_>>()}
+                {move || options.get().map(|options|
+                    options.into_iter()
+                        .map(|option| {
+                            view! {
+                                <option value={option.value.clone()}>
+                                    {option.label.clone()}
+                                </option>
+                            }
+                        })
+                        .collect::<Vec<_>>())}
             </select>
             <p class=error_class_val>
                 {move || if display_error.get() {

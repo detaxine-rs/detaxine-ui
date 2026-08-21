@@ -176,7 +176,7 @@ pub fn RadioInputGroup(
 
     /// `Vec<RadioOption>` holding the available choices.
     #[prop(into, optional)]
-    options: Vec<RadioOption>,
+    options: MaybeProp<Vec<RadioOption>>,
 
     /// Shared `name` attribute for all radio inputs.
     #[prop(into, optional)]
@@ -262,30 +262,32 @@ pub fn RadioInputGroup(
             </legend>
             <div class=container_class_val>
                 {options
-                    .into_iter()
-                    .map(|option| {
-                        let option_value_selected = option.value.clone();
-                        let option_value = option.value.clone();
-                        let is_selected = move || initial_value.get().unwrap_or_default() == option_value_selected;
-                        let option_label_class_val = option_label_class_val.clone();
-                        let input_class_val = input_class_val.clone();
-                        let option_text_class_val = option_text_class_val.clone();
+                    .get()
+                    .map(|options|
+                        options.into_iter()
+                        .map(|option| {
+                            let option_value_selected = option.value.clone();
+                            let option_value = option.value.clone();
+                            let is_selected = move || initial_value.get().unwrap_or_default() == option_value_selected;
+                            let option_label_class_val = option_label_class_val.clone();
+                            let input_class_val = input_class_val.clone();
+                            let option_text_class_val = option_text_class_val.clone();
 
-                        view! {
-                            <RadioInputField
-                                initial_value=option_value.clone()
-                                name=name.clone()
-                                label=option.label.clone()
-                                required=required
-                                is_selected=Signal::derive(is_selected)
-                                id_attr=option_value.clone()
-                                class=Signal::derive(option_label_class_val)
-                                box_class=Signal::derive(input_class_val)
-                                label_text_class=Signal::derive(option_text_class_val)
-                            />
-                        }
-                    })
-                    .collect_view()}
+                            view! {
+                                <RadioInputField
+                                    initial_value=option_value.clone()
+                                    name=name.clone()
+                                    label=option.label.clone()
+                                    required=required
+                                    is_selected=Signal::derive(is_selected)
+                                    id_attr=option_value.clone()
+                                    class=Signal::derive(option_label_class_val)
+                                    box_class=Signal::derive(input_class_val)
+                                    label_text_class=Signal::derive(option_text_class_val)
+                                />
+                            }
+                        })
+                        .collect_view())}
             </div>
         </fieldset>
     }.into_any()
