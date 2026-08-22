@@ -413,7 +413,7 @@ pub fn CustomSelectInput(
     };
     let dropdown_class_val = move || {
         tw_merge!(
-            "fixed bg-contrast-white rounded-[5px] shadow-sm overflow-auto",
+            "fixed bg-contrast-white rounded-[5px] shadow-sm overflow-auto p-[5px]",
             dropdown_class.get().unwrap_or_default()
         )
     };
@@ -436,7 +436,7 @@ pub fn CustomSelectInput(
     };
     let option_class_val = move || {
         tw_merge!(
-            "px-3 py-2 hover:bg-light-gray flex items-center gap-2 cursor-pointer",
+            "py-2 hover:bg-light-gray flex items-center gap-2 cursor-pointer",
             option_class.get().unwrap_or_default()
         )
     };
@@ -510,7 +510,6 @@ pub fn CustomSelectInput(
                         />
                         <div
                             node_ref=panel_ref
-                            on:mousedown=|e: ev::MouseEvent| e.prevent_default()
                             class=dropdown_class_val.clone()
                             style=dropdown_style_val
                         >
