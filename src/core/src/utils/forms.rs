@@ -134,7 +134,7 @@ fn parse_form<T: DeserializeOwned>(
     vec_fields: Option<&[&str]>,
 ) -> Result<T, FormDeserializeError> {
     for entry in entries {
-        let pair = entry.ok().ok_or(FormDeserializeError::EntryParseFailed)?;
+        let pair = entry.map_err(|_| FormDeserializeError::EntryParseFailed)?;
         let arr = Array::from(&pair);
         let key = arr
             .get(0)
@@ -142,52 +142,45 @@ fn parse_form<T: DeserializeOwned>(
             .ok_or(FormDeserializeError::EntryParseFailed)?;
         let value = arr.get(1);
 
+        let Some(s) = value.as_string() else {
+            continue;
+        };
+        let trimmed = s.trim();
+
+        // No value at all — skip the key entirely rather than writing
+        // Null/"undefined" into the map. Absence lets serde fall back to
+        // the field's Option::None / #[serde(default)], which is what
+        // "either there is a value or there isn't" should mean.
+        if trimmed.is_empty() || trimmed == "undefined" || trimmed == "null" {
+            continue;
+        }
+
         let is_vec_field = vec_fields
             .map(|fields| fields.contains(&key.as_str()))
             .unwrap_or(false);
 
-        if let Some(s) = value.as_string() {
-            // Convert to bool, null, or string
-            let val = if s.is_empty() {
-                Value::Null
-            } else if deserialize_bool && (s == "true" || s == "false") {
-                Value::Bool(s.parse::<bool>().unwrap_or_default())
-            } else {
-                let trimmed = s.trim();
-                // Attempt integer parsing first
-                if let Ok(i) = trimmed.parse::<i64>() {
-                    Value::Number(Number::from(i))
-                }
-                // Attempt float parsing
-                else if let Ok(f) = trimmed.parse::<f64>() {
-                    Number::from_f64(f)
-                        .map(Value::Number)
-                        .unwrap_or(Value::String(trimmed.to_string()))
-                } else {
-                    Value::String(trimmed.to_string())
-                }
-            };
+        let val = if deserialize_bool && (trimmed == "true" || trimmed == "false") {
+            Value::Bool(trimmed == "true")
+        } else if let Ok(i) = trimmed.parse::<i64>() {
+            Value::Number(Number::from(i))
+        } else if let Ok(f) = trimmed.parse::<f64>() {
+            Number::from_f64(f)
+                .map(Value::Number)
+                .unwrap_or_else(|| Value::String(trimmed.to_string()))
+        } else {
+            Value::String(trimmed.to_string())
+        };
 
-            // Merge into existing entry if present
-            match map.get_mut(&key) {
-                Some(existing) => match existing {
-                    Value::Array(arr) => {
-                        arr.push(val);
-                    }
-                    prev => {
-                        // Convert single previous value into array
-                        let new_arr = vec![prev.clone(), val];
-                        *prev = Value::Array(new_arr);
-                    }
-                },
-                None => {
-                    if is_vec_field {
-                        // Always store as array for defined checkbox fields
-                        map.insert(key, Value::Array(vec![val]));
-                    } else {
-                        map.insert(key, val);
-                    }
-                }
+        match map.get_mut(&key) {
+            Some(Value::Array(arr)) => arr.push(val),
+            Some(prev) => {
+                *prev = Value::Array(vec![prev.clone(), val]);
+            }
+            None if is_vec_field => {
+                map.insert(key, Value::Array(vec![val]));
+            }
+            None => {
+                map.insert(key, val);
             }
         }
     }
