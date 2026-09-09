@@ -1,5 +1,6 @@
 use crate::stacks::helper::overlay_root;
 use crate::stacks::z_stack::{ZONE_NESTED_FLOATING, expect_z_stack};
+use crate::utils::forms::fire_bubbled_and_cancelable_event;
 use icondata::BsSearch;
 use leptos::ev;
 use leptos::html::Div;
@@ -282,6 +283,14 @@ pub fn CustomSelectInput(
     /// Extra Tailwind classes for the selected-option text (in addition to `font-semibold`).
     #[prop(into, optional)]
     option_text_class: MaybeProp<String>,
+
+    /// `name` attribute on the hidden native `<select>` used for form submission.
+    #[prop(into, optional)]
+    name: String,
+
+    /// `NodeRef<Select>` for the hidden native `<select>`, useful for programmatic access.
+    #[prop(optional)]
+    input_node_ref: NodeRef<Select>,
 ) -> impl IntoView {
     let (open, set_open) = signal(false);
     let (query, set_query) = signal(String::new());
@@ -381,6 +390,11 @@ pub fn CustomSelectInput(
             }
         });
 
+        if let Some(el) = input_node_ref.get_untracked() {
+            fire_bubbled_and_cancelable_event("input", true, true, &el);
+            fire_bubbled_and_cancelable_event("change", true, true, &el);
+        }
+
         if !multiple {
             close_dropdown.run(());
         }
@@ -390,6 +404,11 @@ pub fn CustomSelectInput(
         value.update(|current| {
             current.retain(|v| v != &val);
         });
+
+        if let Some(el) = input_node_ref.get_untracked() {
+            fire_bubbled_and_cancelable_event("input", true, true, &el);
+            fire_bubbled_and_cancelable_event("change", true, true, &el);
+        }
     };
 
     on_cleanup(move || {
@@ -441,6 +460,7 @@ pub fn CustomSelectInput(
         )
     };
     let option_text_class_val = move || option_text_class.get().unwrap_or_default();
+    let select_id = format!("{id_attr}-select");
     let id_attr = StoredValue::new(id_attr);
 
     view! {
@@ -451,6 +471,36 @@ pub fn CustomSelectInput(
                     <span class="text-danger ml-1">*</span>
                 })}
             </span>
+
+            // Hidden native <select> mirrors `value` for native form
+                    // submission. Browsers serialize <select multiple> as one entry
+                    // per selected <option>, matching how parse_form/
+                    // parse_form_with_options fold repeated keys into an array via
+                    // `vec_fields` — no manual FormData assembly needed downstream.
+                    <select
+                        node_ref=input_node_ref
+                        id=select_id
+                        name=name.clone()
+                        multiple=multiple
+                        required=required
+                        class="sr-only"
+                        tabindex="-1"
+                        aria-hidden="true"
+                    >
+                        <For
+                            each=move || options.get().unwrap_or_default()
+                            key=|o| o.value.clone()
+                            children=move |opt| {
+                                let val = opt.value.clone();
+                                let is_selected = Signal::derive(move || value.get().contains(&val));
+                                view! {
+                                    <option value=opt.value.clone() selected=is_selected>
+                                        {opt.label.clone()}
+                                    </option>
+                                }
+                            }
+                        />
+                    </select>
 
             // Control with chips
             <div
