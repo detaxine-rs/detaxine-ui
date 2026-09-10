@@ -377,15 +377,12 @@ pub fn CustomSelectInput(
     });
 
     let select_value = move |val: String| {
-        let val_ref = &val;
-        let val_ref_update = val_ref.clone();
-
         value.update(|current| {
             if multiple {
-                if current.contains(&val_ref_update) {
-                    current.retain(|v| v != &val_ref_update);
+                if current.contains(&val) {
+                    current.retain(|v| v != &val);
                 } else {
-                    current.push(val_ref_update);
+                    current.push(val);
                 }
             } else {
                 current.clear();
@@ -404,11 +401,8 @@ pub fn CustomSelectInput(
     };
 
     let remove_value = move |val: String| {
-        let val_ref = &val;
-        let val_ref_update = val_ref.clone();
-
         value.update(|current| {
-            current.retain(|v| v != &val_ref_update);
+            current.retain(|v| v != &val);
         });
 
         if let Some(el) = input_node_ref.get_untracked() {
@@ -500,7 +494,7 @@ pub fn CustomSelectInput(
                                 let val = opt.value.clone();
                                 let is_selected = Signal::derive(move || value.get().contains(&val));
                                 view! {
-                                    <option value=opt.value.clone() selected=is_selected>
+                                    <option value=opt.value.clone() prop:selected=is_selected>
                                         {opt.label.clone()}
                                     </option>
                                 }
