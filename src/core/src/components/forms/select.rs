@@ -391,8 +391,10 @@ pub fn CustomSelectInput(
         });
 
         if let Some(el) = input_node_ref.get_untracked() {
-            fire_bubbled_and_cancelable_event("input", true, true, &el);
-            fire_bubbled_and_cancelable_event("change", true, true, &el);
+            request_animation_frame(move || {
+                fire_bubbled_and_cancelable_event("input", true, true, &el);
+                fire_bubbled_and_cancelable_event("change", true, true, &el);
+            });
         }
 
         if !multiple {
@@ -406,8 +408,10 @@ pub fn CustomSelectInput(
         });
 
         if let Some(el) = input_node_ref.get_untracked() {
-            fire_bubbled_and_cancelable_event("input", true, true, &el);
-            fire_bubbled_and_cancelable_event("change", true, true, &el);
+            request_animation_frame(move || {
+                fire_bubbled_and_cancelable_event("input", true, true, &el);
+                fire_bubbled_and_cancelable_event("change", true, true, &el);
+            });
         }
     };
 
@@ -487,11 +491,11 @@ pub fn CustomSelectInput(
                         tabindex="-1"
                         aria-hidden="true"
                     >
-                        // {(!multiple).then(|| view! {
-                        //     <option value="" prop:selected=Signal::derive(move || value.get().is_empty())>
-                        //         ""
-                        //     </option>
-                        // })}
+                        {(!multiple).then(|| view! {
+                            <option value="" prop:selected=Signal::derive(move || value.get().is_empty())>
+                                ""
+                            </option>
+                        })}
                         <For
                             each=move || options.get().unwrap_or_default()
                             key=|o| o.value.clone()
