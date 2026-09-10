@@ -487,6 +487,11 @@ pub fn CustomSelectInput(
                         tabindex="-1"
                         aria-hidden="true"
                     >
+                        {(!multiple).then(|| view! {
+                            <option value="" prop:selected=Signal::derive(move || value.get().is_empty())>
+                                ""
+                            </option>
+                        })}
                         <For
                             each=move || options.get().unwrap_or_default()
                             key=|o| o.value.clone()
