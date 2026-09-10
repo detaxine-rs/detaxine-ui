@@ -414,7 +414,6 @@ pub fn CustomSelectInput(
         });
 
         if let Some(el) = input_node_ref.get_untracked() {
-            el.set_value("");
             fire_bubbled_and_cancelable_event("input", true, true, &el);
             fire_bubbled_and_cancelable_event("change", true, true, &el);
         }
