@@ -379,7 +379,6 @@ pub fn CustomSelectInput(
     let select_value = move |val: String| {
         let val_ref = &val;
         let val_ref_update = val_ref.clone();
-        let val_ref_el = val_ref.clone();
 
         value.update(|current| {
             if multiple {
@@ -395,7 +394,6 @@ pub fn CustomSelectInput(
         });
 
         if let Some(el) = input_node_ref.get_untracked() {
-            el.set_value(&val_ref_el);
             fire_bubbled_and_cancelable_event("input", true, true, &el);
             fire_bubbled_and_cancelable_event("change", true, true, &el);
         }
