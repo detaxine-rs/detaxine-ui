@@ -43,6 +43,7 @@ struct PanelPos {
     top: f64,
     left: f64,
     width: f64,
+    max_height: f64,
     visible: bool,
 }
 
@@ -334,11 +335,20 @@ pub fn CustomSelectInput(
             .as_f64()
             .unwrap_or(375.0);
 
-        let fits_below = t.bottom() + GAP + p.height() <= vh;
+        let fits_below = t.bottom() + GAP + p.height().min(320.0) <= vh;
+
+        let available = if fits_below {
+            vh - t.bottom() - GAP
+        } else {
+            t.top() - GAP
+        };
+        // Hard ceiling so it never dwarfs the viewport even when there's tons of room.
+        let max_height = available.max(120.0).min(320.0);
+
         let top = if fits_below {
             t.bottom() + GAP
         } else {
-            (t.top() - GAP - p.height()).max(GAP)
+            (t.top() - GAP - p.height().min(max_height)).max(GAP)
         };
 
         let width = t.width();
@@ -348,6 +358,7 @@ pub fn CustomSelectInput(
             top,
             left,
             width,
+            max_height,
             visible: true,
         });
     });
@@ -366,6 +377,7 @@ pub fn CustomSelectInput(
             left: 0.0,
             width: 0.0,
             visible: false,
+            max_height: 9999.0,
         });
         request_animation_frame(move || measure_and_place.get_value()());
     });
@@ -436,24 +448,25 @@ pub fn CustomSelectInput(
     };
     let dropdown_class_val = move || {
         tw_merge!(
-            "fixed bg-contrast-white rounded-[5px] shadow-sm overflow-hidden p-[5px] flex flex-col max-h-[min(400px,60vh)]",
+            "fixed bg-contrast-white rounded-[5px] shadow-sm overflow-hidden p-[5px] flex flex-col",
             dropdown_class.get().unwrap_or_default()
         )
     };
     let dropdown_style_val = move || {
         let pos = panel_pos.get();
         format!(
-            "top: {}px; left: {}px; width: {}px; z-index: {}; visibility: {};",
+            "top: {}px; left: {}px; width: {}px; max-height: {}px; z-index: {}; visibility: {};",
             pos.top,
             pos.left,
             pos.width,
+            pos.max_height,
             panel_z_index.get(),
             if pos.visible { "visible" } else { "hidden" }
         )
     };
     let options_list_class_val = move || {
         tw_merge!(
-            "overflow-y-auto min-h-0 flex-1",
+            "flex-1 min-h-0 overflow-y-auto",
             options_list_class.get().unwrap_or_default()
         )
     };
