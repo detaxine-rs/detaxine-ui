@@ -96,6 +96,12 @@ pub fn DatePicker(
     /// Extra Tailwind classes forwarded to the internal `Calendar`'s day/nav buttons.
     #[prop(into, optional)]
     calendar_class: MaybeProp<String>,
+    /// Extra Tailwind classes for the bordered field container (wraps icon + input + toggle).
+    #[prop(into, optional)]
+    field_class: MaybeProp<String>,
+    /// Extra Tailwind classes for the `<label>`.
+    #[prop(into, optional)]
+    label_class: MaybeProp<String>,
 ) -> impl IntoView {
     let (show_calendar, set_show_calendar) = signal(false);
     let (selected_date, set_selected_date) = signal(None);
@@ -248,6 +254,8 @@ pub fn DatePicker(
                     })
                     icon=BsCalendar2Date
                     icon_is_leading=false
+                    field_class=field_class
+                    label_class=label_class
                 />
             </div>
             <Show when=move || show_calendar.get() fallback=|| ()>

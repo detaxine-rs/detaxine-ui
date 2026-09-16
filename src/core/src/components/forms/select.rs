@@ -436,7 +436,7 @@ pub fn CustomSelectInput(
     };
     let dropdown_class_val = move || {
         tw_merge!(
-            "fixed bg-contrast-white rounded-[5px] shadow-sm overflow-auto p-[5px]",
+            "fixed bg-contrast-white rounded-[5px] shadow-sm overflow-hidden p-[5px] flex flex-col max-h-[min(400px,60vh)]",
             dropdown_class.get().unwrap_or_default()
         )
     };
@@ -453,7 +453,7 @@ pub fn CustomSelectInput(
     };
     let options_list_class_val = move || {
         tw_merge!(
-            "max-h-48 overflow-y-auto",
+            "overflow-y-auto min-h-0 flex-1",
             options_list_class.get().unwrap_or_default()
         )
     };

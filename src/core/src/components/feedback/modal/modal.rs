@@ -130,6 +130,9 @@ pub fn BasicModal(
     /// When `false`, hides the footer entirely. Defaults to `true`.
     #[prop(into, optional, default = true)]
     show_footer: bool,
+    /// Callback fired when the cancel button or backdrop is clicked. Defaults to a no-op.
+    #[prop(default = Callback::new(|_| {}), optional)]
+    on_component_cleanup: Callback<()>,
 ) -> impl IntoView {
     let (title, _set_title) = signal(title);
     let (primary_button_text, _set_primary_button_text) = signal(primary_button_text);
@@ -204,6 +207,8 @@ pub fn BasicModal(
             z_indices.set(z_stack.acquire_pair(ZONE_MODAL));
         }
     });
+
+    on_cleanup(move || on_component_cleanup.run(()));
 
     view! {
         <>
