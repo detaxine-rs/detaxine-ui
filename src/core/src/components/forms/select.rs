@@ -601,8 +601,8 @@ pub fn CustomSelectInput(
                                     let option_text_class_val = option_text_class_val.clone();
 
                                     filtered_options.get().into_iter().map(move |opt| {
-                                        let selected = value.get().contains(&opt.value);
                                         let val = opt.value.clone();
+                                        let val_for_sel = val.clone();
                                         let current_id_attr = format!("{}_{}", id_attr.get_value(), opt.value);
                                         let option_class_val = option_class_val.clone();
                                         let option_text_class_val = option_text_class_val.clone();
@@ -610,30 +610,61 @@ pub fn CustomSelectInput(
                                         view! {
                                             <li
                                                 class=option_class_val
-                                                on:click=move |_| select_value(val.clone())
+                                                on:click=move |ev: ev::MouseEvent| {
+                                                    // Prevents the native checkbox/radio from toggling itself;
+                                                    // state lives only in `value`.
+                                                    ev.prevent_default();
+                                                    select_value(val.clone());
+                                                }
                                             >
-                                                {multiple.then_some(view! {
-                                                    <CheckboxInputField checked=selected id_attr=current_id_attr.clone() />
+                                                {multiple.then_some({
+                                                    let val_for_check = val_for_sel.clone();
+                                                    let id = current_id_attr.clone();
+                                                    view! {
+                                                        {move || {
+                                                            let is_checked = value.get().contains(&val_for_check);
+                                                            view! {
+                                                                <CheckboxInputField
+                                                                    checked=is_checked
+                                                                    id_attr=id.clone()
+                                                                />
+                                                            }
+                                                        }}
+                                                    }
                                                 })}
 
-                                                {
-                                                    if !multiple {
-                                                        Some(
+                                                {(!multiple).then_some({
+                                                    let val_for_radio = val_for_sel.clone();
+                                                    let id = current_id_attr.clone();
+                                                    view! {
+                                                        {move || {
+                                                            let is_selected = value.get().contains(&val_for_radio);
                                                             view! {
-                                                                <RadioInputField is_selected=selected id_attr=current_id_attr.clone() />
+                                                                <RadioInputField
+                                                                    is_selected=is_selected
+                                                                    id_attr=id.clone()
+                                                                />
                                                             }
-                                                        )
-                                                    } else {
-                                                        None
+                                                        }}
                                                     }
-                                                }
+                                                })}
 
-                                                <span class=move || tw_merge!(
-                                                    if selected { "font-semibold" } else { "" },
-                                                    option_text_class_val()
-                                                )>
-                                                    {opt.label.clone()}
-                                                </span>
+                                                {{
+                                                    let val_for_text = val_for_sel.clone();
+                                                    let otc = option_text_class_val.clone();
+                                                    view! {
+                                                        <span class=move || tw_merge!(
+                                                            if value.get().contains(&val_for_text) {
+                                                                "font-semibold"
+                                                            } else {
+                                                                ""
+                                                            },
+                                                            otc()
+                                                        )>
+                                                            {opt.label.clone()}
+                                                        </span>
+                                                    }
+                                                }}
                                             </li>
                                         }
                                     }).collect::<Vec<_>>()

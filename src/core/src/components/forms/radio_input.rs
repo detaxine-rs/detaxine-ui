@@ -123,7 +123,7 @@ pub fn RadioInputField(
                 type="radio"
                 name=name
                 value=initial_value
-                checked=is_selected
+                prop:checked=move || is_selected.get()
                 id=id_attr.clone()
                 required=required
                 node_ref=input_node_ref

@@ -113,7 +113,7 @@ pub fn CustomNumberInput(
             />
             <input
                 node_ref=input_node_ref
-                type="text"
+                type="number"
                 inputmode="numeric"
                 pattern="-?[0-9]*"
                 name=name
