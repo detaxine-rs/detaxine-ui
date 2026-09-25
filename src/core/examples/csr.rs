@@ -818,13 +818,19 @@ pub fn App() -> impl IntoView {
 
                     // Custom Number Input
                     <Section section_ref=number_input_ref label="Custom Number Input">
-                        <CustomNumberInput
-                            name="quantity"
-                            value=Signal::derive(move || 1)
-                            min=1
-                            max=99
-                            class="h-[35px] w-[150px]"
-                        />
+                        {
+                            let value = RwSignal::new(1);
+                            view! {
+                                <CustomNumberInput
+                                    name="quantity"
+                                    value=value
+                                    min=1
+                                    max=99
+                                    class="h-[35px] w-[150px]"
+                                    on_change=Callback::new(move |new_value| value.set(new_value))
+                                />
+                            }
+                        }
                     </Section>
 
                     <Section section_ref=pin_input_ref label="Pin Input">

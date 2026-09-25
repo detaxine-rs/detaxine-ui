@@ -93,7 +93,6 @@ pub fn Tooltip(
     let panel_ref = NodeRef::<Div>::new();
     let showing = RwSignal::new(false);
     let panel_pos = RwSignal::new(PanelPos::default());
-    let arrow_offset = RwSignal::new("left-1/2 -translate-x-1/2".to_string());
     let tooltip_id = StoredValue::new(next_tooltip_id());
     let z_stack = expect_z_stack();
     let z_index = RwSignal::new(ZONE_TOOLTIP);
@@ -102,16 +101,7 @@ pub fn Tooltip(
     let open_timer = StoredValue::<Option<TimeoutHandle>>::new(None);
     let close_timer = StoredValue::<Option<TimeoutHandle>>::new(None);
 
-    let position_class = StoredValue::new(position); // Position is Copy, fine to store directly
-
-    let arrow_class = StoredValue::new(match position {
-        Position::Top => "-bottom-2",
-        Position::Bottom => "-top-2 rotate-180",
-        Position::Left => "-right-2 top-1/2 -translate-y-1/2 -rotate-90",
-        Position::Right => "-left-2 top-1/2 -translate-y-1/2 rotate-90",
-    });
-
-    let is_horizontal = matches!(position, Position::Top | Position::Bottom);
+    let position_class = StoredValue::new(position);
 
     // Pass 2: trigger + panel are both mounted now, measure panel and
     // compute final fixed-viewport coordinates.
@@ -145,16 +135,6 @@ pub fn Tooltip(
                 t.right() + GAP,
             ),
         };
-
-        if is_horizontal {
-            arrow_offset.set(if t.left() < vw / 3.0 {
-                "left-4 translate-x-0".to_string()
-            } else if t.right() > vw * 2.0 / 3.0 {
-                "right-4 translate-x-0".to_string()
-            } else {
-                "left-1/2 -translate-x-1/2".to_string()
-            });
-        }
 
         panel_pos.set(PanelPos {
             top,
@@ -298,14 +278,6 @@ pub fn Tooltip(
                                 class.get().unwrap_or_default()
                             )
                         >
-                            <div
-                                class=move || format!(
-                                    "absolute w-3 h-2 bg-inherit {} {}",
-                                    if is_horizontal { arrow_offset.get() } else { String::new() },
-                                    arrow_class.get_value()
-                                )
-                                style="clip-path: polygon(50% 100%, 0 0, 100% 0);"
-                            ></div>
                             <div class="relative z-10">
                                 {move || children.get()()}
                             </div>
@@ -322,7 +294,7 @@ pub fn Tooltip(
 mod tests {
     use super::*;
 
-    // position_class / arrow_class logic
+    // position_class logic
 
     fn position_class(position: Position) -> &'static str {
         match position {
@@ -331,10 +303,6 @@ mod tests {
             Position::Left => "right-full mr-2 top-1/2 -translate-y-1/2",
             Position::Right => "left-full ml-2 top-1/2 -translate-y-1/2",
         }
-    }
-
-    fn is_horizontal(position: Position) -> bool {
-        matches!(position, Position::Top | Position::Bottom)
     }
 
     #[test]
@@ -347,64 +315,34 @@ mod tests {
         assert_eq!(position_class(Position::Bottom), "top-full mt-2");
     }
 
-    #[test]
-    fn left_and_right_are_not_horizontal() {
-        assert!(!is_horizontal(Position::Left));
-        assert!(!is_horizontal(Position::Right));
-    }
+    // viewport alignment logic (panel-only, no caret)
 
-    #[test]
-    fn top_and_bottom_are_horizontal() {
-        assert!(is_horizontal(Position::Top));
-        assert!(is_horizontal(Position::Bottom));
-    }
-
-    // viewport alignment logic (shared with Popover's edge-avoidance approach)
-
-    fn resolve_alignment(left: f64, right: f64, vw: f64) -> (&'static str, &'static str) {
+    fn resolve_alignment(left: f64, right: f64, vw: f64) -> &'static str {
         if left < vw / 3.0 {
-            ("left-0", "left-4 translate-x-0")
+            "left-0"
         } else if right > vw * 2.0 / 3.0 {
-            ("right-0", "right-4 translate-x-0")
+            "right-0"
         } else {
-            ("left-1/2 -translate-x-1/2", "left-1/2 -translate-x-1/2")
+            "left-1/2 -translate-x-1/2"
         }
     }
 
     #[test]
     fn near_left_edge_aligns_left() {
-        let (panel, arrow) = resolve_alignment(10.0, 200.0, 375.0);
-        assert_eq!(panel, "left-0");
-        assert_eq!(arrow, "left-4 translate-x-0");
+        assert_eq!(resolve_alignment(10.0, 200.0, 375.0), "left-0");
     }
 
     #[test]
     fn near_right_edge_aligns_right() {
-        let (panel, arrow) = resolve_alignment(300.0, 370.0, 375.0);
-        assert_eq!(panel, "right-0");
-        assert_eq!(arrow, "right-4 translate-x-0");
+        assert_eq!(resolve_alignment(300.0, 370.0, 375.0), "right-0");
     }
 
     #[test]
     fn centered_aligns_center() {
-        let (panel, arrow) = resolve_alignment(150.0, 250.0, 375.0);
-        assert_eq!(panel, "left-1/2 -translate-x-1/2");
-        assert_eq!(arrow, "left-1/2 -translate-x-1/2");
-    }
-
-    #[test]
-    fn panel_and_arrow_alignment_stay_coupled_across_all_cases() {
-        // the fix: whatever bucket the trigger falls into, panel and arrow
-        // must be recomputed together — never one updated without the other
-        for (left, right) in [(10.0, 200.0), (300.0, 370.0), (150.0, 250.0)] {
-            let (panel, arrow) = resolve_alignment(left, right, 375.0);
-            let expected = match panel {
-                "left-0" => "left-4 translate-x-0",
-                "right-0" => "right-4 translate-x-0",
-                _ => "left-1/2 -translate-x-1/2",
-            };
-            assert_eq!(arrow, expected);
-        }
+        assert_eq!(
+            resolve_alignment(150.0, 250.0, 375.0),
+            "left-1/2 -translate-x-1/2"
+        );
     }
 
     // disabled guard

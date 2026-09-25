@@ -74,7 +74,6 @@ pub fn Popover(
     let (children, _set_children) = signal(children);
     let trigger_ref = NodeRef::<Div>::new();
     let panel_pos = RwSignal::new(PanelPos::default());
-    let arrow_offset = RwSignal::new("left-1/2 -translate-x-1/2".to_string());
     let location = use_location();
     let z_stack = expect_z_stack();
     let z_indices = RwSignal::new((ZONE_DROPDOWN, ZONE_DROPDOWN + 1));
@@ -87,11 +86,6 @@ pub fn Popover(
             z_stack.unlock_scroll();
         }
     };
-
-    let arrow_class = StoredValue::new(match position {
-        Position::Top => "-bottom-[5px] rotate-180",
-        Position::Bottom => "-top-[5px]",
-    });
 
     Effect::new(move |_| {
         let _ = location.pathname.get();
@@ -120,7 +114,7 @@ pub fn Popover(
             Position::Top => rect.top() - 8.0, // panel uses translateY(-100%) in CSS below
         };
 
-        // horizontal: clamp panel + arrow to stay on-screen
+        // horizontal: clamp panel to stay on-screen
         let panel_min_w = 128.0; // matches min-w-32
         let left = if rect.left() < vw / 3.0 {
             rect.left()
@@ -129,14 +123,6 @@ pub fn Popover(
         } else {
             rect.left() + rect.width() / 2.0 - panel_min_w / 2.0
         };
-
-        arrow_offset.set(if rect.left() < vw / 3.0 {
-            "left-4 translate-x-0".to_string()
-        } else if rect.right() > vw * 2.0 / 3.0 {
-            "right-4 translate-x-0".to_string()
-        } else {
-            "left-1/2 -translate-x-1/2".to_string()
-        });
 
         panel_pos.set(PanelPos { top, left });
     });
@@ -192,9 +178,6 @@ pub fn Popover(
                                 class.get().unwrap_or_default()
                             )
                         >
-                            <div class=move || format!("absolute bg-inherit {} {}", arrow_offset.get(), arrow_class.get_value())>
-                                <div class="w-[15px] h-[15px] bg-inherit border-l border-t border-light-gray rotate-45"></div>
-                            </div>
                             <div class="relative z-10 bg-inherit rounded-[5px]">
                                 {move || children.get().map(|child| child())}
                             </div>
@@ -232,13 +215,6 @@ mod tests {
         }
     }
 
-    fn arrow_class(position: &Position) -> &'static str {
-        match position {
-            Position::Top => "-bottom-[10px] rotate-180",
-            Position::Bottom => "-top-[10px]",
-        }
-    }
-
     #[test]
     fn top_position_class() {
         assert_eq!(position_class(&Position::Top), "bottom-full mb-2");
@@ -249,47 +225,34 @@ mod tests {
         assert_eq!(position_class(&Position::Bottom), "top-full mt-2");
     }
 
-    #[test]
-    fn top_arrow_class() {
-        assert_eq!(arrow_class(&Position::Top), "-bottom-[10px] rotate-180");
-    }
-
-    #[test]
-    fn bottom_arrow_class() {
-        assert_eq!(arrow_class(&Position::Bottom), "-top-[10px]");
-    }
-
     // viewport alignment logic
 
-    fn resolve_alignment(left: f64, right: f64, vw: f64) -> (&'static str, &'static str) {
+    fn resolve_alignment(left: f64, right: f64, vw: f64) -> &'static str {
         if left < vw / 3.0 {
-            ("left-0", "left-4 translate-x-0")
+            "left-0"
         } else if right > vw * 2.0 / 3.0 {
-            ("right-0", "right-4 translate-x-0")
+            "right-0"
         } else {
-            ("left-1/2 -translate-x-1/2", "left-1/2 -translate-x-1/2")
+            "left-1/2 -translate-x-1/2"
         }
     }
 
     #[test]
     fn near_left_edge_aligns_left() {
-        let (popover, arrow) = resolve_alignment(10.0, 200.0, 375.0);
+        let popover = resolve_alignment(10.0, 200.0, 375.0);
         assert_eq!(popover, "left-0");
-        assert_eq!(arrow, "left-4 translate-x-0");
     }
 
     #[test]
     fn near_right_edge_aligns_right() {
-        let (popover, arrow) = resolve_alignment(300.0, 370.0, 375.0);
+        let popover = resolve_alignment(300.0, 370.0, 375.0);
         assert_eq!(popover, "right-0");
-        assert_eq!(arrow, "right-4 translate-x-0");
     }
 
     #[test]
     fn centered_aligns_center() {
-        let (popover, arrow) = resolve_alignment(150.0, 250.0, 375.0);
+        let popover = resolve_alignment(150.0, 250.0, 375.0);
         assert_eq!(popover, "left-1/2 -translate-x-1/2");
-        assert_eq!(arrow, "left-1/2 -translate-x-1/2");
     }
 
     // toggle logic
@@ -329,18 +292,14 @@ mod tests {
     fn alignment_resets_when_closed() {
         let owner = Owner::new();
         owner.with(|| {
-            let align = RwSignal::new(("left-0".to_string(), "left-4 translate-x-0".to_string()));
+            let align = RwSignal::new("left-0".to_string());
             let showing = RwSignal::new(false);
 
             if !showing.get() {
-                align.set((
-                    "left-1/2 -translate-x-1/2".to_string(),
-                    "left-1/2 -translate-x-1/2".to_string(),
-                ));
+                align.set("left-1/2 -translate-x-1/2".to_string());
             }
 
-            assert_eq!(align.get().0, "left-1/2 -translate-x-1/2");
-            assert_eq!(align.get().1, "left-1/2 -translate-x-1/2");
+            assert_eq!(align.get(), "left-1/2 -translate-x-1/2");
         });
     }
 }
