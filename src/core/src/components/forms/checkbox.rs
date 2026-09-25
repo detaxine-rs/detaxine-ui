@@ -168,7 +168,7 @@ pub fn CheckboxInputField(
                     autocomplete=autocomplete
                     id=id_attr.clone()
                     required=required
-                    checked=checked
+                    prop:checked=move || checked.get()
                 />
                 <span class=box_class_val aria-hidden="true">
                     <svg
