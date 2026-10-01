@@ -140,7 +140,10 @@ pub fn Popover(
             recalculate.get_value()();
         }
     });
-    on_cleanup(move || window_resize_listener.remove());
+    on_cleanup(move || {
+        window_resize_listener.remove();
+        z_stack.unlock_scroll();
+    });
 
     let panel_style = move || {
         let pos = panel_pos.get();
